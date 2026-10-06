@@ -1,0 +1,22 @@
+BASELINE VERSION
+Date: 16-Jun-2026
+
+Governance:
+✓ MVP_Business_Rules.md
+✓ KPI_Definitions.md
+✓ Data_Dictionary.md
+✓ Semantic_Visualization_Governance.md
+
+Validated:
+✓ Team mapping
+✓ Assignee mapping
+✓ Capacity
+✓ Logged Engineering
+✓ Logged Operations
+✓ Utilization
+✓ Backlog Worked On
+✓ Parent inheritance
+✓ Delivery Progress
+✓ Master Date governance
+✓ TEMPO-106 exclusion
+✓ TEMPO-54 exclusion

@@ -1,0 +1,71 @@
+BASELINE VERSION
+Version: v0.13
+Date: 05-Aug-2026
+Supersedes: BASELINE_v0.12_2026-08-05.txt
+
+1. PURPOSE
+
+This baseline records the approved final Bug Triage visualization enhancement. It adds a display-only Bug Severity Distribution chart and rearranges the executive visualization area without changing the approved Bug Triage queue, table, snapshot banner, KPI, calculation, filter, reconciliation, or CSV-export behavior.
+
+2. APPROVED EXECUTIVE VISUALIZATION LAYOUT
+
+The executive visualization area uses equal two-panel rows:
+
+1. Hours Trend | Planned vs Unplanned Effort
+2. Program Distribution | Bug Severity Distribution
+
+Program Distribution retains its existing Tempo logged-hours-by-Program semantics. Planned vs Unplanned Effort retains its existing behavior and has only moved to the Hours Trend row. Account Distribution, Team Utilization, Remaining Demand, and all other dashboard visuals retain their existing calculations and behavior.
+
+3. BUG SEVERITY DISTRIBUTION GOVERNANCE
+
+Title: Bug Severity Distribution
+Subtitle: Current operational Bug Triage queue by severity
+Form: horizontal bar chart
+
+The chart uses only the latest dedicated `Bug Triage_*` Jira export already used by the Bug Triage table. It counts each distinct nonblank Jira Issue Key once and excludes missing Bug Severity (`-`). It renders the fixed category order Blocker, Critical, Major, Medium, Low, Enhancement. Tooltips state the severity and Number of Bugs. Soft, low-saturation colors are used.
+
+The chart has no Tempo, general-backlog, capacity, Team mapping, prior-snapshot, KPI, calculation, reconciliation, search, table-sort, or global-filter input. It creates no new control or filter and does not alter the Bug Triage Details table or snapshot comparison banner.
+
+4. CURRENT SOURCE AND RECONCILIATION
+
+Current Bug Triage export: `Bug Triage_20260805.csv`
+
+- Source rows: 46
+- Distinct Jira keys: 46
+- Duplicate Jira keys: 0
+- Missing Bug Severity values: 0
+- Blocker: 3
+- Critical: 10
+- Major: 33
+- Medium: 0
+- Low: 0
+- Enhancement: 0
+- Displayed severity total: 46
+- Reconciliation: 3 + 10 + 33 + 0 + 0 + 0 = 46 distinct current-queue keys
+
+5. IMPLEMENTATION VALIDATION
+
+Validation status: PASS
+
+- Hours Trend and Planned vs Unplanned Effort render as equal-width, equal-height panels with matching panel padding, header spacing, chart-frame structure, and footer space.
+- Program Distribution and Bug Severity Distribution render with the same paired-panel dimensions and spacing.
+- Bug Severity Distribution is horizontal, ordered as governed, and its tooltip states the severity and number of Bugs.
+- The chart source is the current full Bug Triage export; duplicate keys are ignored and missing severity is excluded.
+- Responsive validation confirms the paired panels stack without horizontal overflow at mobile width.
+- Existing global filters, Details search, Details tabs, Team mapping, KPIs, charts, reconciliation, and CSV export remain unchanged.
+
+6. REGRESSION STATUS
+
+PASS
+
+No KPI, capacity, logged-hours, forecasting, Tempo, Team, Assignees CSV, Bug Severity table, snapshot comparison, reconciliation, filter, search, or existing dashboard-chart semantic changed.
+
+7. VERSION HISTORY
+
+- v0.13 (05-Aug-2026): Adds the governed display-only Bug Severity Distribution horizontal bar chart and the approved two-row executive visualization layout.
+- v0.12 (05-Aug-2026): Dedicated Jira Bug Triage operational-queue amendment, seven-column table, Assignees CSV Team mapping, validation report, and snapshot banner.
+- v0.11 (05-Aug-2026): Original Bug Severity Details-tab introduction.
+
+CHECKPOINT CONCLUSION
+
+Implementation approved. Browser regression validation is recorded in this baseline.

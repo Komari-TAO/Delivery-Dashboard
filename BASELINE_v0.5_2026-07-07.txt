@@ -1,0 +1,131 @@
+BASELINE VERSION
+Version: v0.5
+Date: 07-Jul-2026
+Supersedes: BASELINE_v0.4_2026-07-06.txt
+
+PURPOSE
+This file is the canonical standalone checkpoint for the Codex MVP workspace after Phase 2 temporal-model simplification.
+
+It documents the platform state after Week Number was removed as a user-facing filter while preserving internal Master Date week metadata for reporting, trends, capacity mapping, and validation.
+
+AUTHORITATIVE GOVERNANCE DOCUMENTS
+- docs/MVP_Business_Rules.md
+- docs/KPI_Definitions.md
+- docs/Data_Dictionary.md
+- docs/Semantic_Visualization_Governance.md
+- docs/Calculation_Governance.md
+
+PROJECT STATE SUMMARY
+- Phase 1 governed Logged Hours remains active.
+- Logged Hours remains Tempo-sourced and governed as all valid Tempo worklogs within the selected Date Range after governed exclusions.
+- TEMPO-106 and TEMPO-54 remain globally excluded.
+- Operational TEMPO-* work remains included as Logged Operations unless globally excluded.
+- Jira metadata enriches Tempo worklogs but does not determine whether logged hours exist.
+- Team attribution remains governed by Assignees CSV.
+- Assignee normalization remains active:
+  - ignacio.mangas -> Ignacio Mangas
+  - andres.rojas -> Andres Rojas / Andres Rojas with the canonical representation used by Assignees CSV
+- Marina Petrova and Yuliya Kandukova remain unmanaged/excluded unless added to Assignees CSV.
+
+PHASE 2 TEMPORAL MODEL CHANGE
+- Week Number has been removed from the dashboard UI.
+- Week Number has been removed from user-facing filter state.
+- Week Number active filter chips have been removed.
+- Week picker events and reset logic have been removed.
+- Date Range is now the primary time filter for the dashboard.
+- Logged Hours now filter by:
+  - Date Range
+  - existing business filters such as Team, Assignee, Skill, Account, Account Category, Priority, Target Release, Program, and Release Cycle
+- Backlog activity and Delivery Progress activity context now use Tempo Work Date and Date Range rather than a user-selected Week Number.
+
+INTERNAL WEEK METADATA PRESERVED
+The following internal week-related metadata remains preserved and must not be removed without separate governance review:
+
+- Master Date
+- worklog week
+- worklog isWorkday
+- Weekly Capacity week
+- weekly trend grouping
+
+Week Number is no longer a global user filter, but week remains governed internal calendar metadata derived from Master Date.
+
+PLANNING PERIODS
+- Release Cycle remains an independent planning filter.
+- Release Cycle represents the Program Increment (PI) in the organization.
+- Release Cycle dropdown ordering is chronological by Release Cycle Start Date, not alphabetical.
+- Target Release remains unchanged.
+- Quick Period / Week shortcut behavior was not implemented in Phase 2.
+
+CALCULATION BEHAVIOR PRESERVED
+- Capacity formulas are unchanged.
+- Capacity continues to internally map Date Range to Weekly Capacity using existing week metadata.
+- Demand formulas are unchanged.
+- Demand remains governed by Jira Original Estimate where used by Demand vs Actual.
+- Program logic is unchanged.
+- Account logic is unchanged.
+- Delivery logic is unchanged.
+- Release Cycle business logic is unchanged.
+- Target Release logic is unchanged.
+- web/data.js was not regenerated for this baseline.
+
+VALIDATED PHASE 2 RESULTS
+- Syntax validation passed:
+  - node --check web/app.js
+- Week Number no longer appears in the user-facing dashboard UI.
+- No user-facing Week Number filter state remains in the frontend.
+- Logged-effort visuals reconcile to the same governed Logged Hours total:
+  - Actual / Logged Hours KPI
+  - Effort Trend
+  - Team Utilization
+  - Demand vs Actual logged-hours side
+  - Program Distribution governed total
+  - Planned vs Unplanned total
+  - People table logged total
+- Full-range governed Logged Hours: 32,658.766 hours.
+- Former Week 23 equivalent Date Range, 2026-06-01 to 2026-06-05, reconciles to 1,286.565 hours.
+- Former Week 28 equivalent Date Range, 2026-07-06 to 2026-07-07, reconciles to 93.334 hours.
+- Full-range capacity remains 26,422.6 hours.
+- Weekly trend capability remains available through internal worklog week metadata.
+- Release Cycle filtering remains unchanged.
+- Release Cycle dropdown is chronologically sorted by Start Date.
+
+FILES MODIFIED FOR PHASE 2 IMPLEMENTATION
+- web/index.html
+  - Removed Week Number dropdown/filter from the Date Range filter block.
+- web/app.js
+  - Removed user-facing Week Number filter state.
+  - Removed Week Number filtering from runtime filter pipelines.
+  - Removed active Week filter chips.
+  - Removed Week picker event handling.
+  - Preserved internal worklog week usage for weekly trend grouping.
+  - Preserved capacity week mapping.
+  - Sorted Release Cycle filter options chronologically by Start Date.
+- web/styles.css
+  - Removed unused Week picker list selector.
+
+FILES NOT MODIFIED FOR THIS BASELINE CREATION
+- Existing baseline files were not modified.
+- Code was not modified during creation of this v0.5 baseline file.
+- Data files were not modified.
+- Governance documents were not modified.
+- Generated files were not modified.
+- web/data.js was not regenerated.
+
+IMPLEMENTATION NOTES FOR CONTINUATION
+- Date Range is the primary temporal filter.
+- Week Number must not be reintroduced as a global user filter without governance review.
+- If a future Quick Period selector is implemented, it should set the existing Date Range rather than restoring Week Number filter state.
+- Internal week metadata should remain available for:
+  - Master Date validation
+  - weekly trend grouping
+  - Weekly Capacity alignment
+  - workday mapping
+  - regression validation
+- Any future capacity redesign must explicitly govern how partial Date Ranges map to Weekly Capacity.
+
+CHECKPOINT CONCLUSION
+- v0.5 is the Phase 2 temporal-model baseline.
+- The dashboard now uses Date Range as the only primary time filter.
+- Week remains internal governed calendar metadata, not a user-facing global filter.
+- Phase 1 governed Logged Hours remains active and reconciled.
+- No data regeneration occurred for this checkpoint.

@@ -1,0 +1,130 @@
+BASELINE VERSION
+Version: v0.11
+Date: 05-Aug-2026
+Supersedes: BASELINE_v0.10_2026-07-23.txt
+
+1. PURPOSE
+
+This file is the authoritative implementation baseline for the AI-Assisted Delivery Management Platform as of 05-Aug-2026.
+
+It records the approved Bug Triage enhancement. BASELINE v0.10 remains a historical checkpoint and the approved Product Module implementation remains in effect.
+
+2. PLATFORM STATUS
+
+The platform remains calculation-stable and reconciliation-stable after the Bug Triage enhancement.
+
+- Bug Triage has been added to Details after Delivery Progress.
+- Bug Severity has been implemented as governed Jira metadata.
+- No KPI, capacity, logged-hours, estimate, account-distribution, program-distribution, delivery-progress, or backlog calculation changed.
+- No reconciliation behavior changed.
+- No global filter behavior changed.
+- Existing Details tabs and CSV export behavior remain unchanged.
+
+3. BUG TRIAGE GOVERNANCE
+
+Authoritative source:
+
+Jira `Custom field (Bug Severity)`
+
+Allowed values:
+
+- Blocker
+- Critical
+- Major
+- Medium
+- Low
+- Enhancement
+
+Bug Severity is read-only, display-only metadata for operational Bug Triage. It is displayed exactly as stored in Jira. Missing values render as `-`; no fallback or parent inheritance is implemented.
+
+Bug Severity does not participate in KPI calculations, reconciliation, grouping, aggregation, filtering, Team semantics, Backlog semantics, Delivery Progress semantics, Capacity, Logged Hours, or Original Estimate calculations.
+
+4. APPROVED IMPLEMENTATION
+
+Details tab order:
+
+1. Accounts
+2. People
+3. Backlog
+4. Delivery Progress
+5. Bug Triage
+
+Bug Triage contains only Jira work items where Work Item Type = Bug. Tempo operational rows do not appear.
+
+Canonical columns, in order:
+
+1. Key
+2. Summary
+3. Bug Severity
+4. Priority
+5. Status
+6. Assignee
+7. Team
+
+Team continues to use the governed Assignees CSV mapping. Jira Team and Tempo Team are not used. The tab reuses the standard Details-table rendering, global filters, search, sorting, and placeholder behavior; it adds no filtering pipeline or global filter.
+
+5. GOVERNANCE DOCUMENTS UPDATED
+
+- `docs/governance/Data_Dictionary.md`
+- `docs/governance/MVP_Business_Rules.md`
+- `docs/governance/Semantic_Visualization_Governance.md`
+
+The following documents remain unchanged:
+
+- `docs/governance/KPI_Definitions.md`
+- `docs/governance/Calculation_Governance.md`
+- `docs/governance/Forecasting_Governance.md`
+- `docs/governance/Release_Cycle_Governance.md`
+
+6. VALIDATION RESULTS
+
+Implementation: PASS
+
+Data build: PASS
+
+Static JavaScript syntax validation: PASS
+
+Bug Triage browser validation: PASS
+
+- Canonical columns rendered in the required order.
+- 30 currently scoped Jira Bug rows rendered.
+- All rendered Bug Severity, Priority, Status, Assignee, and Team values matched the Jira-backed dashboard data and governed Assignees mapping.
+- 15 rendered Bug rows with missing Jira Bug Severity displayed `-`.
+- No Tempo operational key appeared.
+- Details search returned only the matching Bug key.
+- A selected governed Team filter returned only that Team's Bug rows.
+
+Full-source Bug Severity validation: PASS
+
+- All 609 Jira Bug rows in the source export are present as 609 Bug rows in the dashboard Jira dataset.
+- Zero Bug Severity mapping mismatches were found.
+- 238 Jira Bug rows have a missing Bug Severity; no unexpected nonblank severity value was found.
+
+Existing-dashboard browser smoke validation: PASS
+
+- Four existing KPI cards and nine charts rendered without page errors.
+- Accounts, People, Backlog, and Delivery Progress tabs rendered their existing canonical headers.
+- Filtered Accounts CSV export completed.
+
+The legacy comprehensive Chrome/CDP regression harness remains blocked before its test suite because its readiness selector expects a `last30` preset control that is not present in the current approved interface. This is a pre-existing validation-harness condition; it is not caused by Bug Triage. The targeted browser validation and existing-dashboard smoke checks above passed.
+
+7. ACCEPTANCE CONCLUSION
+
+PASS
+
+The Bug Triage Details tab is available, Jira-only, and display-only. It preserves governed Team semantics, does not alter KPIs, calculations, reconciliation, filters, or existing dashboard behavior, and meets the documented acceptance criteria.
+
+8. VERSION HISTORY
+
+- v0.11 (05-Aug-2026): Approved Bug Triage enhancement. Records Bug Severity as Jira-owned, read-only operational metadata in a dedicated Details tab; confirms Jira-only Bug inclusion, no Tempo operational rows, no parent inheritance, no KPI/reconciliation/filter impact, and successful validation.
+- v0.10 (23-Jul-2026): Approved Product Module enhancement.
+
+CHECKPOINT CONCLUSION
+
+Implementation approved.
+
+Governance approved.
+
+Bug Triage enhancement approved.
+
+BASELINE v0.11 becomes the authoritative implementation baseline for subsequent development.

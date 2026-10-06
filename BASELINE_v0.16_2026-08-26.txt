@@ -1,0 +1,128 @@
+BASELINE VERSION
+Version: v0.16
+Date: 26-Aug-2026
+Supersedes: BASELINE_v0.15_2026-08-06.txt
+
+1. PURPOSE
+
+This baseline records the approved global governed-analytics exclusion of five exact Tempo work-item keys:
+
+- TEMPO-54
+- TEMPO-92
+- TEMPO-106
+- TEMPO-111
+- TEMPO-112
+
+The exclusion is implemented in the production data build and reinforced at browser data ingestion so the governed analytical population is consistent before calculation, enrichment, aggregation, filtering, searching, rendering, reconciliation, or export.
+
+2. BUSINESS MEANING
+
+TEMPO-54 is Absence (Out Of Office). TEMPO-106 is Daily total working time (Legal Tracking).
+
+TEMPO-92, TEMPO-111, and TEMPO-112 collectively represent HR daily-registration and vacation records. The available source data does not establish which individual key corresponds to which of those purposes, so this baseline does not infer a per-key mapping.
+
+These records are not governed delivery or operational effort and contribute zero to governed analytics.
+
+3. MATCHING AND PIPELINE RULE
+
+Candidate Jira or Tempo keys are trimmed, converted to uppercase, and then compared by exact equality with the complete five-key exclusion set. Prefix, substring, numeric, or fuzzy matching is prohibited. Valid near matches such as TEMPO-540 and valid operational work such as TEMPO-30 remain included.
+
+The exclusion is applied immediately after source ingestion and before:
+
+- classification as Engineering, Operations, planned, or unplanned
+- Jira or hierarchy enrichment
+- calculation or aggregation
+- reconciliation
+- facet and filter population
+- table, chart, KPI, tooltip, or summary rendering
+- search results
+- CSV export
+
+The same governed population is used throughout the application. Later filters cannot reintroduce excluded rows.
+
+4. AFFECTED ANALYTICS
+
+The exclusion applies globally to all governed current and future analytical outputs, including:
+
+- Logged Hours and Billable Hours
+- Actual Hours, Annual Capacity Remaining, and Annual Capacity Utilization numerators
+- Engineering, Operations, planned, unplanned, Account, Team, Assignee, Program, Skill, Priority, Status, Target Release, and Release breakdowns
+- Accounts, People, Backlog Worked On, and Delivery Progress details
+- work-item counts, distributions, trends, summaries, tooltips, search results, and CSV exports
+- reconciliation outputs
+- Jira-derived current backlog activity and any future demand candidate population
+
+5. VERIFIED DATA IMPACT
+
+Source window: 02-Jan-2026 through 05-Aug-2026.
+
+All five excluded keys in the raw worklog source account for 3,301 rows, 3,794.149 logged hours, and 419.959 billable hours. TEMPO-54 and TEMPO-106 were already excluded by the previous implementation. The incremental effect of adding TEMPO-92, TEMPO-111, and TEMPO-112 to the managed-team governed population is:
+
+- worklog rows: 23,725 to 23,404 (-321)
+- logged hours: 37,949.500 to 37,571.793 (-377.707)
+- billable hours: 33,946.580 to 33,573.563 (-373.017)
+- distinct work items: 2,517 to 2,514 (-3)
+- Engineering logged hours: unchanged at 31,275.948
+- Operations logged hours: 6,673.552 to 6,295.845 (-377.707)
+
+After the complete five-key exclusion, Engineering plus Operations reconciles exactly to 37,571.793 managed-team governed logged hours.
+
+The five excluded keys have no rows in the current Jira backlog source and therefore remove 0.000 Original Estimate hours and 0.000 Remaining Estimate hours in the current snapshot. The rule remains authoritative for any future Jira-derived demand population.
+
+6. PROTECTED BOUNDARIES
+
+Capacity is person/calendar based and is not issue-key based. The exclusion does not alter capacity sources or denominators:
+
+- annual workforce capacity: 65,470.000 hours
+- weekly planned capacity: 52,665.000 hours
+
+The independent Bug Triage queue remains governed solely by its dedicated Jira export. It is not filtered by the Tempo analytical exclusion and remains at 46 distinct Jira keys in the current snapshot.
+
+Version 2.1 forecasting implementation remains parked. Forecasting governance now records the five-key rule only as an input-boundary requirement; no forecast resolver, allocation behavior, Release Cycle dashboard behavior, or other forecasting implementation was introduced.
+
+7. IMPLEMENTATION
+
+The exclusion set, normalization, reasons, masks, and partitioning are centralized in `scripts/governed_exclusions.py`. Both the production builder and the legacy preparation path consume that authority. `web/app.js` derives its browser-side guard from generated metadata rather than maintaining a second hard-coded exclusion set.
+
+Generated metadata records the exact exclusion set and per-key source impact for auditability. Production output was rebuilt in `web/data.js`.
+
+8. GOVERNANCE ALIGNMENT
+
+The following authoritative documents were updated and reconciled:
+
+- `docs/governance/MVP_Business_Rules.md`
+- `docs/governance/Calculation_Governance.md`
+- `docs/governance/KPI_Definitions.md`
+- `docs/governance/Data_Dictionary.md`
+- `docs/governance/Semantic_Visualization_Governance.md`
+- `docs/governance/Forecasting_Governance.md`
+- `docs/governance/Forecast_Resolution_Specification.md`
+- `docs/user-guides/User_Guide.md`
+
+Release Cycle governance is unrelated and unchanged. `BASELINE_v0.15_2026-08-06.txt` remains unchanged as the historical Version 2.1 governance milestone.
+
+9. VALIDATION
+
+Validation status: PASS
+
+- Production build completed successfully and regenerated `web/data.js`.
+- Seven focused Python regression tests passed, covering the exact immutable set, trim/uppercase normalization, near matches, zero contribution to logged/planned/billable/remaining metrics, filter non-reintroduction, reconciliation, valid Operations and Engineering retention, capacity isolation, and generated-payload leakage.
+- Python compilation passed for the builder, legacy preparation path, exclusion authority, and focused tests.
+- JavaScript syntax checks passed for `web/app.js` and the Chrome regression harness.
+- The full headless Chrome regression suite passed across four KPI cards, ten charts, shared filters, Accounts, People, Backlog Worked On, Delivery Progress, search, tooltips, reconciliation, team ownership, desktop/mobile rendering, and CSV export.
+- Browser validation found no excluded-key leaks in worklogs, backlog worklogs, backlog, operational mappings, descriptions, rendered content, search results, or exported CSV.
+- Delivery Progress ownership validation passed, including ADF-2326 under Integration.
+- Bug Triage validation passed with 46 rows, 46 distinct Jira keys, and all independent queue semantics preserved.
+- Desktop and mobile verification renders passed visual inspection.
+- Capacity source SHA-256 hashes remained unchanged:
+  - `20260307_Assignees_Capacity.csv`: A081441EDA66E20044FFDBB5FA7F186B89875321C64C5A8C2160CB9B73D3E613
+  - `Weekly Capacity_20260805.csv`: 843274DF81B4DA9AACE8AEE8464222A41036B6BB7BB7B8C376E2C2CF9C5D6CAC
+
+10. VERSION HISTORY
+
+- v0.16 (26-Aug-2026): Implemented, governed, rebuilt, and validated the global exact normalized exclusion of TEMPO-54, TEMPO-92, TEMPO-106, TEMPO-111, and TEMPO-112 across all governed analytics, while preserving capacity, Bug Triage independence, Release Cycle governance, and the parked forecasting implementation boundary.
+- v0.15 (06-Aug-2026): Completed and approved the Version 2.1 forecasting governance phase. Forecasting implementation did not start.
+
+CHECKPOINT CONCLUSION
+
+BASELINE v0.16 supersedes BASELINE v0.15 as the approved implementation baseline. The complete five-key exclusion is globally enforced, governed outputs reconcile, protected boundaries are unchanged, and all required validation passed.

@@ -1,0 +1,211 @@
+BASELINE VERSION
+Version: v0.10
+Date: 23-Jul-2026
+Supersedes: BASELINE_v0.9_2026-07-21.txt
+
+1. PURPOSE
+
+This file is the authoritative implementation baseline for the AI-Assisted Delivery Management Platform as of 23-Jul-2026.
+
+It records the approved Product Module enhancement and the continuing approved platform state established by BASELINE v0.9. Previous baseline files remain historical checkpoints and are not modified by this baseline. This baseline is the single source of truth for subsequent implementation work.
+
+2. PLATFORM STATUS
+
+The platform remains operationally stable after the Product Module enhancement.
+
+- Product Module has been implemented as governed Jira metadata.
+- The implementation has been validated.
+- No calculation behaviour changed.
+- No reconciliation behaviour changed.
+- No KPI behaviour changed.
+- No dashboard filtering behaviour changed.
+- Semantic governance, calculation governance, and the approved Account Distribution workstream remain in effect.
+
+3. APPROVED AUTHORITATIVE SOURCES
+
+Tempo
+- Logged Effort
+
+Jira
+- Remaining Demand
+- Work Item metadata
+- Account metadata
+- Forecast metadata
+- Product Module: read-only work-item metadata displayed in the Backlog Details table
+
+Weekly Capacity
+- Capacity
+
+Assignees
+- Team ownership
+- Workforce metadata
+
+Master Date
+- Date
+- Week
+- Calendar governance
+
+4. APPROVED IMPLEMENTATION
+
+The following implementation areas are validated and approved:
+
+- Governed Logged Effort
+- Governed Capacity
+- Governed Remaining Demand
+- Date Range historical reporting
+- Master Date week governance
+- Team governance
+- Account Distribution and Account-attribution reconciliation
+- Program Distribution reconciliation
+- Planned vs Unplanned reconciliation
+- People reconciliation
+- Product Module as Jira-owned, read-only Backlog Details metadata
+
+Product Module is displayed only in Backlog Details, positioned between Work Item Type and Status. It is display-only metadata with no calculation, filtering, grouping, or reconciliation role.
+
+All validated Logged Effort surfaces reconcile.
+
+5. PRODUCT MODULE GOVERNANCE
+
+The following governance documents were updated for Product Module:
+
+- `docs/governance/Data_Dictionary.md`
+- `docs/governance/MVP_Business_Rules.md`
+- `docs/governance/Semantic_Visualization_Governance.md`
+
+Product Module is now a canonical Jira metadata field.
+
+- Source field: `Custom field (Product Module)`
+- Missing values render as `-`.
+- Tempo-only operational rows render `-`.
+- No parent inheritance is implemented.
+- Product Module enriches Backlog Worked On but does not determine row inclusion.
+
+The following governance documents remain unchanged:
+
+- `docs/governance/Calculation_Governance.md`
+- `docs/governance/KPI_Definitions.md`
+- `docs/governance/Forecasting_Governance.md`
+- `docs/governance/Release_Cycle_Governance.md`
+
+6. PRODUCT MODULE IMPLEMENTATION SUMMARY
+
+Authoritative Jira source field:
+
+`Custom field (Product Module)`
+
+Implementation statistics:
+
+- Backlog rows: 2,340
+- Rows containing Product Module: 836
+- Rows displaying `-`: 1,504
+- Tempo-only rows displaying `-`: 31
+- Duplicate backlog keys: zero
+- Jira mapping mismatches: zero
+- KPI totals: unchanged
+- Reconciliation: unchanged
+- Backlog row counts: unchanged
+
+7. VALIDATED BEHAVIOUR
+
+Implementation: PASS
+
+Data validation: PASS
+
+Static validation: PASS
+
+Browser validation: BLOCKED BY ENVIRONMENT
+
+Browser validation was blocked because Chrome/CDP could not complete local loopback requests inside the execution environment. This is an environment limitation rather than an implementation defect.
+
+Validated behaviour includes:
+
+- Product Module rendering
+- Jira metadata mapping
+- Missing-value rendering
+- Tempo operational rendering
+- Backlog row counts
+- Duplicate detection
+- Existing KPI stability
+- Existing reconciliation stability
+
+No existing functionality regressed.
+
+8. RECONCILIATION
+
+For every applicable filtered scope:
+
+Governed Logged Total
+
+=
+
+Account-attributed engineering effort
+
++
+
+Engineering Account-attribution exceptions
+
++
+
+Operational TEMPO-* effort
+
+Each governed worklog belongs to exactly one population. Operational TEMPO-* work is not an Account-attribution exception.
+
+TEMPO-106 and TEMPO-54 remain globally excluded from all analytics, KPIs, tables, reconciliation, utilization, backlog activity, and delivery progress.
+
+9. IMPLEMENTATION BOUNDARIES
+
+Product Module intentionally:
+
+- is not filterable;
+- is not calculated;
+- is not aggregated;
+- is not inherited from parent issues;
+- is not used by KPIs;
+- is not used by charts;
+- is not used by reconciliation;
+- is not used for grouping;
+- is display-only metadata.
+
+The MVP also continues not to implement recursive hierarchy traversal, configurable hierarchy traversal, metadata-driven hierarchy traversal, support activities, Support Account classification, inferred Jira metadata, or invented Account values.
+
+10. REGRESSION SUMMARY
+
+PASS
+
+Validated:
+
+- Product Module rendering
+- Jira metadata mapping
+- Missing-value rendering
+- Tempo operational rendering
+- Backlog row counts
+- Duplicate detection
+- Existing KPI stability
+- Existing reconciliation stability
+
+No existing functionality regressed.
+
+11. VERSION HISTORY
+
+- v0.10 (23-Jul-2026): Approved Product Module enhancement. Records the governed introduction of Product Module as read-only Jira metadata within Backlog Details. Confirms Jira-only source, no parent inheritance, display-only implementation, no filter, no KPI, no calculation, no reconciliation impact, and successful implementation validation. Supersedes BASELINE v0.9.
+- v0.9 (21-Jul-2026): Approved Account Distribution workstream baseline. Records Account-attributed treemap-only semantics, governed unresolved-engineering exception population, dynamic Account-attribution note, direct-then-immediate-parent Account rule, reconciliation equation, BOSAN validation, and intentional MVP boundaries. Supersedes v0.8.
+- v0.8 (21-Jul-2026): Approved User Guide Version 1.0 added as controlled project documentation. Implementation unchanged. Governance unchanged. Documentation baseline expanded.
+
+Previous baseline history remains unchanged in the earlier baseline documents.
+
+12. NEXT MILESTONE
+
+Version 2.1 development begins from BASELINE v0.10. The implementation baseline for Version 2.1 is therefore BASELINE v0.10.
+
+CHECKPOINT CONCLUSION
+
+Implementation approved.
+
+Governance approved.
+
+Product Module enhancement approved.
+
+The platform remains calculation-stable, reconciliation-stable and governance-compliant.
+
+BASELINE v0.10 becomes the authoritative implementation baseline for all future development.

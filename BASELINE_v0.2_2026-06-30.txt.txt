@@ -1,0 +1,40 @@
+BASELINE VERSION
+Version: v0.2
+Date: 30-Jun-2026
+
+Governance:
+✓ MVP_Business_Rules.md
+✓ KPI_Definitions.md
+✓ Data_Dictionary.md
+✓ Semantic_Visualization_Governance.md
+
+Validated functionality:
+✓ Team mapping
+✓ Assignee mapping
+✓ Capacity
+✓ Logged Engineering
+✓ Logged Operations
+✓ Utilization
+✓ Backlog Worked On
+✓ Parent inheritance
+✓ Delivery Progress
+✓ Master Date governance
+✓ TEMPO-106 exclusion
+✓ TEMPO-54 exclusion
+✓ Delivery Progress Team ownership
+✓ Delivery Progress Team filtering
+✓ Jira ownership and Tempo contributor semantics
+✓ Cross-table Team semantic validation
+✓ Browser console validation (no dashboard errors)
+
+Architecture decisions:
+✓ Organizational/workforce Team is governed by the Assignees CSV.
+✓ Capacity Team is governed by the Weekly Capacity and Assignees datasets.
+✓ Delivery Progress Team represents Jira ticket ownership.
+✓ Backlog Worked On Team represents Tempo contributor activity.
+
+Notes:
+• Corrected a regression affecting Delivery Progress Team ownership.
+• Standardized Team semantics across documentation.
+• Documentation synchronized with implementation.
+• Baseline validated after regression testing.

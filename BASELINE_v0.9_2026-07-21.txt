@@ -1,0 +1,200 @@
+BASELINE VERSION
+Version: v0.9
+Date: 21-Jul-2026
+Supersedes: BASELINE_v0.8_2026-07-21.txt
+
+1. PURPOSE
+
+This file is the authoritative implementation baseline for the AI-Assisted Delivery Management Platform as of 21-Jul-2026.
+
+It records the approved platform state after completion, validation, governance update, executive wording approval, and implementation approval of the Account Distribution workstream.
+
+It supersedes BASELINE_v0.8. Previous baseline files remain historical checkpoints and are not modified by this baseline. This baseline is the single source of truth for subsequent implementation work.
+
+2. PLATFORM STATUS
+
+The platform is considered operationally stable and approved for further development.
+
+- Semantic governance is implemented.
+- Calculation governance is implemented.
+- Reconciliation has been validated.
+- Dashboard behaviour is stable.
+- Account Distribution implementation and its governed exception note are approved.
+- The MVP User Guide Version 1.0 remains an approved controlled project document.
+
+3. APPROVED AUTHORITATIVE SOURCES
+
+Tempo
+- Logged Effort
+
+Jira
+- Remaining Demand
+- Work Item metadata
+- Account metadata
+- Forecast metadata
+
+Weekly Capacity
+- Capacity
+
+Assignees
+- Team ownership
+- Workforce metadata
+
+Master Date
+- Date
+- Week
+- Calendar governance
+
+4. APPROVED GOVERNANCE
+
+- `docs/governance/MVP_Business_Rules.md`
+- `docs/governance/KPI_Definitions.md`
+- `docs/governance/Data_Dictionary.md`
+- `docs/governance/Semantic_Visualization_Governance.md`
+- `docs/governance/Calculation_Governance.md`
+- `docs/governance/Forecasting_Governance.md`
+- `docs/governance/Release_Cycle_Governance.md`
+
+5. APPROVED DOCUMENTATION
+
+- `User_Guide.md` (Version 1.0)
+
+User_Guide.md (Version 1.0) remains the official controlled user documentation for the MVP.
+
+6. APPROVED IMPLEMENTATION
+
+The following implementation areas are validated and approved:
+
+- Governed Logged Effort
+- Governed Capacity
+- Governed Remaining Demand
+- Date Range historical reporting
+- Master Date week governance
+- Team governance
+- Account Distribution and Account-attribution reconciliation
+- Program Distribution reconciliation
+- Planned vs Unplanned reconciliation
+- People reconciliation
+
+All validated Logged Effort surfaces reconcile.
+
+7. ACCOUNT DISTRIBUTION
+
+Account Distribution represents engineering Tempo effort attributable to valid Jira Accounts.
+
+- The treemap contains only valid Jira Accounts.
+- `(No Account)` is not permitted as an Account Distribution tile.
+- Operational TEMPO-* activities are excluded from the treemap.
+- Operational TEMPO-* activities remain included in governed operational and total logged effort.
+- Non-TEMPO engineering work whose Jira Account cannot be resolved is excluded from the treemap and reported separately.
+- The footer derives from the exact same unresolved-engineering subset excluded from the treemap.
+- Footer values remain dynamic: the Jira work-item count uses distinct normalized Jira keys and logged hours retain the approved displayed formatting.
+- The footer is hidden when the exception population is zero.
+
+Approved footer wording:
+
+"Account attribution note: {distinct engineering Jira issue count} engineering Jira work items ({logged hours} h) could not be attributed from the current Jira source extract. These items remain included in governed logged effort. Operational TEMPO-* activities are excluded."
+
+8. ACCOUNT ATTRIBUTION GOVERNANCE
+
+- Tempo remains authoritative for logged effort.
+- Jira remains authoritative for Account metadata.
+- Account is mandatory for normal Jira work items.
+- A Jira work item present in the platform extract with blank Account is a data-quality or technical exception. It must not be masked by an invented Account value or parent inheritance.
+- A Jira key absent from the current extract is a source-coverage limitation, not proof that the Jira ticket does not exist, and must be distinguished from a present-but-blank Account.
+- The current implementation uses a direct Jira Account first. Immediate-parent Account fallback is used only when the directly logged Jira key is absent from the current Jira extract, a parent is present, and the parent Account is nonblank.
+- Recursive ancestor traversal, configurable hierarchy traversal, and metadata-driven hierarchy traversal are not implemented.
+
+9. RECONCILIATION
+
+For every applicable filtered scope:
+
+Governed Logged Total
+
+=
+
+Account-attributed engineering effort
+
++
+
+Engineering Account-attribution exceptions
+
++
+
+Operational TEMPO-* effort
+
+Each governed worklog belongs to exactly one population. Operational TEMPO-* work is not an Account-attribution exception.
+
+TEMPO-106 and TEMPO-54 remain globally excluded from all analytics, KPIs, tables, reconciliation, utilization, backlog activity, and delivery progress.
+
+10. VALIDATED BEHAVIOUR
+
+- Date Range governs historical execution metrics.
+- Remaining Demand is a current Jira snapshot.
+- Remaining Demand is intentionally independent of Date Range.
+- Capacity uses Master Date exclusively.
+- Tempo worklogs remain independent from Jira Status.
+- Unmatched governed Tempo work remains included.
+- Terminal Jira work does not remove historical Tempo effort.
+- Account Distribution calculations, treemap semantics, exception population, Tempo reconciliation, dynamic footer behaviour, executive wording, governance updates, and implementation approval were validated and approved.
+- The BOSAN hierarchy investigation was completed and approved: BOSAN-4, BOSAN-171, and BOSAN-221 resolve directly to `BOSA Contract 2026`; BOSAN-38 is an extract-coverage exception, not a hierarchy failure; simulated recursive traversal recovered no additional BOSAN effort from the approved payload.
+
+11. DEFERRED FUNCTIONALITY AND IMPLEMENTATION BOUNDARIES
+
+Release Cycle
+
+Status: Parked
+
+Reason: Approved governance exists but dashboard implementation has intentionally been deferred until Version 2.1.
+
+The MVP intentionally does not implement:
+
+- recursive hierarchy traversal;
+- configurable hierarchy traversal;
+- metadata-driven hierarchy traversal;
+- support activities;
+- Support Account classification;
+- inferred Jira metadata;
+- invented Account values.
+
+These capabilities remain roadmap items. Jira Delivery implementation, Forecasting implementation, and remaining Version 2.1 roadmap also remain deferred.
+
+12. REGRESSION SUMMARY
+
+PASS
+
+Validated:
+
+- Logged Effort
+- Capacity
+- Remaining Demand
+- Team Utilization
+- Program Distribution
+- Planned vs Unplanned
+- Account Distribution
+- Account-attribution exception population and dynamic footer
+- People Details
+
+No duplicate Tempo worklogs were found.
+
+No governed worklogs were lost.
+
+Account Distribution now has the approved Account-attribution note in place of obsolete Account-attribution exception wording. No separate Account classification or calculation path was introduced.
+
+13. VERSION HISTORY
+
+- v0.9 (21-Jul-2026): Approved Account Distribution workstream baseline. Records Account-attributed treemap-only semantics, governed unresolved-engineering exception population, dynamic Account-attribution note, direct-then-immediate-parent Account rule, reconciliation equation, BOSAN validation, and intentional MVP boundaries. Supersedes v0.8.
+- v0.8 (21-Jul-2026): Approved User Guide Version 1.0 added as controlled project documentation. Implementation unchanged. Governance unchanged. Documentation baseline expanded.
+- v0.7 (21-Jul-2026): Approved implementation baseline following governance stabilization, regression validation, and confirmation of stable governed dashboard behaviour. Supersedes BASELINE_v0.6.
+
+Previous baseline history remains unchanged in the earlier baseline documents.
+
+14. NEXT MILESTONE
+
+Version 2.1 development begins from BASELINE v0.9. The implementation baseline for Version 2.1 is therefore BASELINE v0.9.
+
+CHECKPOINT CONCLUSION
+
+Implementation approved. Governance approved. Account Distribution workstream approved. User Guide Version 1.0 remains approved. Documentation baseline complete.
+
+BASELINE v0.9 becomes the authoritative project baseline for all future development. No application implementation, generated data, source dataset, governance document, roadmap document, user guide, or test was modified as part of this baseline update.

@@ -1,0 +1,109 @@
+BASELINE VERSION
+Version: v0.14
+Date: 05-Aug-2026
+Supersedes: BASELINE_v0.13_2026-08-05.txt
+
+1. PURPOSE
+
+This baseline records the completed, approved Bug Triage implementation and its aligned governance and user documentation. It is an implementation record only and introduces no functional change.
+
+2. IMPLEMENTATION SUMMARY
+
+The completed Bug Triage feature consists of:
+
+- Dedicated Bug Triage operational queue
+- Dedicated Bug Triage Details tab
+- Bug Severity Distribution executive visualization
+- Shared Bug Triage snapshot banner
+- Set-based comparison between successive Bug Triage exports
+- Final approved executive dashboard layout
+
+Implementation status: complete.
+
+3. APPROVED EXECUTIVE DASHBOARD LAYOUT
+
+The governed executive layout is:
+
+1. Hours Trend | Planned vs Unplanned Effort
+2. Program Distribution | Bug Severity Distribution
+
+Both rows use paired equal-width, equal-height panels with matching panel padding, header spacing, chart-frame structure, and footer spacing. The responsive layout stacks vertically without horizontal overflow on smaller screens.
+
+Program Distribution, Planned vs Unplanned Effort, Hours Trend, Account Distribution, Team Utilization, Remaining Demand, Backlog Priority, and all other existing dashboard visuals retain their approved semantics and calculations.
+
+4. BUG TRIAGE GOVERNANCE
+
+Authoritative source: the dedicated Bug Triage Jira export. It governs queue membership, Jira metadata, and snapshot comparison. Tempo, Weekly Capacity, and the general Jira PI Backlog export do not participate in Bug Triage.
+
+Purpose: a current operational queue for Product and Engineering bug triage. It is not a KPI, forecast, throughput measure, delivery metric, or quality metric.
+
+Team is governed exclusively by the Assignees CSV. If a Jira Assignee has no Assignees CSV mapping, the Jira Assignee remains visible, Team renders as `-`, and the queue row remains visible. Team is never derived from Jira or Tempo.
+
+Snapshot comparison uses only distinct Jira Issue Keys from the latest and immediately previous Bug Triage exports. It reports:
+
+- Current Queue
+- Added to Queue
+- Removed from Queue
+
+These values represent snapshot comparison only. They must not be interpreted as Bugs created, fixed, closed, or resolved, or as Engineering throughput. The current export replaces the prior operational queue; historical bug-lifecycle analysis is outside MVP scope.
+
+5. BUG SEVERITY DISTRIBUTION
+
+Chart type: horizontal bar chart.
+
+Authoritative source: current dedicated Bug Triage Jira export.
+
+Approved rules:
+
+- One distinct Jira Key equals one Bug; duplicate Jira Keys are ignored.
+- Missing Bug Severity is excluded.
+- Zero-count categories are hidden.
+- Canonical severity order is preserved: Blocker, Critical, Major, Medium, Low, Enhancement.
+- Bars use progressively lighter muted-red severity colors, with Blocker as the strongest shade.
+- The shared snapshot banner appears immediately above the chart.
+
+The chart is display-only, independent of global filters, Team and Assignee filters, Details search, and table sorting. It introduces no Bug Severity filter, KPI, calculation, reconciliation, or Tempo dependency.
+
+6. CURRENT IMPLEMENTATION VALIDATION
+
+Validation status: PASS
+
+Current dedicated source: `Bug Triage_20260805.csv`
+
+- Source rows: 46
+- Distinct Jira keys: 46
+- Duplicate Jira keys: 0
+- Missing Bug Severity values: 0
+- Rendered severity categories: Blocker 3; Critical 10; Major 33
+- Rendered severity total: 46
+- One current queue snapshot is available; the approved complete-snapshot fallback is displayed when no previous export exists.
+- Bug Triage Details tab retains the approved columns: Key, Summary, Bug Severity, Status, Updated, Assignee, Team.
+- Existing KPI cards, calculations, filters, search, reconciliation, CSV export, charts, and Details tabs remain unchanged.
+
+7. GOVERNANCE DOCUMENTATION ALIGNED
+
+The following documents are aligned with the completed implementation:
+
+- `docs/governance/MVP_Business_Rules.md`
+- `docs/governance/Data_Dictionary.md`
+- `docs/governance/Semantic_Visualization_Governance.md`
+- `docs/user-guides/User_Guide.md`
+
+`KPI_Definitions.md`, calculation governance, forecasting governance, release-cycle governance, and all other unrelated documentation remain unchanged by the completed Bug Triage feature.
+
+8. REGRESSION STATUS
+
+PASS
+
+No KPI, capacity, Logged Hours, forecasting, Tempo, Team-mapping, Backlog, Delivery Progress, Account Distribution, Program Distribution, reconciliation, filter, search, export, or existing dashboard semantic regressed.
+
+9. VERSION HISTORY
+
+- v0.14 (05-Aug-2026): Final approved MVP completion baseline for Bug Triage, including its operational queue, Details tab, executive severity visualization, shared snapshot banner, final paired layout, governance alignment, user guidance, validation, and no-regression confirmation.
+- v0.13 (05-Aug-2026): Bug Severity Distribution visualization and approved two-row executive layout.
+- v0.12 (05-Aug-2026): Dedicated Jira Bug Triage queue amendment, Team mapping validation, and snapshot comparison.
+- v0.11 (05-Aug-2026): Original Bug Severity Details-tab introduction.
+
+CHECKPOINT CONCLUSION
+
+BASELINE v0.14 is the final approved baseline for the completed MVP Bug Triage implementation.

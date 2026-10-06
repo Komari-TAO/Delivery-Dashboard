@@ -1,0 +1,170 @@
+BASELINE VERSION
+Version: v0.12
+Date: 05-Aug-2026
+Supersedes: BASELINE_v0.11_2026-08-05.txt
+
+1. PURPOSE
+
+This baseline records the approved amendment of Bug Triage from a general-Jira Bug view to a dedicated, inventory-based operational queue.
+
+BASELINE v0.11 remains a historical checkpoint and is not modified.
+
+2. AUTHORITATIVE BUG TRIAGE SOURCES
+
+Queue source:
+
+- Jira Bug Triage export selected through the project latest-file convention: `Bug Triage_20260805.csv`
+
+Assignees CSV is the only enrichment source, governing Team attribution for the Jira-export Assignee.
+
+The general Jira PI backlog export does not govern Bug Triage membership.
+
+3. APPROVED BUG TRIAGE SEMANTICS
+
+Bug Triage is an inventory-based Jira operational queue.
+
+- One row appears for every distinct valid Bug Triage export key.
+- Tempo activity, worklogs, logged hours, Assignee presence, Team mapping, and the general Jira backlog export do not determine row inclusion.
+- Unassigned Bugs and unmapped-assignee Bugs remain visible.
+- Tempo does not participate in Bug Triage.
+- Team is resolved only through the Assignees CSV using the Jira-export Assignee. Jira Team and Tempo Team are not used.
+- Bug Severity remains Jira-owned, display-only metadata. It is never inferred, inherited, aggregated, grouped, used as a KPI, or made into a global filter.
+- This deterministic reporting feature does not implement future AI Bug Intelligence capability.
+
+4. TABLE IMPLEMENTATION
+
+Details tab order remains:
+
+1. Accounts
+2. People
+3. Backlog
+4. Delivery Progress
+5. Bug Triage
+
+Bug Triage columns, in order:
+
+1. Key
+2. Summary
+3. Bug Severity
+4. Status
+5. Updated
+6. Assignee
+7. Team
+
+Default order is Bug Severity: Blocker, Critical, Major, Medium, Low, Enhancement, then `-`; Jira Key provides deterministic ordering within each severity. Existing sortable-column behavior remains available.
+
+Updated is displayed exactly as stored in the dedicated Jira export. Team, Assignee, and Skill filter queue rows from current Jira-export Assignee mapping. Jira metadata filters apply only for metadata present in the dedicated export. No new global filter was added.
+
+5. SOURCE DATA VALIDATION
+
+Source file: `Bug Triage_20260805.csv`
+
+- Source rows: 46
+- Valid Bug rows: 46
+- Distinct Jira keys: 46
+- Blank keys: 0
+- Duplicate keys: 0
+- Bug Severity distribution: Blocker 3; Critical 10; Major 33
+- Assigned keys: 20
+- Unassigned keys: 26
+- Available source columns: Issue Type, Key, Summary, Bug Severity, Status, Labels, Updated, Assignee, Start date, End date
+
+The dedicated source has no Priority field, so Bug Triage has no Priority column and does not display placeholder values for that absent field.
+
+6. IMPLEMENTATION VALIDATION
+
+Implementation validation: PASS
+
+- Priority column removed; canonical column order contains seven fields.
+- Rendered Bug Triage rows before active user filters: 46
+- Distinct rendered keys: 46
+- Duplicate rendered keys: 0
+- Source distinct keys missing from rendered queue: 0
+- Unassigned rendered rows with Assignee = `-` and Team = `-`: 26
+- Updated values matched the Jira Bug Triage export exactly.
+- Team-filter validation: the Authoring filter retained only Authoring queue rows
+- Search validation: AUT-4651 search returned only AUT-4651
+- No TEMPO-* operational key rendered as a Bug Triage row
+
+Assignee-to-Team mapping exceptions: 8 queue rows across seven Assignee values:
+
+- Sergii Chernenko (2 rows)
+- Ilya Yarkavets
+- Vicente Guedez
+- Manuel Di Nucci
+- Héctor Arroyo
+- Rafael Tovar
+- alexandra.cirdei
+
+These rows remain visible with Team = `-` as governed queue data-quality exceptions.
+
+Assignee mapping summary:
+
+- Mapped issue rows: 12 across 11 distinct mapped Assignees
+- Unmapped issue rows: 8 across 7 distinct unmapped Assignees
+- Unassigned issues: 26
+
+Validation report: `outputs/bi_dashboard/bug_triage_unmapped_assignees.csv`
+
+- Report rows: 8
+- Report columns: Jira Key, Summary, Jira Assignee, Reason
+- Reason: `Assignee not found in Assignees CSV`
+- The report is governance-only and does not affect dashboard rendering.
+
+6.1 BUG TRIAGE SNAPSHOT COMPARISON
+
+The Bug Triage tab includes a compact informational banner above the table. Snapshot comparison uses distinct nonblank Jira Issue Key membership only.
+
+- Current snapshot: latest available `Bug Triage_*` export
+- Previous snapshot: second latest available `Bug Triage_*` export
+- Current Queue: distinct current-snapshot keys
+- Added to Queue: current keys absent from the previous snapshot
+- Removed from Queue: previous keys absent from the current snapshot
+- No Jira lifecycle event is inferred.
+- The banner does not participate in KPIs, calculations, charts, filters, reconciliation, Details search, table inclusion, or CSV export.
+
+Current source state:
+
+- Current snapshot detected: `Bug Triage_20260805.csv`
+- Previous snapshot detected: none; only one matching export is currently available
+- Current Queue: 46
+- Added to Queue: not available without a previous snapshot
+- Removed from Queue: not available without a previous snapshot
+- One-snapshot fallback text: `No previous Bug Triage snapshot available.`
+- One-snapshot fallback validation: PASS
+
+When two snapshots are available, validation requires Current Queue = Previous Queue + Added to Queue - Removed from Queue.
+
+7. REGRESSION STATUS
+
+PASS
+
+No KPI formulas, capacity, Logged Hours KPI scope, Account Distribution, Program Distribution, Planned vs Unplanned, forecasting, reconciliation, Backlog Worked On, or Delivery Progress semantics changed. Tempo has no Bug Triage role.
+
+Targeted browser smoke validation passed with four existing KPI cards, nine charts, existing Accounts/People/Backlog/Delivery Progress table headers, and Details CSV export all rendering without page errors.
+
+8. BROWSER / CDP STATUS
+
+Targeted browser validation: PASS.
+
+The legacy comprehensive Chrome/CDP regression harness remains blocked before its full suite because its readiness selector expects a `last30` preset control absent from the approved current UI. This is a pre-existing harness condition, not an environment or Bug Triage implementation failure. The implementation does not claim a full legacy-harness PASS.
+
+9. GOVERNANCE DOCUMENTS UPDATED
+
+- `docs/governance/Data_Dictionary.md`
+- `docs/governance/MVP_Business_Rules.md`
+- `docs/governance/Semantic_Visualization_Governance.md`
+`docs/governance/KPI_Definitions.md` remains unchanged because no KPI was introduced or changed.
+
+10. VERSION HISTORY
+
+- v0.12 (05-Aug-2026): Approved dedicated Bug Triage queue amendment and informational snapshot refinement. Records the seven-column source-backed table, Jira Updated rendering, unassigned-row preservation, Assignees CSV Team mapping, unmapped-assignee validation report, set-based latest-versus-previous queue summary, no Tempo participation, validation evidence, data-quality exceptions, and no KPI/reconciliation/existing-tab regression.
+- v0.11 (05-Aug-2026): Original Bug Severity Details-tab introduction.
+
+CHECKPOINT CONCLUSION
+
+Implementation approved.
+
+Governance approved.
+
+BASELINE v0.12 becomes the authoritative implementation baseline for subsequent development.

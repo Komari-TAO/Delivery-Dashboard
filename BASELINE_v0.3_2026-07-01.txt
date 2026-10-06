@@ -1,0 +1,249 @@
+BASELINE VERSION
+Version: v0.3
+Date: 01-Jul-2026
+Supersedes: BASELINE_v0.2_2026-06-30.txt
+
+PURPOSE
+This file is the canonical standalone checkpoint for the Codex MVP workspace as of 01-Jul-2026.
+It is intended to let a new Codex workspace resume development without relying on prior chat history.
+Historical governance decisions from v0.2 remain in force unless explicitly superseded below.
+
+PROJECT STATE SUMMARY
+- Dashboard architecture remains a static web app driven by generated `web/data.js` and rendered by `web/app.js`.
+- Core governed semantics from v0.2 remain active:
+  - Organizational/workforce Team is governed by Assignees CSV.
+  - Capacity Team is governed by Weekly Capacity plus Assignees CSV.
+  - Delivery Progress Team represents Jira ticket ownership.
+  - Backlog Worked On Team represents Tempo contributor activity in the selected scope.
+  - Week logic is governed by Master Date, not independent ISO logic.
+  - TEMPO-106 and TEMPO-54 remain globally excluded from delivery analytics.
+- The 01-Jul-2026 changes are primarily a UI/workspace upgrade and filter-surface expansion on top of the validated 30-Jun-2026 semantic baseline.
+
+AUTHORITATIVE GOVERNANCE DOCUMENTS
+- `docs/MVP_Business_Rules.md`
+- `docs/KPI_Definitions.md`
+- `docs/Data_Dictionary.md`
+- `docs/Semantic_Visualization_Governance.md`
+
+DATA SNAPSHOT USED BY CURRENT BUILD
+- `web/data.js` generated on: 2026-06-30
+- Current governed source date range: 2026-01-01 to 2026-06-30
+- `raw.meta.currentDate`: 2026-06-30
+- Current generated source counts:
+  - Tempo worklogs: 20,424 rows
+  - Jira PI backlog: 1,099 rows
+  - Weekly capacity: 2,014 rows
+  - Assignees master: 38 rows
+  - Master date: 730 rows
+  - Release cycles: 11 rows
+  - Tempo operational mapping: 22 rows
+
+NEW FUNCTIONALITY SINCE v0.2
+- PowerBI-style workspace shell added:
+  - Sticky left filter rail
+  - Main workspace with KPI cards, charts, detail tabs, active filter chips, and download action
+- New global filter dimensions now exposed in the UI and wired through `filteredData()`:
+  - Account Category
+  - Priority
+  - Target Release
+  - Program
+  - Release Cycle
+- Searchable picker support added for:
+  - Assignee
+  - Account
+  - Target Release
+  - Program
+- Active filter chip behavior expanded:
+  - Chips now render for the new dimensions
+  - Status chip logic preserves the governed “default open/active statuses” concept
+  - Large selections collapse into “n selected” summary chips
+- CSV export remains available and now exports the governed Accounts detail view from the current filtered state.
+- Release cycle dimension is now carried from the release-cycle CSV through the generated payload and exposed as a selectable UI filter.
+- Program and status summaries are now included in generated metadata payloads for downstream validation/debugging.
+
+UI CHANGES SINCE v0.2
+- `web/index.html` was reworked into a full two-column application shell.
+- Filter UX changed from simpler inline controls to grouped picker menus with:
+  - toggle buttons
+  - select all / clear all actions
+  - searchable long lists
+  - per-picker summaries
+- Detail panel remains tabbed but is now embedded in a more structured workspace with explicit topbar, range badge, and footer guidance.
+- Legend support for Delivery Progress health states remains in place.
+- `web/styles.css` was substantially expanded for:
+  - sticky filter rail
+  - responsive mobile/tablet layout
+  - picker menus
+  - chip styling
+  - KPI cards
+  - panelized chart/table layout
+  - health badges and legend styling
+- The visual direction still follows the existing “light, consulting-style, low-clutter” guidance from semantic visualization governance.
+
+CALCULATION / DATA BEHAVIOR CHANGES
+- Release cycle assignment is computed in `scripts/build_web_data.py` by matching Tempo worklog date to the release-cycle CSV start/end ranges.
+- `filteredData()` in `web/app.js` now applies the new dimensions consistently across:
+  - Tempo worklogs
+  - Jira backlog
+  - Backlog worklogs
+  - capacity constraint logic
+- Logged-effort KPI/chart calculations still intentionally ignore Jira Status by using `loggedEffortData()` built from `filteredData({ ignoreStatus: true })`.
+  - This preserves the governed rule that Actual Hours and Team Utilization reflect centralized Tempo delivery effort rather than Jira status slices.
+- Backlog detail rows continue to aggregate by distinct worked-on key using Tempo activity, but now preserve and render:
+  - Priority
+  - Target Release
+  - Fix Version
+- Delivery Progress rows continue to derive Team from Jira ownership, not Tempo contributor team, and still compute:
+  - human-readable Days to Due
+  - Delivery Health
+  - terminal-status stop logic
+- Parent inheritance remains active for child keys missing direct Jira rows:
+  - inherited fields: Account, Delivery, Target Release, Fix Version
+  - preserved fields: original child key and parent traceability
+- Tempo operational items still render with planning placeholders and operational semantics.
+
+BUSINESS RULES MODIFIED / CODIFIED
+- No superseding business-rule reversal was introduced on 01-Jul-2026.
+- The June 30 governance remains the active rule set and is now better surfaced by the UI:
+  - Backlog Worked On is activity-based, not Jira inventory-based.
+  - Delivery Progress is ownership-based and must respect Jira ticket ownership.
+  - Team semantics are context-specific and must not be flattened across all tables.
+  - Default status selection excludes Jira Done-category statuses.
+- Additional codified implementation note:
+  - Status filtering affects backlog/demand views and matched Jira-enriched worklogs, but must not reduce centralized Tempo-based Actual Hours / Team Utilization calculations.
+
+BUG FIXES CARRIED FORWARD
+- Delivery Progress Team ownership regression remains fixed.
+  - Example validated scenario: `ADF-2326` must render under Integration ownership even though Tempo contributors include both Integration and Nexus.
+- Delivery Progress Team filter leakage remains fixed.
+  - Under Nexus filter, Integration-owned `ADF-2326` must not appear.
+- Parent-child enrichment behavior remains fixed:
+  - child key is preserved
+  - Jira parent can enrich missing child metadata
+  - child is not replaced by parent in rendered activity views
+- Backlog and Delivery Progress continue excluding TEMPO-106 and TEMPO-54 from rendered delivery analytics.
+- Default status logic remains governed by Jira status category, preventing Done-category rows from being treated as default active statuses.
+
+VALIDATION COMPLETED
+Validated historically from v0.2 baseline:
+- Team mapping
+- Assignee mapping
+- Capacity
+- Logged Engineering
+- Logged Operations
+- Utilization
+- Backlog Worked On
+- Parent inheritance
+- Delivery Progress
+- Master Date governance
+- TEMPO-106 exclusion
+- TEMPO-54 exclusion
+- Delivery Progress Team ownership
+- Delivery Progress Team filtering
+- Jira ownership and Tempo contributor semantics
+- Cross-table Team semantic validation
+- Browser console validation (no dashboard errors at time of prior regression validation)
+
+Validated in current workspace review on 01-Jul-2026:
+- `node scripts/validate_delivery_progress_team_ownership.cjs`
+  - Passed
+  - Confirmed `ADF-2326` Jira team = Integration
+  - Confirmed Tempo contributors for `ADF-2326` include Integration and Nexus
+  - Confirmed Nexus-filtered Delivery Progress contains no `ADF-2326`
+  - Confirmed Integration-filtered Delivery Progress contains `ADF-2326` under Integration
+  - Confirmed previous incorrect Tempo-contributor-based ownership would have affected 104 distinct tickets in current data snapshot
+
+KNOWN LIMITATIONS
+- This workspace is not currently operating from a normal live Git checkout for history/diff inspection, so baseline delta reconstruction relied on file timestamps and current implementation review rather than commit history.
+- `web/data.js` reflects the 30-Jun-2026 generated dataset; the 01-Jul-2026 baseline document updates the checkpoint description, but the data payload itself was not regenerated during this task.
+- Google Drive `.gdoc` shortcut bodies are not readable from the mounted filesystem; only local docs and generated artifacts are available in-workspace.
+- Browser-driven end-to-end verification script exists (`scripts/verify_bi_app_chrome_cdp.mjs`) but was not re-run during this baseline update.
+- Detail export still targets the Accounts detail table only; it is not a generalized export for every active detail tab.
+- Some raw worklog rows intentionally have blank Jira-enriched fields because those keys are Tempo-only, outside current Jira export coverage, or require parent fallback.
+- Temp/browser runtime folders under `.tmp/` are noisy and should not be treated as source-of-truth implementation artifacts.
+
+OUTSTANDING VALIDATIONS
+- Re-run the full browser/CDP verification suite after any further UI or calculation changes:
+  - `scripts/verify_bi_app_chrome_cdp.mjs`
+- Re-run data generation after source CSV refresh and confirm:
+  - excluded Tempo summaries still populate
+  - release-cycle mapping still reconciles
+  - new filters still render non-empty option sets
+  - status/program/issue type metadata summaries still align with the source snapshot
+- Validate responsive behavior of the new filter rail and picker interactions on current desktop and mobile screenshots after any layout changes.
+- Validate CSV export output after any future modification to Accounts detail columns or sort behavior.
+
+OPEN ISSUES
+- `BASELINE_v0.2_2026-06-30.txt.txt` and `BASELINE_v0.2_2026-06-16.txt.txt` have duplicate `.txt.txt` naming; baseline naming is now normalized only for v0.3.
+- `web/data.js` contains the live generated payload inline and is very large; this is workable for the MVP but increases review friction and should be considered if the app grows further.
+- The current dashboard still depends on static generated JS data rather than a separated JSON fetch/runtime API boundary.
+- Some encoding artifacts are visible in older text content rendered from source files or payload strings; these do not block baseline use but should be cleaned if documentation polish becomes important.
+
+ASSUMPTIONS
+- The authoritative implementation for resuming development is the current workspace state on 01-Jul-2026, especially:
+  - `web/app.js`
+  - `web/index.html`
+  - `web/styles.css`
+  - `scripts/build_web_data.py`
+  - `web/data.js`
+- The semantic docs updated on 30-Jun-2026 are already accepted as the canonical rule set and should continue to govern new work.
+- No source CSVs newer than the 30-Jun-2026 sync snapshot are required for this checkpoint.
+- The new UI/filter changes are intended to extend the existing governed semantics, not redefine them.
+
+FILES MODIFIED / RELEVANT TO THIS BASELINE
+Primary implementation files in current active state:
+- `web/app.js`
+- `web/index.html`
+- `web/styles.css`
+- `web/data.js`
+- `scripts/build_web_data.py`
+- `scripts/validate_delivery_progress_team_ownership.cjs`
+- `scripts/verify_bi_app_chrome_cdp.mjs`
+- `data/.dashboard_sync_state.json`
+
+Canonical governance/reference files:
+- `docs/MVP_Business_Rules.md`
+- `docs/KPI_Definitions.md`
+- `docs/Data_Dictionary.md`
+- `docs/Semantic_Visualization_Governance.md`
+
+IMPLEMENTATION NOTES FOR REPRODUCTION / CONTINUATION
+- Data generation pipeline:
+  - Source of truth raw files live under `data/raw/`
+  - Build script: `scripts/build_web_data.py`
+  - Generated frontend payload target: `web/data.js`
+- Build script responsibilities that must be preserved:
+  - choose latest matching raw CSVs by filename pattern
+  - apply Master Date week/workday governance
+  - map Team/Skill/Role/Availability from Assignees CSV
+  - exclude TEMPO-106 and TEMPO-54 before dashboard aggregation
+  - join Jira metadata to Tempo worklogs by key
+  - perform parent inheritance only for missing-child Jira coverage cases
+  - map Tempo operational summaries from `data/mappings/tempo_operational_mapping.csv`
+  - generate metadata summaries for program, status, skill, issue type, and excluded Tempo items
+  - derive releaseCycle from release date windows
+- Frontend semantic rules that must be preserved:
+  - `filteredData()` is the central filter application path
+  - `loggedEffortData()` intentionally ignores Jira Status for Actual Hours / Team Utilization calculations
+  - `backlogWorkedRows()` remains activity-based and must use Tempo work date semantics
+  - `deliveryProgressRows()` must use Jira ticket ownership team semantics
+  - `deliveryDueState()` must keep terminal/paused stop logic and readable textual due labels
+- Validation scripts:
+  - lightweight semantic ownership check: `scripts/validate_delivery_progress_team_ownership.cjs`
+  - full browser/CDP regression harness: `scripts/verify_bi_app_chrome_cdp.mjs`
+- Source snapshot metadata:
+  - `data/.dashboard_sync_state.json` records the exact files, timestamps, and SHA256 hashes used for the latest generated payload
+- Resume recommendation for a new Codex workspace:
+  1. Read this baseline.
+  2. Read the 4 governance docs under `docs/`.
+  3. Inspect `scripts/build_web_data.py` and `web/app.js` first.
+  4. Confirm `web/data.js` matches `data/.dashboard_sync_state.json`.
+  5. Run validation scripts before changing Team semantics, status logic, exclusion logic, or parent inheritance.
+
+CHECKPOINT CONCLUSION
+- v0.3 is a UI-enhanced continuation of the validated v0.2 governed semantic baseline.
+- No historical governance decisions were removed.
+- The most important invariant to protect in further development is context-specific Team semantics:
+  - Assignees/Capacity for workforce reporting
+  - Tempo contributor Team for Backlog Worked On
+  - Jira ownership Team for Delivery Progress

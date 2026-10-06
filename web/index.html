@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Delivery Management BI</title>
+    <link rel="icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAAAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAGAAAAAAAAAMAAAAAAAAAAAAAAAAAAAAAAAAA/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////w==" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="filter-rail" aria-label="Filters">
+        <div class="rail-header">
+          <div>
+            <p class="eyebrow">Interactive BI</p>
+            <h1>Delivery Management</h1>
+          </div>
+          <button class="ghost-button" id="resetFilters" type="button">Reset</button>
+        </div>
+
+        <section class="filter-block date-filter-block">
+          <div class="filter-title">Date Range</div>
+          <div class="date-grid">
+            <label>
+              <span>From</span>
+              <input id="startDate" type="date" />
+            </label>
+            <label>
+              <span>To</span>
+              <input id="endDate" type="date" />
+            </label>
+          </div>
+          <div class="segmented date-presets" role="group" aria-label="Date presets">
+            <button type="button" data-preset="full">Full</button>
+          </div>
+          <div class="filter-picker release-picker" id="releasePicker" hidden>
+            <button class="filter-picker-toggle" id="releasePickerToggle" type="button" aria-expanded="false" aria-controls="releasePickerMenu">
+              <span>Release Cycle</span>
+              <strong id="releasePickerSummary">All cycles</strong>
+            </button>
+            <div class="filter-picker-menu" id="releasePickerMenu" hidden>
+              <div class="filter-picker-actions">
+                <button type="button" id="releaseSelectAll">Select All</button>
+                <button type="button" id="releaseClearAll">Clear All</button>
+              </div>
+              <div class="facet-list release-list" id="releaseFacet"></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="filter-group filter-group-core">
+          <section class="filter-block">
+            <div class="filter-title">Team</div>
+            <div class="filter-picker team-picker" id="teamPicker">
+              <button class="filter-picker-toggle" id="teamPickerToggle" type="button" aria-expanded="false" aria-controls="teamPickerMenu">
+                <span>Team</span>
+                <strong id="teamPickerSummary">All teams</strong>
+              </button>
+              <div class="filter-picker-menu" id="teamPickerMenu" hidden>
+                <div class="filter-picker-actions">
+                  <button type="button" id="teamSelectAll">Select All</button>
+                  <button type="button" id="teamClearAll">Clear All</button>
+                </div>
+                <div class="facet-list team-list" id="teamFacet"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="filter-block">
+            <div class="filter-title">Assignee</div>
+            <div class="filter-picker assignee-picker" id="assigneePicker">
+              <button class="filter-picker-toggle" id="assigneePickerToggle" type="button" aria-expanded="false" aria-controls="assigneePickerMenu">
+                <span>Assignee</span>
+                <strong id="assigneePickerSummary">All assignees</strong>
+              </button>
+              <div class="filter-picker-menu" id="assigneePickerMenu" hidden>
+                <input class="filter-search picker-search" id="assigneeSearch" type="search" placeholder="Search assignees" />
+                <div class="filter-picker-actions">
+                  <button type="button" id="assigneeSelectAll">Select All</button>
+                  <button type="button" id="assigneeClearAll">Clear All</button>
+                </div>
+                <div class="facet-list tall assignee-list" id="assigneeFacet"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="filter-block">
+            <div class="filter-title">Skill</div>
+            <div class="filter-picker skill-picker" id="skillPicker">
+              <button class="filter-picker-toggle" id="skillPickerToggle" type="button" aria-expanded="false" aria-controls="skillPickerMenu">
+                <span>Skill</span>
+                <strong id="skillPickerSummary">All skills</strong>
+              </button>
+              <div class="filter-picker-menu" id="skillPickerMenu" hidden>
+                <div class="filter-picker-actions">
+                  <button type="button" id="skillSelectAll">Select All</button>
+                  <button type="button" id="skillClearAll">Clear All</button>
+                </div>
+                <div class="facet-list skill-list" id="skillFacet"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="filter-group filter-group-portfolio">
+          <section class="filter-block">
+            <div class="filter-title">Account</div>
+            <div class="filter-picker account-picker" id="accountPicker">
+              <button class="filter-picker-toggle" id="accountPickerToggle" type="button" aria-expanded="false" aria-controls="accountPickerMenu">
+                <span>Account</span>
+                <strong id="accountPickerSummary">All accounts</strong>
+              </button>
+              <div class="filter-picker-menu" id="accountPickerMenu" hidden>
+                <input class="filter-search picker-search" id="accountSearch" type="search" placeholder="Search accounts" />
+                <div class="filter-picker-actions">
+                  <button type="button" id="accountSelectAll">Select All</button>
+                  <button type="button" id="accountClearAll">Clear All</button>
+                </div>
+                <div class="facet-list tall account-list" id="accountFacet"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="filter-block">
+            <div class="filter-title">Account Category</div>
+            <div class="filter-picker category-picker" id="categoryPicker">
+              <button class="filter-picker-toggle" id="categoryPickerToggle" type="button" aria-expanded="false" aria-controls="categoryPickerMenu">
+                <span>Account Category</span>
+                <strong id="categoryPickerSummary">All categories</strong>
+              </button>
+              <div class="filter-picker-menu" id="categoryPickerMenu" hidden>
+                <div class="filter-picker-actions">
+                  <button type="button" id="categorySelectAll">Select All</button>
+                  <button type="button" id="categoryClearAll">Clear All</button>
+                </div>
+                <div class="facet-list category-list" id="categoryFacet"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="filter-block">
+            <div class="filter-title">Priority</div>
+            <div class="filter-picker priority-picker" id="priorityPicker">
+              <button class="filter-picker-toggle" id="priorityPickerToggle" type="button" aria-expanded="false" aria-controls="priorityPickerMenu">
+                <span>Priority</span>
+                <strong id="priorityPickerSummary">All priorities</strong>
+              </button>
+              <div class="filter-picker-menu" id="priorityPickerMenu" hidden>
+                <div class="filter-picker-actions">
+                  <button type="button" id="prioritySelectAll">Select All</button>
+                  <button type="button" id="priorityClearAll">Clear All</button>
+                </div>
+                <div class="facet-list priority-list" id="priorityFacet"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="filter-block">
+            <div class="filter-title">Status</div>
+            <div class="filter-picker status-picker" id="statusPicker">
+              <button class="filter-picker-toggle" id="statusPickerToggle" type="button" aria-expanded="false" aria-controls="statusPickerMenu">
+                <span>Status</span>
+                <strong id="statusPickerSummary">Default statuses</strong>
+              </button>
+              <div class="filter-picker-menu" id="statusPickerMenu" hidden>
+                <div class="filter-picker-actions">
+                  <button type="button" id="statusSelectAll">Select All</button>
+                  <button type="button" id="statusClearAll">Clear All</button>
+                </div>
+                <div class="facet-list tall status-list" id="statusFacet"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="filter-block">
+            <div class="filter-title">Target Release</div>
+            <div class="filter-picker target-release-picker" id="targetReleasePicker">
+              <button class="filter-picker-toggle" id="targetReleasePickerToggle" type="button" aria-expanded="false" aria-controls="targetReleasePickerMenu">
+                <span>Target Release</span>
+                <strong id="targetReleasePickerSummary">All target releases</strong>
+              </button>
+              <div class="filter-picker-menu" id="targetReleasePickerMenu" hidden>
+                <input class="filter-search picker-search" id="targetReleaseSearch" type="search" placeholder="Search target releases" />
+                <div class="filter-picker-actions">
+                  <button type="button" id="targetReleaseSelectAll">Select All</button>
+                  <button type="button" id="targetReleaseClearAll">Clear All</button>
+                </div>
+                <div class="facet-list tall target-release-list" id="targetReleaseFacet"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="filter-block">
+            <div class="filter-title">Program</div>
+            <div class="filter-picker program-picker" id="programPicker">
+              <button class="filter-picker-toggle" id="programPickerToggle" type="button" aria-expanded="false" aria-controls="programPickerMenu">
+                <span>Program</span>
+                <strong id="programPickerSummary">All programs</strong>
+              </button>
+              <div class="filter-picker-menu" id="programPickerMenu" hidden>
+                <input class="filter-search picker-search" id="programSearch" type="search" placeholder="Search programs" />
+                <div class="filter-picker-actions">
+                  <button type="button" id="programSelectAll">Select All</button>
+                  <button type="button" id="programClearAll">Clear All</button>
+                </div>
+                <div class="facet-list tall program-list" id="programFacet"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">PowerBI-style workspace</p>
+            <h2>Delivery Portfolio Overview</h2>
+          </div>
+          <div class="topbar-actions">
+            <div class="range-badge" id="rangeBadge"></div>
+            <button class="primary-button" id="downloadSnapshot" type="button">Download CSV</button>
+          </div>
+        </header>
+
+        <div class="active-filters" id="activeFilters"></div>
+
+        <section class="kpi-grid" id="kpiGrid" aria-label="KPI cards"></section>
+
+        <section class="dashboard-grid">
+          <div class="executive-chart-grid">
+            <article class="panel executive-chart-panel">
+            <div class="panel-header">
+              <div>
+                <h3>Hours Trend</h3>
+                <p>Logged and billable hours by month</p>
+              </div>
+              <select id="trendGrain" aria-label="Trend granularity">
+                <option value="month">Monthly</option>
+                <option value="week">Weekly</option>
+              </select>
+            </div>
+            <div class="chart-frame executive-chart-frame" id="trendChart">
+              <div class="chart-canvas"></div>
+              <div class="chart-meta"></div>
+            </div>
+            </article>
+
+            <article class="panel panel-planning-effort executive-chart-panel">
+              <div class="panel-header">
+                <div>
+                  <h3>Planned vs Unplanned Effort</h3>
+                  <p>Distinct Tempo work items by Jira planning label</p>
+                </div>
+              </div>
+              <div class="chart-frame executive-chart-frame planning-frame" id="planningChart">
+                <div class="chart-canvas"></div>
+                <div class="chart-meta"></div>
+              </div>
+            </article>
+          </div>
+
+          <div class="executive-chart-grid">
+            <article class="panel panel-program-distribution executive-chart-panel">
+              <div class="panel-header">
+                <div>
+                  <h3>Program Distribution</h3>
+                  <p>Tempo logged hours by Program</p>
+                </div>
+              </div>
+              <div class="chart-frame executive-chart-frame program-pie-frame" id="programPieChart">
+                <div class="chart-canvas"></div>
+                <div class="chart-meta"></div>
+              </div>
+            </article>
+
+            <article class="panel executive-chart-panel bug-triage-module-panel">
+              <div class="panel-header">
+                <div>
+                  <h3>Bug Severity Distribution</h3>
+                  <p>Current operational Bug Triage queue by severity</p>
+                </div>
+              </div>
+              <div id="bugTriageSnapshotSummary" class="bug-triage-snapshot-summary" hidden></div>
+              <div class="chart-frame executive-chart-frame" id="bugSeverityChart">
+                <div class="chart-canvas"></div>
+                <div class="chart-meta"></div>
+              </div>
+            </article>
+          </div>
+
+          <article class="panel panel-account-distribution">
+            <div class="panel-header">
+              <div>
+                <h3>Account Distribution</h3>
+                <p>Tempo logged hours by account</p>
+              </div>
+            </div>
+            <div class="chart-frame treemap-frame" id="accountTreemap"></div>
+          </article>
+
+          <div class="executive-chart-grid">
+            <article class="panel executive-chart-panel">
+              <div class="panel-header">
+                <div>
+                  <h3>Team Utilization</h3>
+                  <p>Capacity, logged hours, variance, and utilization rate</p>
+                </div>
+              </div>
+              <div class="chart-frame executive-chart-frame" id="teamChart">
+                <div class="chart-canvas"></div>
+                <div class="chart-meta"></div>
+              </div>
+            </article>
+
+            <article class="panel executive-chart-panel">
+              <div class="panel-header">
+                <div>
+                  <h3>Remaining Demand vs Logged Effort by Team</h3>
+                  <p>Outstanding Jira demand by delivery scope; Tempo logged effort by selected period.</p>
+                </div>
+              </div>
+              <div class="chart-frame executive-chart-frame" id="demandChart">
+                <div class="chart-canvas"></div>
+                <div class="chart-meta"></div>
+              </div>
+            </article>
+          </div>
+
+          <div class="panel-triple-row">
+            <article class="panel panel-compact-analytics">
+              <div class="panel-header">
+                <div>
+                  <h3>Backlog Priority</h3>
+                  <p>Created backlog by priority in selected range</p>
+                </div>
+              </div>
+              <div class="chart-frame" id="priorityChart"></div>
+            </article>
+
+            <article class="panel panel-compact-analytics">
+              <div class="panel-header">
+                <div>
+                  <h3>Engineering Work Mix</h3>
+                  <p>Governed logged effort by engineering work category.</p>
+                </div>
+              </div>
+              <div class="chart-frame engineering-mix-frame" id="engineeringMixChart">
+                <div class="chart-canvas"></div>
+                <div class="chart-meta"></div>
+              </div>
+            </article>
+
+            <article class="panel panel-compact-analytics">
+              <div class="panel-header">
+                <div>
+                  <h3>Work Item Types</h3>
+                  <p>Tempo worklog count by Jira issue type</p>
+                </div>
+              </div>
+              <div class="chart-frame" id="typeChart"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel detail-panel">
+          <div class="panel-header">
+            <div>
+              <h3>Details</h3>
+              <p id="detailSubtitle">Top account demand</p>
+            </div>
+            <div class="table-controls">
+              <div class="tabs" role="tablist">
+                <button class="tab active" type="button" data-detail="accounts">Accounts</button>
+                <button class="tab" type="button" data-detail="people">People</button>
+                <button class="tab" type="button" data-detail="backlog">Backlog</button>
+                <button class="tab" type="button" data-detail="deliveryProgress">Delivery Progress</button>
+                <button class="tab" type="button" data-detail="bugTriage">Bug Triage</button>
+              </div>
+              <input id="detailSearch" type="search" placeholder="Search details" />
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="detailTable"></table>
+          </div>
+          <div id="deliveryLegend" class="delivery-legend" hidden>
+            <span><i class="health-red"></i>Red: overdue</span>
+            <span><i class="health-amber"></i>Amber: due within 7 days</span>
+            <span><i class="health-blue"></i>Blue: healthy</span>
+            <span><i class="health-grey"></i>Grey: no due date / not applicable</span>
+            <span><i class="health-green"></i>Green: completed</span>
+          </div>
+        </section>
+
+        <footer class="data-footer">
+          <span id="sourceSummary"></span>
+          <span>Range filters worklogs by work date; Backlog tab uses Tempo Work Date.</span>
+        </footer>
+      </main>
+    </div>
+
+    <script src="./data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

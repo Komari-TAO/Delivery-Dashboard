@@ -1,0 +1,469 @@
+BASELINE VERSION
+Version: v0.4
+Date: 06-Jul-2026
+Supersedes: BASELINE_v0.3_2026-07-01.txt
+
+PURPOSE
+This file is the canonical standalone checkpoint for the Codex MVP workspace as of 06-Jul-2026.
+It is intended to let a new Codex workspace resume development without relying on prior chat history.
+Historical governance decisions from v0.3 remain in force unless explicitly superseded below.
+
+PROJECT STATE SUMMARY
+- Dashboard architecture remains a static web app driven by generated `web/data.js` and rendered by `web/app.js`.
+- Core governed semantics from v0.3 remain active:
+  - Organizational/workforce Team is governed by Assignees CSV.
+  - Capacity Team is governed by Weekly Capacity plus Assignees CSV.
+  - Delivery Progress Team represents Jira ticket ownership.
+  - Backlog Worked On Team represents Tempo contributor activity in the selected scope.
+  - Week logic is governed by Master Date, not independent ISO logic.
+  - TEMPO-106 and TEMPO-54 remain globally excluded from delivery analytics.
+  - Default Status behavior excludes Jira Done-category statuses unless the user explicitly changes the Status filter.
+- The 06-Jul-2026 changes extend the validated 01-Jul-2026 semantic baseline with Program Distribution governance, Planned vs Unplanned reporting, an Account Treemap executive visualization, compact filter controls, and refreshed 06-Jul-2026 source data.
+- No application runtime architecture change was introduced after v0.3.
+- 07-Jul-2026 Phase 1 governed Logged Hours standardization supersedes prior inconsistent logged-effort pipelines:
+  - Logged Hours = all valid Tempo worklogs within the selected Date Range after governed exclusions.
+  - Tempo is the source of truth for Logged Hours.
+  - Jira metadata enriches Tempo worklogs but does not determine whether logged hours exist.
+  - Team attribution for governed delivery scope still comes from Assignees CSV.
+  - Logged-effort visuals now reconcile to one governed Logged Hours total.
+
+AUTHORITATIVE GOVERNANCE DOCUMENTS
+- `docs/MVP_Business_Rules.md`
+- `docs/KPI_Definitions.md`
+- `docs/Data_Dictionary.md`
+- `docs/Semantic_Visualization_Governance.md`
+
+DATA SNAPSHOT USED BY CURRENT BUILD
+- `web/data.js` generated on: 2026-07-06
+- Current governed source date range: 2026-01-01 to 2026-07-06
+- `raw.meta.currentDate`: 2026-07-06
+- Current generated source counts:
+  - Tempo worklogs: 20,832 rows
+  - Jira PI backlog: 1,253 rows
+  - Weekly capacity: 2,014 rows
+  - Assignees master: 38 rows
+  - Master date: 730 rows
+  - Release cycles: 11 rows
+  - Tempo operational mapping: 22 rows
+- Current generated dimension counts:
+  - Teams: 6
+  - Programs: 4
+  - Statuses: 36
+
+NEW FUNCTIONALITY SINCE v0.3
+- Program Distribution governance added:
+  - Program slices are based on Jira Custom field (Program) joined to Tempo worklogs by work item key.
+  - Program labels are normalized to governed display names:
+    - PS - Professional Services
+    - MS - Managed Services
+    - PD - Product Development
+    - S-GTM - Sales & Go To Market
+  - Worklogs without direct child Program can resolve Program from Jira parent when a parent exists.
+  - The Program Distribution chart separates:
+    - Program-mapped Logged Hours
+    - Governed Logged Total
+    - Unmapped / Non-Program Logged Hours
+  - Reconciliation logic checks that Program-mapped Logged Hours plus Unmapped / Non-Program Logged Hours equals Governed Logged Total.
+  - Unmapped work is grouped for traceability into Tempo operational work items and Jira work items without Program mapping.
+- Planned vs Unplanned visualization added:
+  - Classifies distinct Tempo issue keys by Jira labels.
+  - Uses `planned` and `unplanned` labels from Jira issue, parent, or ancestor metadata.
+  - Separately tracks Operations and Unclassified work.
+  - Displays Planned and Unplanned as the primary executive comparison while preserving Operations and Unclassified in the summary.
+- Account Treemap added:
+  - Executive visualization of account effort distribution.
+  - Tile area represents Logged Hours in the current filtered scope.
+  - Percentages are calculated against the currently filtered account total.
+  - Missing account values are shown as `(No Account)` / No Account reporting rather than being silently hidden.
+  - Treemap tiles are clickable and update the global Account filter.
+- Compact dropdown filter UX added across the filter rail:
+  - Team
+  - Assignee
+  - Skill
+  - Account
+  - Account Category
+  - Priority
+  - Status
+  - Target Release
+  - Program
+  - Week Number
+  - Release Cycle
+  - Search is implemented for long-list pickers: Assignee, Account, Target Release, and Program.
+  - Select All and Clear All actions are implemented for picker menus.
+- Delivery Health presentation was tightened:
+  - Governed severity ordering is encoded for Delivery Progress sort behavior.
+  - Health states now sort by defined risk order rather than plain lexical order.
+  - Terminal and blocked/on-hold states continue to stop due-date accumulation.
+- Account and Program reconciliation improvements added:
+  - Parent inheritance is used where applicable for missing child metadata.
+  - Program resolution can use Jira parent Program when direct child Program is unavailable.
+  - Program Distribution validation logs reconciliation details to the browser console.
+  - Account Treemap validates rendered tile totals against the filtered logged-hours total.
+- Detail traceability improved:
+  - Backlog and Delivery Progress tables retain Parent Key, Parent Summary, Child Key, and Child Summary.
+  - Child keys remain preserved when parent metadata is inherited.
+  - Sub-task fallback summaries render from parent summary when child summary is missing.
+
+UI CHANGES SINCE v0.3
+- Filter rail now uses compact dropdown multi-select controls instead of always-expanded facet lists.
+- Picker controls now expose:
+  - current selection summaries
+  - Select All
+  - Clear All
+  - search boxes where list length requires it
+- Program filter is now searchable and selectable from the same picker pattern as other long dimensions.
+- Status picker preserves the governed default state by showing Default statuses when the current selection equals all non-Done Jira status values.
+- Account Distribution visualization was replaced with an Account Treemap.
+  - The prior legend behavior is replaced by a filtered total-hours summary:
+    - `Total logged hours (selected period): n h`
+  - A pastel palette is used for account tiles.
+- Program Distribution visualization now includes the three governed reconciliation totals directly in the chart area.
+- Planned vs Unplanned chart appears as a visual explanation of planned/unplanned work item coverage.
+- Delivery Health display retains compact badges and now participates in governed sorting behavior for Delivery Progress.
+
+CALCULATION / DATA BEHAVIOR CHANGES
+- Phase 1 governed Logged Hours standardization added on 07-Jul-2026:
+  - The common Logged Hours basis is all valid Tempo worklogs within the selected Date Range after governed exclusions.
+  - Tempo Work Date is the date basis for Logged Hours.
+  - Jira metadata is enrichment only for Program, Account, Priority, Target Release, Delivery, labels, and parent context.
+  - Jira metadata must not decide whether logged effort exists.
+  - Unmatched Jira metadata must not remove logged effort.
+  - Blank Jira Program, Account, Status, Priority, or Target Release metadata must classify or report work as unmapped/unclassified rather than dropping logged hours.
+  - Jira Status does not reduce governed Logged Hours by default.
+  - TEMPO-106 and TEMPO-54 remain globally excluded before dashboard aggregation.
+  - Operational TEMPO-* rows remain included as Logged Operations unless globally excluded.
+  - Team, Skill, Role, and Availability attribution for governed scope still comes only from Assignees CSV.
+- Phase 1 assignee normalization added on 07-Jul-2026:
+  - `ignacio.mangas` maps to canonical Assignees CSV person `Ignacio Mangas`.
+  - `andres.rojas` maps to canonical Assignees CSV person `Andrés Rojas`.
+  - Both normalized assignees are governed under Scoring through Assignees CSV.
+  - Tempo Team is not used as the authoritative team source.
+  - Marina Petrova and Yuliya Kandukova remain unmanaged/excluded unless they are later added to Assignees CSV.
+- Phase 1 governed logged-hour reconciliation totals from the 07-Jul-2026 validation:
+  - Full-range governed Logged Hours: 32,658.766 hours.
+  - Week 28 governed Logged Hours: 93.334 hours.
+  - Logged-effort visuals reconcile to the same governed Logged Hours total:
+    - Actual / Logged Hours KPI
+    - Effort Trend
+    - Team Utilization
+    - Demand vs Actual logged-hours side
+    - Program Distribution governed total
+    - Planned vs Unplanned total
+    - People table logged total
+- `scripts/build_web_data.py` now normalizes Jira Program values into governed Program labels.
+- Generated metadata now includes `programSummary` from Jira Custom field (Program).
+- Worklogs are enriched with Program by Jira work item key where available.
+- Program filter behavior uses resolved worklog Program, including parent Program inheritance when applicable.
+- Program Distribution calculations intentionally ignore the active Program filter when building the global distribution, then apply Program selection inside the governed distribution calculation.
+- Current default Program Distribution reconciliation from the 06-Jul-2026 payload:
+  - Governed Logged Total: 31,676.658 hours
+  - Program-mapped Logged Hours: 21,689.748 hours
+  - Unmapped / Non-Program Logged Hours: 9,986.910 hours
+  - Reconciliation: 21,689.748 + 9,986.910 = 31,676.658
+- Current Program-mapped logged hours by Program:
+  - PS - Professional Services: 12,420.396 hours
+  - PD - Product Development: 6,317.601 hours
+  - MS - Managed Services: 2,932.251 hours
+  - S-GTM - Sales & Go To Market: 19.500 hours
+- Planned vs Unplanned classification is computed in `scripts/build_web_data.py`:
+  - `planned` label -> Planned
+  - `unplanned` label -> Unplanned
+  - both labels -> Conflict, rendered under Unclassified governance
+  - `tempo-ticket` label or Tempo operational key -> Operations
+  - missing Jira metadata or missing labels -> Unclassified with reason metadata
+  - parent and ancestor labels can classify a child item when the child is missing classification labels
+- Current planned/unplanned classification summary from the 06-Jul-2026 payload:
+  - Planned: 12,498.397 hours, 814 distinct keys, 521 keys inherited from parent/ancestor labels
+  - Unplanned: 9,188.851 hours, 674 distinct keys, 108 keys inherited from parent/ancestor labels
+  - Operations: 5,346.184 hours, 29 distinct keys
+  - Unclassified: 4,643.226 hours, 624 distinct keys
+- Account Treemap rows use the current filtered `data.worklogs` scope for logged and billable hours, and the filtered `data.backlog` scope for original estimates.
+- Account Treemap percentages are recalculated from the filtered treemap total, not from the global dataset.
+- Logged-effort KPI/chart calculations still intentionally ignore Jira Status by using `loggedEffortData()` built from `filteredData({ ignoreStatus: true })`.
+  - This preserves the governed rule that Actual Hours and Team Utilization reflect centralized Tempo delivery effort rather than Jira status slices.
+- `filteredData()` remains the central filter path for Tempo worklogs, Jira backlog, backlog worklogs, and capacity constraint logic.
+- Parent inheritance remains active for child keys missing direct Jira rows:
+  - inherited fields: Account, Delivery, Target Release, Fix Version
+  - preserved fields: original child key and parent traceability
+- Tempo operational items still render with governed operational placeholders.
+
+BUSINESS RULES CODIFIED
+- Logged Hours governance:
+  - Logged Hours is Tempo-sourced, not Jira-sourced.
+  - Valid Tempo worklogs inside the selected Date Range are included after governed exclusions.
+  - Jira issue key is only the relationship used to enrich Tempo rows with Jira metadata.
+  - Missing or unmatched Jira metadata must not remove logged effort.
+  - Operational TEMPO-* work remains included as Logged Operations, except for globally excluded operational keys.
+  - TEMPO-106 and TEMPO-54 remain globally excluded.
+  - Managed Delivery scope is determined through Assignees CSV team mapping.
+  - Rows outside managed Delivery scope because the assignee/team cannot be governed through Assignees CSV must be reported, not silently hidden.
+- Assignee normalization governance:
+  - Dot-format Tempo/Jira assignee names can resolve to canonical Assignees CSV names when they refer to the same governed person.
+  - `ignacio.mangas` resolves to `Ignacio Mangas`.
+  - `andres.rojas` resolves to `Andrés Rojas`.
+  - The normalized canonical person inherits Team/Skill/Role only from Assignees CSV.
+  - Marina Petrova and Yuliya Kandukova are not normalized or mapped and remain unmanaged/excluded unless added to Assignees CSV.
+- Program Distribution is a reconciliation view, not only a pie chart.
+  - Program-mapped Logged Hours must include only work resolved to governed Program labels.
+  - Governed Logged Total is the Tempo logged-hours total in the governed scope after global operational exclusions.
+  - Unmapped / Non-Program Logged Hours is the difference between Governed Logged Total and Program-mapped Logged Hours.
+  - Reconciliation must be transparent and traceable.
+- Program reporting must not hide unmapped work.
+  - Previously unmapped or non-program work remains visible through the Unmapped / Non-Program total and validation log.
+- Program values must be normalized to governed labels.
+  - Raw Jira Program codes or variants are not the display contract.
+- Planned vs Unplanned reporting is label-driven.
+  - Jira labels are the authoritative source for Planned/Unplanned classification.
+  - Parent and ancestor label inheritance is allowed for classification where applicable.
+  - Jira label quality directly limits reporting completeness.
+- Account Treemap is an effort-distribution view.
+  - Area represents Logged Hours.
+  - Percentages are filtered-scope percentages.
+  - Missing Account is reportable and must not be suppressed.
+- Filter controls are UI affordances over the existing governed filter semantics.
+  - Compact picker UX must not alter Team, Status, Program, Account, or date governance.
+- Delivery Health sort order is governed by risk severity:
+  - Overdue / Critical
+  - Due soon / At Risk
+  - Healthy
+  - No due date / Not applicable / Blocked
+  - Completed
+
+BUG FIXES CARRIED FORWARD
+- Delivery Progress Team ownership regression remains fixed.
+  - Current validation scenario: `ADF-2326` renders under Integration ownership even though Tempo contributors include both Integration and Nexus.
+- Delivery Progress Team filter leakage remains fixed.
+  - Under Nexus filter, Integration-owned `ADF-2326` must not appear.
+  - Under Integration filter, `ADF-2326` must appear under Integration.
+- Parent-child enrichment behavior remains fixed:
+  - child key is preserved
+  - Jira parent can enrich missing child metadata
+  - child is not replaced by parent in rendered activity views
+- Backlog and Delivery Progress continue excluding TEMPO-106 and TEMPO-54 from rendered delivery analytics.
+- Default status logic remains governed by Jira status category, preventing Done-category rows from being treated as default active statuses.
+- Actual Hours and Team Utilization continue ignoring Jira Status filters.
+- Backlog Worked On remains activity-based and continues to use Tempo work date semantics.
+- Delivery Progress remains Jira-ownership-based and must not revert to Tempo contributor team ownership.
+
+VALIDATED OPERATIONAL FEATURES
+- Phase 1 governed Logged Hours reconciliation
+- Assignee normalization for Ignacio Mangas and Andrés Rojas
+- Unmanaged exclusion preservation for Marina Petrova and Yuliya Kandukova
+- Delivery Progress ownership validation
+- Parent inheritance
+- Team semantic governance
+- Program Distribution reconciliation
+- Planned vs Unplanned reporting
+- Account Treemap
+- Account reconciliation
+- Program reconciliation
+- Delivery Health governance
+- Global filter consistency
+- Default Status governance
+- TEMPO-106 / TEMPO-54 exclusion governance
+- Backlog Worked On activity semantics
+- Actual Hours / Team Utilization centralized Tempo effort semantics
+
+VALIDATION COMPLETED
+Validated historically from v0.3 baseline:
+- Team mapping
+- Assignee mapping
+- Capacity
+- Logged Engineering
+- Logged Operations
+- Utilization
+- Backlog Worked On
+- Parent inheritance
+- Delivery Progress
+- Master Date governance
+- TEMPO-106 exclusion
+- TEMPO-54 exclusion
+- Delivery Progress Team ownership
+- Delivery Progress Team filtering
+- Jira ownership and Tempo contributor semantics
+- Cross-table Team semantic validation
+- Browser console validation at the time of prior regression validation
+
+Validated in current workspace review on 06-Jul-2026:
+- `python scripts/build_web_data.py`
+  - Passed
+  - Regenerated `web/data.js` from the current 06-Jul-2026 source CSV snapshot
+  - Emitted known pandas date parsing and DataFrame fragmentation warnings only
+  - Confirmed current generated metadata and source counts listed above
+- `node scripts/validate_delivery_progress_team_ownership.cjs`
+  - Passed
+  - Confirmed `ADF-2326` Jira team = Integration
+  - Confirmed Tempo contributors for `ADF-2326` include Integration and Nexus
+  - Confirmed Nexus-filtered Delivery Progress contains no `ADF-2326`
+  - Confirmed Integration-filtered Delivery Progress contains `ADF-2326` under Integration
+  - Confirmed previous incorrect Tempo-contributor-based ownership would have affected 137 scenarios and 124 distinct tickets in current data snapshot
+- Read-only generated-payload reconciliation review:
+  - Confirmed Program Distribution totals reconcile for current filtered default scope
+  - Confirmed planned/unplanned classification fields exist on generated backlog worklogs
+  - Confirmed current Planned, Unplanned, Operations, and Unclassified bucket totals
+  - Confirmed Account Treemap source data exposes reportable blank/missing Account effort
+- Implementation review of `web/app.js`, `web/index.html`, `web/styles.css`, and `scripts/build_web_data.py`:
+  - Confirmed Program Distribution chart logic, reconciliation totals, and validation logging exist
+  - Confirmed Account Treemap logic, pastel palette, filtered-total summary, and click-to-filter behavior exist
+  - Confirmed compact picker UX, search, Select All, and Clear All controls exist
+  - Confirmed Delivery Health governed ordering exists for Delivery Progress sorting
+
+Validated during Phase 1 governed Logged Hours review on 07-Jul-2026:
+- Syntax validation:
+  - `node --check web/app.js` passed
+  - `python -m py_compile scripts/build_web_data.py` passed
+- Assignee normalization:
+  - `ignacio.mangas` maps to `Ignacio Mangas`, Team `Scoring`, Skill `Frontend`
+  - `andres.rojas` maps to `Andrés Rojas`, Team `Scoring`, Skill `Backend`
+  - Team attribution comes from Assignees CSV
+  - Tempo Team is not authoritative
+- Governed Logged Hours:
+  - Full-range governed Logged Hours: 32,658.766 hours
+  - Week 28 governed Logged Hours: 93.334 hours
+  - Week 28 unmanaged excluded hours decreased to 0.000 hours after Ignacio/Andrés normalization
+  - Marina Petrova and Yuliya Kandukova remain unmanaged/excluded
+  - TEMPO-106 and TEMPO-54 remain excluded
+  - Operational TEMPO-* rows remain included as Logged Operations
+- Logged-effort visual reconciliation:
+  - Actual / Logged Hours KPI, Effort Trend, Team Utilization, Demand vs Actual logged-hours side, Program Distribution governed total, Planned vs Unplanned total, and People table logged total reconcile to the same governed Logged Hours total.
+
+KNOWN LIMITATIONS
+- This workspace is still not operating from a normal live Git checkout for history/diff inspection, so baseline delta reconstruction relied on current implementation review, generated metadata, file timestamps, and validation scripts rather than commit history.
+- Google Drive `.gdoc` shortcut bodies are not readable from the mounted filesystem; only local docs and generated artifacts are available in-workspace.
+- Full browser/CDP verification script exists (`scripts/verify_bi_app_chrome_cdp.mjs`) but did not complete in the sandbox during this baseline update.
+  - The sandbox run stopped at unsettled top-level await.
+  - Escalated rerun was not performed because it can write browser/runtime artifacts and would exceed this documentation-only task boundary.
+- Planned vs Unplanned classification is only as complete as Jira labels and parent/ancestor label coverage.
+  - Missing labels, conflicting labels, missing parent metadata, and Jira keys outside the export remain visible through Unclassified reporting.
+- Program Distribution still has meaningful Unmapped / Non-Program effort in the current dataset.
+  - This is expected with current Jira/Tempo mapping quality and must not be hidden.
+- Account Treemap currently includes a large missing-account bucket because many Tempo rows do not resolve to Jira Account in the current source snapshot.
+- Detail export still targets the Accounts detail table only; it is not a generalized export for every active detail tab.
+- Some raw worklog rows intentionally have blank Jira-enriched fields because those keys are Tempo-only, outside current Jira export coverage, or require parent fallback.
+- Temp/browser runtime folders under `.tmp/` are noisy and should not be treated as source-of-truth implementation artifacts.
+- Existing source text and generated payload still contain some encoding artifacts inherited from upstream CSV content.
+
+OUTSTANDING VALIDATIONS
+- Re-run the full browser/CDP verification suite after this documentation-only checkpoint, with explicit approval for browser artifact writes if needed:
+  - `scripts/verify_bi_app_chrome_cdp.mjs`
+- Validate Program Distribution visually in-browser:
+  - chart renders all governed Program slices
+  - three reconciliation totals render in the chart area
+  - console validation reports reconciliation success
+  - unmapped groups remain visible in validation output
+- Validate Planned vs Unplanned visually in-browser:
+  - Planned and Unplanned bars render
+  - Operations and Unclassified summary values render
+  - filtering changes the scoped classification totals
+- Validate Account Treemap visually in-browser:
+  - tile area tracks Logged Hours
+  - percentages are filtered-scope percentages
+  - filtered total-hours summary replaces the legend
+  - clicking a tile updates the Account filter
+- Validate compact picker interactions across desktop and mobile:
+  - search
+  - Select All
+  - Clear All
+  - active chip summaries
+  - preservation of governed default Status behavior
+- Re-run data generation after any source CSV refresh and confirm:
+  - excluded Tempo summaries still populate
+  - release-cycle mapping still reconciles
+  - Program and Account mappings still reconcile
+  - Planned/Unplanned label classification still produces expected buckets
+  - status/program/issue type metadata summaries still align with the source snapshot
+- Validate responsive behavior of the filter rail and picker menus on current desktop and mobile screenshots after any layout changes.
+
+OPEN ISSUES
+- `BASELINE_v0.2_2026-06-30.txt.txt` and `BASELINE_v0.2_2026-06-16.txt.txt` have duplicate `.txt.txt` naming; baseline naming is normalized for v0.3 and v0.4 only.
+- `web/data.js` contains the live generated payload inline and is very large; this is workable for the MVP but increases review friction and should be considered if the app grows further.
+- The current dashboard still depends on static generated JS data rather than a separated JSON fetch/runtime API boundary.
+- Program Distribution exposes a substantial Unmapped / Non-Program bucket in the current dataset; this is now governed and visible, but source mapping cleanup remains a business/data quality issue.
+- Planned vs Unplanned depends on Jira label hygiene; missing or conflicting labels produce Unclassified work that may require operational cleanup.
+- Account reporting still includes a large missing-account bucket; this should be treated as a reconciliation/data quality issue rather than a visualization defect.
+- Browser/CDP verification was not completed during this documentation-only baseline update.
+
+ASSUMPTIONS
+- The authoritative implementation for resuming development is the current workspace state on 06-Jul-2026, especially:
+  - `web/app.js`
+  - `web/index.html`
+  - `web/styles.css`
+  - `scripts/build_web_data.py`
+  - `web/data.js`
+- The semantic docs updated on 30-Jun-2026 are still accepted as the canonical rule set and continue to govern new work.
+- The 06-Jul-2026 source CSV snapshot is the current source snapshot for this checkpoint.
+- The new visual and filter features extend existing governed semantics; they do not redefine Team, Status, date, exclusion, or Delivery Progress ownership governance.
+
+FILES MODIFIED / RELEVANT TO THIS BASELINE
+New baseline file:
+- `BASELINE_v0.4_2026-07-06.txt`
+
+Previous baseline file, intentionally preserved:
+- `BASELINE_v0.3_2026-07-01.txt`
+
+Primary implementation files in current active state:
+- `web/app.js`
+- `web/index.html`
+- `web/styles.css`
+- `web/data.js`
+- `scripts/build_web_data.py`
+- `scripts/validate_delivery_progress_team_ownership.cjs`
+- `scripts/verify_bi_app_chrome_cdp.mjs`
+- `data/.dashboard_sync_state.json`
+
+Canonical governance/reference files:
+- `docs/MVP_Business_Rules.md`
+- `docs/KPI_Definitions.md`
+- `docs/Data_Dictionary.md`
+- `docs/Semantic_Visualization_Governance.md`
+
+IMPLEMENTATION NOTES FOR REPRODUCTION / CONTINUATION
+- Data generation pipeline:
+  - Source of truth raw files live under `data/raw/`
+  - Build script: `scripts/build_web_data.py`
+  - Generated frontend payload target: `web/data.js`
+- Build script responsibilities that must be preserved:
+  - choose latest matching raw CSVs by filename pattern
+  - apply Master Date week/workday governance
+  - map Team/Skill/Role/Availability from Assignees CSV
+  - exclude TEMPO-106 and TEMPO-54 before dashboard aggregation
+  - join Jira metadata to Tempo worklogs by key
+  - perform parent inheritance only for missing-child Jira coverage cases
+  - map Tempo operational summaries from `data/mappings/tempo_operational_mapping.csv`
+  - normalize Jira Program values to governed Program labels
+  - generate metadata summaries for program, status, skill, issue type, and excluded Tempo items
+  - classify Planned / Unplanned / Operations / Unclassified work from Jira labels and parent/ancestor labels
+  - derive releaseCycle from release date windows
+- Frontend semantic rules that must be preserved:
+  - `filteredData()` is the central filter application path
+  - `loggedEffortData()` intentionally ignores Jira Status for Actual Hours / Team Utilization calculations
+  - `programDistributionEffortData()` intentionally builds Program Distribution from governed Tempo effort while ignoring active Status and Program filters at the first filtering stage
+  - `programDistributionRows()` must separate mapped and unmapped Program work
+  - `programDistributionExpectedTotal()` must reconcile to governed logged total
+  - `planningEffortRows()` must count distinct Tempo keys by planning category and preserve Operations / Unclassified traceability
+  - `accountTreemapRows()` must use logged hours as tile area and preserve missing-account visibility
+  - `backlogWorkedRows()` remains activity-based and must use Tempo work date semantics
+  - `deliveryProgressRows()` must use Jira ticket ownership team semantics
+  - `deliveryDueState()` must keep terminal/paused stop logic and readable textual due labels
+  - Delivery Health sorting must use governed severity ordering
+- Validation scripts:
+  - lightweight semantic ownership check: `scripts/validate_delivery_progress_team_ownership.cjs`
+  - full browser/CDP regression harness: `scripts/verify_bi_app_chrome_cdp.mjs`
+- Source snapshot metadata:
+  - `data/.dashboard_sync_state.json` records the exact files, timestamps, and SHA256 hashes used for the latest generated payload
+- Resume recommendation for a new Codex workspace:
+  1. Read this baseline.
+  2. Read the 4 governance docs under `docs/`.
+  3. Inspect `scripts/build_web_data.py` and `web/app.js` first.
+  4. Confirm `web/data.js` matches `data/.dashboard_sync_state.json`.
+  5. Run validation scripts before changing Team semantics, status logic, exclusion logic, parent inheritance, Program Distribution, Planned vs Unplanned logic, Account Treemap behavior, or Delivery Health ordering.
+
+CHECKPOINT CONCLUSION
+- v0.4 is a governed visualization and reconciliation checkpoint on top of the validated v0.3 UI/filter baseline.
+- No historical governance decisions were removed.
+- The most important invariants to protect in further development are:
+  - context-specific Team semantics
+  - transparent Program and Account reconciliation
+  - visible unmapped/unclassified work
+  - governed default Status behavior
+  - Delivery Progress ownership by Jira ticket owner, not Tempo contributor

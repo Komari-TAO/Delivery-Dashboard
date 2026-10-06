@@ -1,0 +1,109 @@
+BASELINE VERSION
+Version: v0.15
+Date: 06-Aug-2026
+Supersedes: BASELINE_v0.14_2026-08-05.txt
+
+1. PURPOSE
+
+This baseline records completion and approval of the Version 2.1 forecasting governance phase. It is a governance milestone only. It introduces no implementation, code, dashboard behaviour, calculation, or functional change.
+
+Version 2.1 forecasting implementation has not started.
+
+2. GOVERNANCE ARCHITECTURE STATUS
+
+The Version 2.1 governance architecture is complete and approved. The authoritative governance baseline comprises:
+
+- `docs/governance/MVP_Business_Rules.md`
+- `docs/governance/KPI_Definitions.md`
+- `docs/governance/Data_Dictionary.md`
+- `docs/governance/Semantic_Visualization_Governance.md`
+- `docs/governance/Release_Cycle_Governance.md`
+- `docs/governance/Forecasting_Governance.md`
+- `docs/governance/Forecast_Resolution_Specification.md`
+
+Existing governance remains authoritative. The Forecasting Governance and Forecast Resolution Specification complete the Version 2.1 planning-governance layer; they do not authorize implementation by themselves.
+
+3. APPROVED BUSINESS SEMANTICS
+
+Capacity is governed by Weekly Capacity and Assignees CSV governance.
+
+Demand is governed by Jira. Remaining Estimate is the authoritative Version 2.1 forecasting value. Original Estimate is retained for reconciliation and future Planning Intelligence.
+
+Assignee is execution metadata and is not an input to forecast-demand resolution. It remains available for governed Assignee reporting and reconciliation without determining forecast demand, forecast bucket, or Team allocation.
+
+Tempo is excluded from Version 2.1 demand calculations.
+
+4. DELIVERY CAPACITY PLANNING
+
+Version 2.1 supports Delivery Capacity Planning through:
+
+- future demand visibility
+- allocated demand
+- Unallocated Demand
+- Planning Exceptions
+- deterministic forecast resolution
+
+Forecasting is future-oriented. Jira demand is resolved to a single governed forecast bucket using the approved Target Release precedence and Future Due Date fallback. Planning Exceptions remain limited to items that cannot be allocated to a valid future Target Release or Future Due Date under the approved forecasting rules.
+
+5. TEAM ALLOCATION GOVERNANCE
+
+Delivery Management is the sole authority for Team allocation.
+
+The platform provides planning visibility only and never automatically allocates work to Teams. It must not infer Team ownership from historical execution or allocate demand solely from available capacity.
+
+Unallocated Demand is valid future Jira demand without a delivery Team assignment. It is an expected planning state, is not a data-quality error, is not a Planning Exception, remains visible in applicable forecasting outputs, and contributes to Portfolio Remaining Demand.
+
+6. FORECAST RESOLUTION
+
+The Forecast Resolution Specification is approved as the authoritative technical resolution framework for Version 2.1.
+
+Forecast demand must be deterministic, unique, traceable, explainable, reproducible, and reconcilable. Each Jira planning item may contribute its Remaining Estimate at most once and may be allocated to only one governed forecast bucket.
+
+Unsupported hierarchy assumptions are prohibited. Parent-child relationships, issue type, and numerical relationships between estimates must not be used to fabricate estimate meaning, Team ownership, or demand contribution semantics.
+
+7. DATA DICTIONARY
+
+Allocation State is an approved governed derived forecasting semantic with these allowed values:
+
+- Allocated
+- Unallocated
+
+Allocated represents forecast demand with a governed Jira Team assignment. Unallocated represents valid future demand without a Jira Team assignment and awaiting Delivery Management allocation.
+
+Allocation State supports Delivery Capacity Planning visibility only. It does not change forecast values, determine Planning Exceptions, infer Team ownership, or automatically assign work to Teams.
+
+8. RELEASE CYCLE
+
+Release Cycle governance remains approved.
+
+The governed Release Cycle calendar continues to determine whether planning periods are Current, Future, or Historical. It is used to classify Target Release for forecasting; Forecasting Governance remains the sole authority for forecast allocation precedence and Planning Exception treatment.
+
+Dashboard implementation of Release Cycle remains parked pending Version 2.1 implementation.
+
+9. AI BOUNDARY
+
+Version 2.1 remains deterministic decision support.
+
+Version 2.1 includes no AI recommendations, automatic Team allocation, predictive behaviour, confidence scoring, or historical estimation learning. AI capabilities remain future roadmap items. If introduced in a later version, recommendations must remain advisory and must never replace Delivery Management decisions.
+
+10. GOVERNANCE VALIDATION
+
+Validation status: PASS
+
+- The baseline reflects the approved Version 2.1 forecasting and resolution governance.
+- Remaining Estimate remains the sole Version 2.1 forecasting demand value.
+- Tempo remains excluded from Version 2.1 demand calculations.
+- Unallocated Demand remains valid forecast demand and is never a Planning Exception.
+- Delivery Management remains the sole authority for Team allocation.
+- Allocation State remains a derived semantic with Allocated and Unallocated values.
+- Release Cycle governance remains approved and its dashboard implementation remains parked.
+- No statement in this baseline claims Version 2.1 implementation completion.
+
+11. VERSION HISTORY
+
+- v0.15 (06-Aug-2026): Completion and approval of the Version 2.1 governance phase, including forecasting governance, deterministic forecast resolution, Unallocated Demand, Delivery Management ownership of Team allocation, Allocation State, Release Cycle alignment, and the Version 2.1 AI boundary. Forecasting implementation has not started.
+- v0.14 (05-Aug-2026): Final approved MVP completion baseline for Bug Triage, including its operational queue, Details tab, executive severity visualization, shared snapshot banner, final paired layout, governance alignment, user guidance, validation, and no-regression confirmation.
+
+CHECKPOINT CONCLUSION
+
+BASELINE v0.15 supersedes BASELINE v0.14 as the approved governance milestone immediately before Version 2.1 forecasting implementation. The Version 2.1 governance phase is complete; Version 2.1 implementation has not started.

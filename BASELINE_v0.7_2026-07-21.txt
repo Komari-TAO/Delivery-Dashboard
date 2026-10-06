@@ -1,0 +1,128 @@
+BASELINE VERSION
+Version: v0.7
+Date: 21-Jul-2026
+Supersedes: BASELINE_v0.6_2026-07-08.txt
+
+1. PURPOSE
+
+This file is the authoritative implementation baseline for the AI-Assisted Delivery Management Platform as of 21-Jul-2026.
+
+It records the approved implementation checkpoint after completion of the governance stabilization phase and before Version 2.1 development.
+
+It supersedes BASELINE_v0.6. Previous baseline files remain historical checkpoints and are not modified by this baseline.
+
+2. PLATFORM STATUS
+
+The platform is considered operationally stable and approved for further development.
+
+- Semantic governance is implemented.
+- Calculation governance is implemented.
+- Reconciliation has been validated.
+- Dashboard behaviour is stable.
+- The platform is approved for further development.
+
+3. APPROVED AUTHORITATIVE SOURCES
+
+Tempo
+- Logged Effort
+
+Jira
+- Remaining Demand
+- Work Item metadata
+- Forecast metadata
+
+Weekly Capacity
+- Capacity
+
+Assignees
+- Team ownership
+- Workforce metadata
+
+Master Date
+- Date
+- Week
+- Calendar governance
+
+4. APPROVED GOVERNANCE
+
+- `docs/MVP_Business_Rules.md`
+- `docs/KPI_Definitions.md`
+- `docs/Data_Dictionary.md`
+- `docs/Semantic_Visualization_Governance.md`
+- `docs/Calculation_Governance.md`
+- `docs/Forecasting_Governance.md`
+- `docs/Release_Cycle_Governance.md`
+
+5. APPROVED IMPLEMENTATION
+
+The following implementation areas are validated and approved:
+
+- Governed Logged Effort
+- Governed Capacity
+- Governed Remaining Demand
+- Date Range historical reporting
+- Master Date week governance
+- Team governance
+- Account Distribution reconciliation
+- Program Distribution reconciliation
+- Planned vs Unplanned reconciliation
+- People reconciliation
+
+All validated Logged Effort surfaces reconcile.
+
+6. VALIDATED BEHAVIOUR
+
+- Date Range governs historical execution metrics.
+- Remaining Demand is a current Jira snapshot.
+- Remaining Demand is intentionally independent of Date Range.
+- Capacity uses Master Date exclusively.
+- Tempo worklogs remain independent from Jira Status.
+- Unmatched governed Tempo work remains included.
+- Terminal Jira work does not remove historical Tempo effort.
+
+7. DEFERRED FUNCTIONALITY
+
+Release Cycle
+
+Status: Parked
+
+Reason: Approved governance exists but dashboard implementation has intentionally been deferred until Version 2.1.
+
+Also deferred:
+
+- Jira Delivery implementation
+- Forecasting implementation
+- Remaining Version 2.1 roadmap
+
+8. REGRESSION SUMMARY
+
+PASS
+
+Validated:
+
+- Logged Effort
+- Capacity
+- Remaining Demand
+- Team Utilization
+- Program Distribution
+- Planned vs Unplanned
+- Account Distribution
+- People Details
+
+No duplicate Tempo worklogs were found.
+
+No governed worklogs were lost.
+
+9. VERSION HISTORY
+
+- v0.7 (21-Jul-2026): Approved implementation baseline following governance stabilization, regression validation, and confirmation of stable governed dashboard behaviour. Supersedes BASELINE_v0.6.
+
+Previous baseline history remains unchanged in the earlier baseline documents.
+
+10. NEXT MILESTONE
+
+The next development phase is Version 2.1: Forecasting, using the already approved governance.
+
+CHECKPOINT CONCLUSION
+
+This baseline is the authoritative approved implementation state for all future development. No application implementation, governance document, calculation, or dashboard functionality was modified as part of this baseline update.

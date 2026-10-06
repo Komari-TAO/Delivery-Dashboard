@@ -1,0 +1,26 @@
+# Local and generated working files
+.tmp/
+**/__pycache__/
+*.py[cod]
+
+# Source exports can contain customer data, credentials, or access tokens.
+data/raw/
+data/.dashboard_sync_state.json
+
+# Generated datasets and BI deliverables may contain derived operational data.
+web/data.js
+outputs/
+
+# Local environment and editor files
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+.idea/
+.vscode/
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db
