@@ -9,6 +9,7 @@ data/.dashboard_sync_state.json
 
 # Generated datasets and BI deliverables may contain derived operational data.
 web/data.js
+web/build-manifest.json
 outputs/
 
 # Local environment and editor files

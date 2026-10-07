@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import unicodedata
@@ -20,6 +21,11 @@ from governed_exclusions import (
 ROOT = Path(__file__).resolve().parents[1]
 WEB_DIR = ROOT / "web"
 RAW_DIR = ROOT / "data" / "raw"
+# Accept the checked-in/exported CSV layout as well as the synchronized
+# data/raw layout. This keeps local builds usable when exports are placed
+# directly in data/.
+if not RAW_DIR.is_dir():
+    RAW_DIR = ROOT / "data"
 MAPPINGS_DIR = ROOT / "data" / "mappings"
 
 WORKLOGS_PATTERN = "RAW_DATA_FULL_ANALYSIS_*.csv"
@@ -37,6 +43,14 @@ PROGRAM_LABELS = {
     "PD": "PD - Product Development",
     "S-GTM": "S-GTM - Sales & Go To Market",
 }
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest().upper()
 
 
 def parse_export_date(path: Path) -> datetime:
@@ -918,6 +932,19 @@ def main() -> None:
         }
     )
 
+    builder_path = Path(__file__).resolve()
+    app_js_path = WEB_DIR / "app.js"
+    source_manifest = [
+        {"role": "Tempo worklogs", "file": worklogs_path.name, "path": str(worklogs_path.relative_to(ROOT)), "sha256": file_sha256(worklogs_path), "rows": int(len(worklogs_out))},
+        {"role": "Jira PI backlog", "file": backlog_path.name, "path": str(backlog_path.relative_to(ROOT)), "sha256": file_sha256(backlog_path), "rows": int(len(backlog_out))},
+        {"role": "Jira Bug Triage queue", "file": bug_triage_path.name, "path": str(bug_triage_path.relative_to(ROOT)), "sha256": file_sha256(bug_triage_path), "rows": int(len(bug_triage_out))},
+        {"role": "Weekly capacity", "file": capacity_path.name, "path": str(capacity_path.relative_to(ROOT)), "sha256": file_sha256(capacity_path), "rows": int(len(capacity_out))},
+        {"role": "Assignees master", "file": assignees_path.name, "path": str(assignees_path.relative_to(ROOT)), "sha256": file_sha256(assignees_path), "rows": int(len(assignees_out))},
+        {"role": "Master date", "file": master_date_path.name, "path": str(master_date_path.relative_to(ROOT)), "sha256": file_sha256(master_date_path), "rows": int(len(master_date))},
+        {"role": "Release cycles", "file": releases_path.name, "path": str(releases_path.relative_to(ROOT)), "sha256": file_sha256(releases_path), "rows": int(len(release_out))},
+        {"role": "Tempo operational mapping", "file": tempo_operational_mapping_path.name, "path": str(tempo_operational_mapping_path.relative_to(ROOT)), "sha256": file_sha256(tempo_operational_mapping_path), "rows": int(len(tempo_operational_mapping))},
+    ]
+
     payload = {
         "meta": {
             "generatedOn": current_date.strftime("%Y-%m-%d"),
@@ -925,15 +952,18 @@ def main() -> None:
             "dateMax": worklog_date_max,
             "currentDate": current_date.strftime("%Y-%m-%d"),
             "sources": [
-                {"name": "Tempo worklogs", "file": worklogs_path.name, "rows": int(len(worklogs_out))},
-                {"name": "Jira PI backlog", "file": backlog_path.name, "rows": int(len(backlog_out))},
-                {"name": "Jira Bug Triage queue", "file": bug_triage_path.name, "rows": int(len(bug_triage_out))},
-                {"name": "Weekly capacity", "file": capacity_path.name, "rows": int(len(capacity_out))},
-                {"name": "Assignees master", "file": assignees_path.name, "rows": int(len(assignees_out))},
-                {"name": "Master date", "file": master_date_path.name, "rows": int(len(master_date))},
-                {"name": "Release cycles", "file": releases_path.name, "rows": int(len(release_out))},
-                {"name": "Tempo operational mapping", "file": tempo_operational_mapping_path.name, "rows": int(len(tempo_operational_mapping))},
+                {"name": item["role"], "file": item["file"], "rows": item["rows"]}
+                for item in source_manifest
             ],
+            "buildManifest": {
+                "builderScript": str(builder_path.relative_to(ROOT)),
+                "builderSha256": file_sha256(builder_path),
+                "frontendScript": str(app_js_path.relative_to(ROOT)),
+                "frontendSha256": file_sha256(app_js_path) if app_js_path.is_file() else "",
+                "governedExclusionsScript": "scripts/governed_exclusions.py",
+                "governedExclusionsSha256": file_sha256(ROOT / "scripts" / "governed_exclusions.py"),
+                "sourceFiles": source_manifest,
+            },
             "notes": [
                 "The local .gdoc files are Google Drive shortcuts; their document body was not exposed by the mounted filesystem.",
                 "Date range filters Tempo worklogs by work date; the Backlog detail table uses Tempo Work Date, Jira metadata for Jira-linked items, and tempo_operational_mapping.csv metadata for mapped Tempo operational items.",
@@ -975,11 +1005,17 @@ def main() -> None:
     }
 
     data_path = WEB_DIR / "data.js"
-    data_path.write_text(
-        "window.BI_DATA = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n",
+    data_js_body = "window.BI_DATA = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n"
+    data_path.write_text(data_js_body, encoding="utf-8")
+    payload["meta"]["buildManifest"]["payloadSha256"] = hashlib.sha256(data_js_body.encode("utf-8")).hexdigest().upper()
+
+    manifest_path = WEB_DIR / "build-manifest.json"
+    manifest_path.write_text(
+        json.dumps(payload["meta"]["buildManifest"], ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     print(data_path)
+    print(manifest_path)
 
 
 if __name__ == "__main__":

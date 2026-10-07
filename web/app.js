@@ -1,7 +1,13 @@
 (function () {
   "use strict";
 
+  function cloneBiPayload(payload) {
+    if (typeof structuredClone === "function") return structuredClone(payload);
+    return JSON.parse(JSON.stringify(payload));
+  }
+
   let raw = applyGlobalIssueExclusions(window.BI_DATA);
+  let lastUpdateContext = null;
   const state = {
     startDate: raw.meta.dateMin,
     endDate: raw.meta.dateMax,
@@ -113,15 +119,16 @@
   }
 
   function applyGlobalIssueExclusions(payload) {
-    const configuredKeys = new Set(governedExcludedIssueKeys(payload));
+    const next = cloneBiPayload(payload);
+    const configuredKeys = new Set(governedExcludedIssueKeys(next));
     ["worklogs", "backlogWorklogs", "backlog", "tempoOperationalMappings", "tempoDescriptions"].forEach((dataset) => {
-      if (!Array.isArray(payload?.[dataset])) return;
-      payload[dataset].forEach((row) => {
+      if (!Array.isArray(next?.[dataset])) return;
+      next[dataset].forEach((row) => {
         row.key = normalizeIssueKey(row.key);
       });
-      payload[dataset] = payload[dataset].filter((row) => !configuredKeys.has(row.key));
+      next[dataset] = next[dataset].filter((row) => !configuredKeys.has(row.key));
     });
-    return payload;
+    return next;
   }
 
   function groupRowsByKey(rows) {
@@ -501,16 +508,24 @@
     });
   }
 
-  function loggedEffortData() {
-    const data = filteredData({ ignoreStatus: true });
+  function buildUpdateContext() {
+    const baseFiltered = filteredData({ ignoreStatus: true });
     const scope = managedLoggedScope(governedLoggedWorklogRows());
     reportGovernedLoggedScope(scope.unmanagedWorklogs);
-    return {
+    const effortData = {
       worklogs: scope.worklogs,
-      backlog: data.backlog.filter((row) => validTeamSet.has(backlogTeam(row))),
-      capacity: data.capacity.filter((row) => validTeamSet.has(row.team)),
+      backlog: baseFiltered.backlog.filter((row) => validTeamSet.has(backlogTeam(row))),
+      capacity: baseFiltered.capacity.filter((row) => validTeamSet.has(row.team)),
       unmanagedWorklogs: scope.unmanagedWorklogs,
+      baseFiltered,
     };
+    const data = filteredData();
+    const programWorklogs = managedLoggedScope(governedLoggedWorklogRows({ ignoreProgram: true })).worklogs;
+    return { data, effortData, programWorklogs };
+  }
+
+  function loggedEffortData() {
+    return buildUpdateContext().effortData;
   }
 
   function demandBacklogData() {
@@ -1085,12 +1100,12 @@
       .join("");
   }
 
-  function renderCharts(data, effortData) {
+  function renderCharts(data, effortData, programWorklogs = programDistributionEffortData()) {
     renderTrendChart(effortData.worklogs);
     renderPlanningChart(effortData.worklogs || []);
-    renderProgramPieChart(programDistributionEffortData());
-    renderBugSeverityDistributionChart(raw.bugTriage || []);
-    renderAccountTreemap({ ...data, worklogs: effortData.worklogs });
+    renderProgramPieChart(programWorklogs);
+    renderBugSeverityDistributionChart(data.bugTriage || []);
+    renderAccountTreemap(data, effortData.baseFiltered.worklogs);
     renderTeamChart(effortData.worklogs, effortData.capacity);
     renderRemainingDemandChart(effortData.worklogs, demandBacklogData());
     renderPriorityChart(data.backlog);
@@ -1299,9 +1314,8 @@
     logEngineeringWorkMixValidation(mix);
   }
 
-  function renderAccountTreemap(data) {
-    const tempoData = filteredData({ ignoreStatus: true });
-    const scope = accountDistributionScope(tempoData.worklogs);
+  function renderAccountTreemap(data, tempoWorklogs) {
+    const scope = accountDistributionScope(tempoWorklogs || []);
     const rows = accountTreemapRows(data, scope.tempoAccounts);
     const totalLogged = rows.reduce((total, row) => total + row.logged, 0);
     if (!rows.length || totalLogged <= 0) {
@@ -2600,10 +2614,10 @@
 
     if (state.detail === "accounts") {
       subtitle = "Account delivery effort";
-      rows = groupAccounts(data.backlog, filteredData({ ignoreStatus: true }).worklogs, data.backlog);
+      rows = groupAccounts(data.backlog, effortData.baseFiltered.worklogs, data.backlog);
       columns = detailColumns("accounts");
     } else if (state.detail === "people") {
-      const peopleData = peopleDetailData();
+      const peopleData = { worklogs: effortData.worklogs, capacity: effortData.capacity };
       subtitle = "Assignees and capacity";
       rows = groupPeople(peopleData.worklogs, peopleData.capacity);
       columns = detailColumns("people");
@@ -3303,13 +3317,19 @@
     $("trendGrain").value = state.trendGrain;
     updateRangeBadge();
     renderFacets();
-    const data = filteredData();
-    const effortData = loggedEffortData();
+    lastUpdateContext = buildUpdateContext();
+    const { data, effortData, programWorklogs } = lastUpdateContext;
     renderKpis(effortData);
     renderActiveFilters();
-    renderCharts(data, effortData);
+    renderCharts(data, effortData, programWorklogs);
     renderDetails(data, effortData);
     renderFooter();
+  }
+
+  function relayoutCharts() {
+    if (!lastUpdateContext) return;
+    const { data, effortData, programWorklogs } = lastUpdateContext;
+    renderCharts(data, effortData, programWorklogs);
   }
 
   function toggleFilter(key, value) {
@@ -3334,9 +3354,14 @@
       start.setDate(start.getDate() - 59);
       state.startDate = clampDate(start.toISOString().slice(0, 10));
       state.endDate = raw.meta.dateMax;
-    } else if (preset === "q1") {
-      state.startDate = "2026-01-01";
-      state.endDate = "2026-03-31";
+    } else if (preset === "qtd") {
+      const reference = parseDate(raw.meta.currentDate || raw.meta.dateMax);
+      const year = reference.getFullYear();
+      const quarterIndex = Math.floor(reference.getMonth() / 3);
+      const quarterStart = new Date(year, quarterIndex * 3, 1);
+      const quarterEnd = new Date(year, quarterIndex * 3 + 3, 0);
+      state.startDate = clampDate(quarterStart.toISOString().slice(0, 10));
+      state.endDate = clampDate(quarterEnd.toISOString().slice(0, 10));
     }
     document.querySelectorAll(".segmented button").forEach((button) => {
       button.classList.toggle("active", button.dataset.preset === preset);
@@ -3345,9 +3370,10 @@
   }
 
   function downloadSnapshot() {
-    const data = filteredData();
+    const ctx = lastUpdateContext || buildUpdateContext();
+    const { data, effortData } = ctx;
     const columns = detailColumns("accounts");
-    const rows = sortDetailRows(groupAccounts(data.backlog, filteredData({ ignoreStatus: true }).worklogs, data.backlog), "accounts", columns);
+    const rows = sortDetailRows(groupAccounts(data.backlog, effortData.baseFiltered.worklogs, data.backlog), "accounts", columns);
     const csvRows = [
       columns.map((column) => column.label),
       ...rows.map((row) => columns.map((column) => {
@@ -3370,6 +3396,23 @@
   function csvCell(value) {
     const str = String(value ?? "");
     return /[",\n]/.test(str) ? `"${str.replaceAll('"', '""')}"` : str;
+  }
+
+  function bindFacetPicker(prefix, stateKey, setOpen, optionValues) {
+    $(`${prefix}PickerToggle`).addEventListener("click", () => {
+      setOpen($(`${prefix}PickerMenu`).hidden);
+    });
+    $(`${prefix}SelectAll`).addEventListener("click", () => {
+      state[stateKey].clear();
+      optionValues().forEach((value) => state[stateKey].add(value));
+      update();
+      setOpen(true);
+    });
+    $(`${prefix}ClearAll`).addEventListener("click", () => {
+      state[stateKey].clear();
+      update();
+      setOpen(true);
+    });
   }
 
   function bindEvents() {
@@ -3448,146 +3491,16 @@
     });
     $("downloadSnapshot").addEventListener("click", downloadSnapshot);
 
-    $("teamPickerToggle").addEventListener("click", () => {
-      setTeamPickerOpen($("teamPickerMenu").hidden);
-    });
-    $("teamSelectAll").addEventListener("click", () => {
-      state.teams.clear();
-      teamOptionValues().forEach((team) => state.teams.add(team));
-      update();
-      setTeamPickerOpen(true);
-    });
-    $("teamClearAll").addEventListener("click", () => {
-      state.teams.clear();
-      update();
-      setTeamPickerOpen(true);
-    });
-    $("assigneePickerToggle").addEventListener("click", () => {
-      setAssigneePickerOpen($("assigneePickerMenu").hidden);
-    });
-    $("assigneeSelectAll").addEventListener("click", () => {
-      state.assignees.clear();
-      assigneeOptionValues().forEach((assignee) => state.assignees.add(assignee));
-      update();
-      setAssigneePickerOpen(true);
-    });
-    $("assigneeClearAll").addEventListener("click", () => {
-      state.assignees.clear();
-      update();
-      setAssigneePickerOpen(true);
-    });
-    $("skillPickerToggle").addEventListener("click", () => {
-      setSkillPickerOpen($("skillPickerMenu").hidden);
-    });
-    $("skillSelectAll").addEventListener("click", () => {
-      state.skills.clear();
-      skillOptionValues().forEach((skill) => state.skills.add(skill));
-      update();
-      setSkillPickerOpen(true);
-    });
-    $("skillClearAll").addEventListener("click", () => {
-      state.skills.clear();
-      update();
-      setSkillPickerOpen(true);
-    });
-    $("accountPickerToggle").addEventListener("click", () => {
-      setAccountPickerOpen($("accountPickerMenu").hidden);
-    });
-    $("accountSelectAll").addEventListener("click", () => {
-      state.accounts.clear();
-      accountOptionValues().forEach((account) => state.accounts.add(account));
-      update();
-      setAccountPickerOpen(true);
-    });
-    $("accountClearAll").addEventListener("click", () => {
-      state.accounts.clear();
-      update();
-      setAccountPickerOpen(true);
-    });
-    $("categoryPickerToggle").addEventListener("click", () => {
-      setCategoryPickerOpen($("categoryPickerMenu").hidden);
-    });
-    $("categorySelectAll").addEventListener("click", () => {
-      state.categories.clear();
-      categoryOptionValues().forEach((category) => state.categories.add(category));
-      update();
-      setCategoryPickerOpen(true);
-    });
-    $("categoryClearAll").addEventListener("click", () => {
-      state.categories.clear();
-      update();
-      setCategoryPickerOpen(true);
-    });
-    $("priorityPickerToggle").addEventListener("click", () => {
-      setPriorityPickerOpen($("priorityPickerMenu").hidden);
-    });
-    $("prioritySelectAll").addEventListener("click", () => {
-      state.priorities.clear();
-      priorityOptionValues().forEach((priority) => state.priorities.add(priority));
-      update();
-      setPriorityPickerOpen(true);
-    });
-    $("priorityClearAll").addEventListener("click", () => {
-      state.priorities.clear();
-      update();
-      setPriorityPickerOpen(true);
-    });
-    $("statusPickerToggle").addEventListener("click", () => {
-      setStatusPickerOpen($("statusPickerMenu").hidden);
-    });
-    $("statusSelectAll").addEventListener("click", () => {
-      state.statuses.clear();
-      statusOptionValues().forEach((status) => state.statuses.add(status));
-      update();
-      setStatusPickerOpen(true);
-    });
-    $("statusClearAll").addEventListener("click", () => {
-      state.statuses.clear();
-      update();
-      setStatusPickerOpen(true);
-    });
-    $("targetReleasePickerToggle").addEventListener("click", () => {
-      setTargetReleasePickerOpen($("targetReleasePickerMenu").hidden);
-    });
-    $("targetReleaseSelectAll").addEventListener("click", () => {
-      state.targetReleases.clear();
-      targetReleaseOptionValues().forEach((targetRelease) => state.targetReleases.add(targetRelease));
-      update();
-      setTargetReleasePickerOpen(true);
-    });
-    $("targetReleaseClearAll").addEventListener("click", () => {
-      state.targetReleases.clear();
-      update();
-      setTargetReleasePickerOpen(true);
-    });
-    $("programPickerToggle").addEventListener("click", () => {
-      setProgramPickerOpen($("programPickerMenu").hidden);
-    });
-    $("programSelectAll").addEventListener("click", () => {
-      state.programs.clear();
-      programOptionValues().forEach((program) => state.programs.add(program));
-      update();
-      setProgramPickerOpen(true);
-    });
-    $("programClearAll").addEventListener("click", () => {
-      state.programs.clear();
-      update();
-      setProgramPickerOpen(true);
-    });
-    $("releasePickerToggle").addEventListener("click", () => {
-      setReleasePickerOpen($("releasePickerMenu").hidden);
-    });
-    $("releaseSelectAll").addEventListener("click", () => {
-      state.releases.clear();
-      releaseOptionValues().forEach((release) => state.releases.add(release));
-      update();
-      setReleasePickerOpen(true);
-    });
-    $("releaseClearAll").addEventListener("click", () => {
-      state.releases.clear();
-      update();
-      setReleasePickerOpen(true);
-    });
+    bindFacetPicker("team", "teams", setTeamPickerOpen, teamOptionValues);
+    bindFacetPicker("assignee", "assignees", setAssigneePickerOpen, assigneeOptionValues);
+    bindFacetPicker("skill", "skills", setSkillPickerOpen, skillOptionValues);
+    bindFacetPicker("account", "accounts", setAccountPickerOpen, accountOptionValues);
+    bindFacetPicker("category", "categories", setCategoryPickerOpen, categoryOptionValues);
+    bindFacetPicker("priority", "priorities", setPriorityPickerOpen, priorityOptionValues);
+    bindFacetPicker("status", "statuses", setStatusPickerOpen, statusOptionValues);
+    bindFacetPicker("targetRelease", "targetReleases", setTargetReleasePickerOpen, targetReleaseOptionValues);
+    bindFacetPicker("program", "programs", setProgramPickerOpen, programOptionValues);
+    bindFacetPicker("release", "releases", setReleasePickerOpen, releaseOptionValues);
 
     document.querySelector(".segmented").addEventListener("click", (event) => {
       const button = event.target.closest("button[data-preset]");
@@ -3628,7 +3541,7 @@
       renderDetails(filteredData());
     });
 
-    window.addEventListener("resize", debounce(update, 150));
+    window.addEventListener("resize", debounce(relayoutCharts, 150));
   }
 
   function debounce(fn, wait) {

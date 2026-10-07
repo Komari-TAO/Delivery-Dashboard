@@ -532,7 +532,8 @@ button:focus-visible {
   --executive-header-height: 74px;
   --executive-chart-canvas-height: 290px;
   --executive-chart-meta-height: 114px;
-  height: var(--executive-panel-height);
+  height: auto;
+  min-height: var(--executive-panel-height);
 }
 
 .executive-chart-panel .panel-header {
@@ -578,6 +579,18 @@ button:focus-visible {
   display: block;
   width: 100%;
   height: 320px;
+}
+
+.chart-business-hint {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent, #6d7cff);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--surface-2, #f4f6fb) 78%, transparent);
+  color: var(--muted, #667085);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  flex: 0 0 auto;
 }
 
 .treemap-frame {

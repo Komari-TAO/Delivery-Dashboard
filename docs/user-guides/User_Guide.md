@@ -211,6 +211,8 @@ The operational views complement this context but answer different questions. **
 
 ## 14. Dashboard visualizations
 
+For field-level source mappings (`[filename].[fieldname]`), filter behavior, and calculation rules for each KPI, chart, and table, see [Chart and Visual Specification](./Chart_and_Visual_Specification.md).
+
 ### Hours Trend
 
 Shows logged and billable hours by month or week. It answers how effort and billable activity moved through the selected period. Use the grain selector to match the cadence of the review. Look for sustained shifts rather than treating a single point as a delivery-health verdict. Logged and Billable have different business meanings; billable is governed by Tempo billing semantics and should not be compared directly with capacity as if it were a utilization measure.

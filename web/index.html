@@ -32,6 +32,9 @@
           </div>
           <div class="segmented date-presets" role="group" aria-label="Date presets">
             <button type="button" data-preset="full">Full</button>
+            <button type="button" data-preset="last30">Last 30d</button>
+            <button type="button" data-preset="last60">Last 60d</button>
+            <button type="button" data-preset="qtd">Quarter</button>
           </div>
           <div class="filter-picker release-picker" id="releasePicker" hidden>
             <button class="filter-picker-toggle" id="releasePickerToggle" type="button" aria-expanded="false" aria-controls="releasePickerMenu">
@@ -243,6 +246,7 @@
               <div class="chart-canvas"></div>
               <div class="chart-meta"></div>
             </div>
+            <p class="chart-business-hint">Business hint: Shows how logged and billable effort evolve over time, helping identify delivery spikes, seasonality, and billable versus non-billable drift.</p>
             </article>
 
             <article class="panel panel-planning-effort executive-chart-panel">
@@ -256,6 +260,7 @@
                 <div class="chart-canvas"></div>
                 <div class="chart-meta"></div>
               </div>
+              <p class="chart-business-hint">Business hint: Compares planned and unplanned delivery work using distinct work items, supporting visibility into planning discipline.</p>
             </article>
           </div>
 
@@ -271,6 +276,7 @@
                 <div class="chart-canvas"></div>
                 <div class="chart-meta"></div>
               </div>
+              <p class="chart-business-hint">Business hint: Shows where governed Tempo hours landed by business program, including mapped and unmapped effort.</p>
             </article>
 
             <article class="panel executive-chart-panel bug-triage-module-panel">
@@ -285,6 +291,7 @@
                 <div class="chart-canvas"></div>
                 <div class="chart-meta"></div>
               </div>
+              <p class="chart-business-hint">Business hint: Summarizes the current operational Bug Triage queue by severity; this is an inventory view, not a Tempo-effort view.</p>
             </article>
           </div>
 
@@ -296,6 +303,7 @@
               </div>
             </div>
             <div class="chart-frame treemap-frame" id="accountTreemap"></div>
+            <p class="chart-business-hint">Business hint: Shows how delivery effort is distributed across customer accounts; tile size represents logged hours and account tiles can be selected to filter.</p>
           </article>
 
           <div class="executive-chart-grid">
@@ -310,6 +318,7 @@
                 <div class="chart-canvas"></div>
                 <div class="chart-meta"></div>
               </div>
+              <p class="chart-business-hint">Business hint: Compares planned weekly capacity with logged hours by team to show variance and utilization.</p>
             </article>
 
             <article class="panel executive-chart-panel">
@@ -323,6 +332,7 @@
                 <div class="chart-canvas"></div>
                 <div class="chart-meta"></div>
               </div>
+              <p class="chart-business-hint">Business hint: Compares outstanding Jira remaining estimate with logged effort by team to highlight demand carried versus effort spent.</p>
             </article>
           </div>
 
@@ -335,6 +345,7 @@
                 </div>
               </div>
               <div class="chart-frame" id="priorityChart"></div>
+              <p class="chart-business-hint">Business hint: Shows the priority mix of backlog items created in the selected range, making incoming demand visible.</p>
             </article>
 
             <article class="panel panel-compact-analytics">
@@ -348,6 +359,7 @@
                 <div class="chart-canvas"></div>
                 <div class="chart-meta"></div>
               </div>
+              <p class="chart-business-hint">Business hint: Splits governed engineering hours into Bugs, Technical Debt, and Rest; operational Tempo work is excluded.</p>
             </article>
 
             <article class="panel panel-compact-analytics">
@@ -358,6 +370,7 @@
                 </div>
               </div>
               <div class="chart-frame" id="typeChart"></div>
+              <p class="chart-business-hint">Business hint: Shows which Jira issue types account for the most Tempo worklog rows, indicating activity volume by type.</p>
             </article>
           </div>
         </section>
