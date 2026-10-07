@@ -8,8 +8,12 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <nav class="workspace-tabs" role="tablist" aria-label="Dashboard sections">
+      <button class="workspace-tab active" type="button" role="tab" aria-selected="true" aria-controls="portfolioTab" data-workspace-tab="portfolioTab">Portfolio</button>
+      <button class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="qualityTab" data-workspace-tab="qualityTab">Data quality</button>
+    </nav>
     <div class="app-shell">
-      <aside class="filter-rail" aria-label="Filters">
+      <aside class="filter-rail" aria-label="Portfolio filters" data-workspace-surface="portfolioTab">
         <div class="rail-header">
           <div>
             <p class="eyebrow">Interactive BI</p>
@@ -227,7 +231,8 @@
 
         <div class="active-filters" id="activeFilters"></div>
 
-        <section class="kpi-grid" id="kpiGrid" aria-label="KPI cards"></section>
+        <section class="workspace-tab-panel active" id="portfolioTab" role="tabpanel" aria-label="Portfolio charts and details">
+          <section class="kpi-grid" id="kpiGrid" aria-label="KPI cards"></section>
 
         <section class="dashboard-grid">
           <div class="executive-chart-grid">
@@ -382,7 +387,7 @@
               <p id="detailSubtitle">Top account demand</p>
             </div>
             <div class="table-controls">
-              <div class="tabs" role="tablist">
+              <div class="tabs detail-tabs" role="tablist">
                 <button class="tab active" type="button" data-detail="accounts">Accounts</button>
                 <button class="tab" type="button" data-detail="people">People</button>
                 <button class="tab" type="button" data-detail="backlog">Backlog</button>
@@ -403,15 +408,31 @@
             <span><i class="health-green"></i>Green: completed</span>
           </div>
         </section>
+        </section>
+
+        <section class="workspace-tab-panel" id="qualityTab" role="tabpanel" aria-label="Data quality summary" hidden>
+          <article class="panel data-quality-panel">
+            <div class="panel-header">
+              <div>
+                <h3>Data quality and freshness</h3>
+                <p>Build and source checks for the currently loaded dashboard payload.</p>
+              </div>
+            </div>
+            <div id="dataQualitySummary" class="data-quality-summary" aria-live="polite"></div>
+            <div id="dataQualitySources" class="data-quality-sources"></div>
+          </article>
+        </section>
 
         <footer class="data-footer">
           <span id="sourceSummary"></span>
+          <span id="dataFreshness">Data freshness: loading…</span>
           <span>Range filters worklogs by work date; Backlog tab uses Tempo Work Date.</span>
         </footer>
       </main>
     </div>
 
     <script src="./data.js"></script>
+    <script src="./dashboard-core.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

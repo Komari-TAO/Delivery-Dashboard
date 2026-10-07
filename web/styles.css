@@ -536,6 +536,48 @@ button:focus-visible {
   min-height: var(--executive-panel-height);
 }
 
+.app-shell[data-active-tab="qualityTab"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 auto 14px;
+  max-width: 1680px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.workspace-tab {
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 9px 14px;
+  cursor: pointer;
+}
+
+.workspace-tab:hover,
+.workspace-tab.active {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+  background: var(--surface);
+}
+
+.workspace-tab-panel[hidden] { display: none; }
+
+.data-quality-panel { min-height: 420px; }
+.data-quality-summary { display: grid; gap: 12px; margin-bottom: 16px; }
+.quality-status { padding: 12px; border-radius: 8px; font-weight: 700; }
+.quality-status.ok, .quality-source.ok { color: #17623b; background: #edf8f1; }
+.quality-status.warning, .quality-source.warning { color: #8a5711; background: #fff7e6; }
+.quality-facts { display: flex; flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: 12px; }
+.data-quality-sources { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
+.quality-source { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 7px; font-size: 12px; }
+.quality-source span { color: var(--muted); overflow-wrap: anywhere; }
+
 .executive-chart-panel .panel-header {
   min-height: var(--executive-header-height);
   align-items: flex-start;
@@ -1115,7 +1157,7 @@ th.num {
     flex-direction: column;
   }
 
-  .topbar-actions {
+.topbar-actions {
     align-items: stretch;
     flex-direction: column;
   }
@@ -1175,4 +1217,13 @@ th.num {
   .tab {
     flex: 1;
   }
+}
+
+.workspace[data-active-tab="qualityTab"] .topbar-actions,
+.workspace[data-active-tab="qualityTab"] .active-filters {
+  display: none;
+}
+
+.workspace[data-active-tab="qualityTab"] .data-quality-panel {
+  width: 100%;
 }

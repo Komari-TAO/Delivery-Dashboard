@@ -1,10 +1,7 @@
 (function () {
   "use strict";
 
-  function cloneBiPayload(payload) {
-    if (typeof structuredClone === "function") return structuredClone(payload);
-    return JSON.parse(JSON.stringify(payload));
-  }
+  const { clonePayload, escapeHtml, parseDataScript } = window.DashboardCore;
 
   let raw = applyGlobalIssueExclusions(window.BI_DATA);
   let lastUpdateContext = null;
@@ -95,19 +92,6 @@
 
   const $ = (id) => document.getElementById(id);
 
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function parseDataScript(text) {
-    return JSON.parse(text.replace(/^window\.BI_DATA\s*=\s*/, "").replace(/;\s*$/, ""));
-  }
-
   function normalizeIssueKey(value) {
     return String(value || "").trim().toUpperCase();
   }
@@ -119,7 +103,7 @@
   }
 
   function applyGlobalIssueExclusions(payload) {
-    const next = cloneBiPayload(payload);
+    const next = clonePayload(payload);
     const configuredKeys = new Set(governedExcludedIssueKeys(next));
     ["worklogs", "backlogWorklogs", "backlog", "tempoOperationalMappings", "tempoDescriptions"].forEach((dataset) => {
       if (!Array.isArray(next?.[dataset])) return;
@@ -1139,6 +1123,16 @@
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     svg.setAttribute("role", "img");
+    const chartLabels = {
+      trendChart: "Logged and billable hours trend",
+      planningChart: "Planned versus unplanned effort",
+      programPieChart: "Logged hours by program",
+      bugSeverityChart: "Bug severity distribution",
+      teamChart: "Team capacity and utilization",
+      demandChart: "Remaining demand versus logged effort by team",
+      engineeringMixChart: "Engineering work mix",
+    };
+    svg.setAttribute("aria-label", chartLabels[containerId] || "Dashboard chart");
     svg.style.height = `${resolvedHeight}px`;
     canvas.appendChild(svg);
     return { el: canvas, svg, width, height: resolvedHeight };
@@ -3305,6 +3299,39 @@
 
   function renderFooter() {
     $("sourceSummary").textContent = raw.meta.sources.map((source) => `${source.name}: ${formatNumber(source.rows)} rows`).join(" | ");
+    const manifest = raw.meta.buildManifest || {};
+    const generated = raw.meta.generatedOn || "unknown date";
+    $("dataFreshness").textContent = `Data freshness: built ${generated} · ${raw.meta.sources.length} sources`;
+    renderDataQuality(manifest);
+  }
+
+  function renderDataQuality(manifest) {
+    const sources = raw.meta.sources || [];
+    const zeroSources = sources.filter((source) => Number(source.rows) === 0 && source.name !== "Jira Bug Triage queue");
+    const excluded = raw.meta.excludedTempoWorkItems || [];
+    const summary = $("dataQualitySummary");
+    const sourceList = $("dataQualitySources");
+    if (!summary || !sourceList) return;
+    const warningCount = zeroSources.length;
+    summary.innerHTML = `<div class="quality-status ${warningCount ? "warning" : "ok"}">${warningCount ? `${warningCount} source warning${warningCount === 1 ? "" : "s"}` : "No empty source datasets detected"}</div><div class="quality-facts"><span>Excluded governed items: ${formatNumber(excluded.length)}</span><span>Payload hash: ${escapeHtml(manifest.payloadSha256 || "not available")}</span></div>`;
+    sourceList.innerHTML = sources.map((source) => `<div class="quality-source ${Number(source.rows) === 0 ? "warning" : "ok"}"><strong>${escapeHtml(source.name)}</strong><span>${formatNumber(source.rows)} rows · ${escapeHtml(source.file)}</span></div>`).join("");
+  }
+
+  function setWorkspaceTab(tabId) {
+    document.querySelector(".app-shell").dataset.activeTab = tabId;
+    document.querySelector(".workspace").dataset.activeTab = tabId;
+    document.querySelectorAll(".workspace-tab").forEach((tab) => {
+      const active = tab.dataset.workspaceTab === tabId;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", String(active));
+    });
+    document.querySelectorAll(".workspace-tab-panel").forEach((panel) => {
+      panel.hidden = panel.id !== tabId;
+      panel.classList.toggle("active", panel.id === tabId);
+    });
+    document.querySelectorAll("[data-workspace-surface]").forEach((surface) => {
+      surface.hidden = surface.dataset.workspaceSurface !== tabId;
+    });
   }
 
   function updateRangeBadge() {
@@ -3532,13 +3559,18 @@
       update();
     });
 
-    document.querySelector(".tabs").addEventListener("click", (event) => {
+    document.querySelector(".detail-tabs").addEventListener("click", (event) => {
       const tab = event.target.closest(".tab");
       if (!tab) return;
       state.detail = tab.dataset.detail;
       document.querySelectorAll(".tab").forEach((button) => button.classList.toggle("active", button === tab));
       renderFacets();
       renderDetails(filteredData());
+    });
+
+    document.querySelector(".workspace-tabs").addEventListener("click", (event) => {
+      const tab = event.target.closest(".workspace-tab");
+      if (tab) setWorkspaceTab(tab.dataset.workspaceTab);
     });
 
     window.addEventListener("resize", debounce(relayoutCharts, 150));
@@ -3554,6 +3586,7 @@
 
   resetStatusDefaults();
   bindEvents();
+  setWorkspaceTab("portfolioTab");
   document.querySelector('.segmented button[data-preset="full"]').classList.add("active");
   update();
   refreshDataIfChanged();

@@ -1005,9 +1005,10 @@ def main() -> None:
     }
 
     data_path = WEB_DIR / "data.js"
+    unsigned_body = "window.BI_DATA = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n"
+    payload["meta"]["buildManifest"]["payloadSha256"] = hashlib.sha256(unsigned_body.encode("utf-8")).hexdigest().upper()
     data_js_body = "window.BI_DATA = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n"
     data_path.write_text(data_js_body, encoding="utf-8")
-    payload["meta"]["buildManifest"]["payloadSha256"] = hashlib.sha256(data_js_body.encode("utf-8")).hexdigest().upper()
 
     manifest_path = WEB_DIR / "build-manifest.json"
     manifest_path.write_text(
