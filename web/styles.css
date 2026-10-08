@@ -1227,3 +1227,56 @@ th.num {
 .workspace[data-active-tab="qualityTab"] .data-quality-panel {
   width: 100%;
 }
+
+.workspace[data-active-tab="demandTab"] .topbar-actions,
+.workspace[data-active-tab="demandTab"] .active-filters {
+  display: none;
+}
+
+.demand-tab { width: 100%; }
+.demand-header { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 16px; align-items: flex-start; }
+.demand-header > div:first-child { max-width: 440px; }
+.demand-header h3 { font-size: 22px; }
+.demand-header p { color: var(--muted); font-size: 13px; }
+.demand-intro { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+.demand-filter-label { display: block; margin-bottom: 6px; color: var(--ink); font-size: 12px; font-weight: 700; }
+.demand-filter-rail select, #demandTreemapMetric, .table-group-control select { width: 100%; min-height: 34px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); padding: 6px 8px; color: var(--ink); }
+.demand-filter-group { padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.table-group-control { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.table-group-control select { width: auto; min-width: 130px; }
+.pivot-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.pivot-controls label { display: grid; gap: 3px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.pivot-controls select { min-width: 118px; min-height: 32px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); padding: 5px 7px; color: var(--ink); }
+.group-row td { padding: 8px 10px; background: #e2edf3; color: var(--blue-dark); font-size: 12px; font-weight: 800; }
+.jira-link, .tempo-link { color: var(--blue-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.workflow-row button { border: 0; padding: 0; background: transparent; color: inherit; font: inherit; font-weight: 800; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
+.inline-ticket-details { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+.inline-ticket-details h4 { margin: 0 0 8px; font-size: 13px; }
+.account-comparison { display: grid; gap: 10px; }
+.account-comparison-row { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(160px, 2fr) minmax(160px, 2fr); gap: 10px; align-items: center; padding: 8px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.account-comparison-row > div { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; min-height: 22px; overflow: hidden; }
+.account-comparison-row span, .account-comparison-row b { position: relative; z-index: 1; }
+.account-comparison-row i { position: absolute; inset: 2px auto 2px 0; display: block; border-radius: 3px; opacity: .25; }
+.actual-bar { background: var(--blue); }
+.demand-bar { background: var(--violet); }
+.demand-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.demand-wide { grid-column: span 2; }
+.workflow-summary { display: grid; gap: 8px; }
+.workflow-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 10px; border-radius: 6px; background: var(--surface-soft); font-size: 12px; }
+.demand-treemap { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); grid-auto-rows: minmax(92px, auto); gap: 6px; min-height: 240px; }
+.demand-tile { display: flex; flex-direction: column; justify-content: space-between; padding: 10px; border-radius: 6px; color: #fff; background: var(--blue); font-size: 12px; font-weight: 700; overflow: hidden; }
+.demand-tile small { font-weight: 500; opacity: .9; }
+.negative { color: var(--red); font-weight: 800; }
+.positive { color: var(--green); font-weight: 800; }
+
+@media (max-width: 1020px) {
+  .demand-header { flex-direction: column; }
+  .pivot-controls { justify-content: flex-start; }
+}
+
+@media (max-width: 720px) {
+  .demand-grid { grid-template-columns: 1fr; }
+  .demand-wide { grid-column: span 1; }
+  .table-group-control { width: 100%; }
+  .account-comparison-row { grid-template-columns: 1fr; gap: 4px; }
+}

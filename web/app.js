@@ -20,6 +20,7 @@
     releases: new Set(),
     detail: "accounts",
     detailSearch: "",
+    detailGroupBy: "",
     detailSort: {
       accounts: { key: null, direction: null },
       people: { key: null, direction: null },
@@ -66,6 +67,11 @@
     Enhancement: "#e3d1d2",
   };
   const UNMAPPED_ACCOUNT_LABEL = "No Account / Missing Account";
+  // Tempo export files expose account keys and team names, but not the numeric IDs
+  // required by the Tempo UI routes. Keep only confirmed mappings here.
+  const TEMPO_ACCOUNT_IDS = Object.freeze({ Engineering: "143" });
+  const TEMPO_TEAM_IDS = Object.freeze({ Architecture: "41", Architects: "41" });
+  const TEMPO_APP_BASE = "https://oat-sa.atlassian.net/jira/apps/fa75e928-007a-4af4-9530-76503bcd4cba/ea7fda46-2015-4367-bd93-992fbf0c58ca";
   const DELIVERY_HEALTH_ORDER = {
     Overdue: 0,
     Critical: 0,
@@ -2640,9 +2646,13 @@
     if (state.detail === "accounts") footerRow = accountTotalsRow(rows);
     else if (state.detail === "people") footerRow = peopleTotalsRow(rows);
     rows = sortDetailRows(rows, state.detail, columns).slice(0, state.detail === "accounts" ? 120 : state.detail === "people" ? 80 : 120);
+    if (state.detailGroupBy) {
+      rows.sort((left, right) => String(left[state.detailGroupBy] || "").localeCompare(String(right[state.detailGroupBy] || "")));
+    }
 
     $("detailSubtitle").textContent = subtitle;
-    $("detailTable").innerHTML = tableHtml(columns, rows, state.detail, footerRow);
+    renderDetailGroupControl(columns);
+    $("detailTable").innerHTML = tableHtml(columns, rows, state.detail, footerRow, state.detailGroupBy);
     renderBugTriageSnapshotSummary();
     const deliveryLegend = $("deliveryLegend");
     if (deliveryLegend) deliveryLegend.hidden = state.detail !== "deliveryProgress";
@@ -3171,6 +3181,7 @@
       loggedOperations: 0,
       billable: 0,
       capacity: 0,
+      personId: "",
       items: new Set(),
     });
 
@@ -3181,6 +3192,7 @@
       const key = row.person || "(blank)";
       if (!map.has(key)) map.set(key, emptyPerson(key, row.team));
       const item = map.get(key);
+      if (!item.personId && row.assigneeId) item.personId = row.assigneeId;
       const logged = Number(row.logged) || 0;
       if (isTempoWorkItem(rowKey)) {
         item.loggedOperations += logged;
@@ -3248,8 +3260,14 @@
         </button>
       </th>`;
     }).join("")}</tr></thead>`;
+    let previousGroup = null;
     const body = rows.map((row) => {
-      return `<tr>${columns.map((column) => `<td class="${detailCellClass(column)}">${formatDetailCell(row, column)}</td>`).join("")}</tr>`;
+      const groupValue = state.detailGroupBy ? detailDisplayValue(row[state.detailGroupBy]) : null;
+      const group = state.detailGroupBy && groupValue !== previousGroup
+        ? `<tr class="group-row"><td colspan="${columns.length}">${escapeHtml(columns.find((column) => column.key === state.detailGroupBy)?.label || "Group")}: ${escapeHtml(groupValue)}</td></tr>`
+        : "";
+      previousGroup = groupValue;
+      return `${group}<tr>${columns.map((column) => `<td class="${detailCellClass(column)}">${formatDetailCell(row, column)}</td>`).join("")}</tr>`;
     }).join("");
     const foot = footerRow
       ? `<tfoot><tr class="totals-row">${columns.map((column) => `<td class="${detailCellClass(column)}">${formatDetailCell(footerRow, column)}</td>`).join("")}</tr></tfoot>`
@@ -3270,6 +3288,10 @@
     const value = row[column.key];
     if (column.healthKey) return formatHealthSubjectKey(value, row);
     if (column.health) return formatDeliveryHealth(value, row);
+    if (["key", "parentKey", "childKey"].includes(column.key)) return formatJiraIssueLink(value, column.emphasize);
+    if (column.key === "account") return formatTempoEntityLink(value, TEMPO_ACCOUNT_IDS, "accounts/account");
+    if (column.key === "team") return formatTempoEntityLink(value, TEMPO_TEAM_IDS, "teams/team");
+    if (column.key === "person") return formatJiraPersonLink(value, row.personId);
     if (column.emphasize) return `<strong class="table-emphasis">${escapeHtml(value)}</strong>`;
     if (column.formatter) return escapeHtml(column.formatter(value, row));
     if (column.percent) return formatPercent(Number(value) || 0);
@@ -3277,10 +3299,40 @@
     return escapeHtml(value);
   }
 
+  function formatJiraIssueLink(value, emphasize = false) {
+    const key = String(value || "").trim();
+    if (!key || key === "-") return "-";
+    const label = emphasize ? `<strong class="table-emphasis">${escapeHtml(key)}</strong>` : escapeHtml(key);
+    return `<a class="jira-link" href="https://oat-sa.atlassian.net/browse/${encodeURIComponent(key)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  }
+
+  function formatTempoEntityLink(value, ids, route) {
+    const label = detailDisplayValue(value);
+    const id = ids[label];
+    if (!id) return escapeHtml(label);
+    return `<a class="tempo-link" href="${TEMPO_APP_BASE}/${route}/${encodeURIComponent(id)}/" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+  }
+
+  function formatJiraPersonLink(value, accountId) {
+    const label = detailDisplayValue(value);
+    if (!accountId || label === "-") return escapeHtml(label);
+    return `<a class="jira-link" href="https://oat-sa.atlassian.net/people/${encodeURIComponent(accountId)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+  }
+
+  function renderDetailGroupControl(columns) {
+    const select = $("detailGroupBy");
+    if (!select) return;
+    const allowed = columns.filter((column) => !column.numeric && !column.percent && !column.health).map((column) => column.key);
+    if (!allowed.includes(state.detailGroupBy)) state.detailGroupBy = "";
+    select.innerHTML = `<option value="">No grouping</option>${columns.filter((column) => allowed.includes(column.key)).map((column) => `<option value="${escapeHtml(column.key)}">${escapeHtml(column.label)}</option>`).join("")}`;
+    select.value = state.detailGroupBy;
+  }
+
   function formatHealthSubjectKey(value, row) {
     const label = detailDisplayValue(value);
     const title = `Health based on ${row.healthSubjectLabel || `Child Key: ${label}`}`;
-    return `<span class="health-key ${deliveryHealthClass(row.deliveryHealth)}" title="${escapeHtml(title)}">${escapeHtml(label)}</span>`;
+    const issue = label === "-" ? "-" : `<a class="jira-link" href="https://oat-sa.atlassian.net/browse/${encodeURIComponent(label)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+    return `<span class="health-key ${deliveryHealthClass(row.deliveryHealth)}" title="${escapeHtml(title)}">${issue}</span>`;
   }
 
   function formatDeliveryHealth(value, row) {
@@ -3313,8 +3365,8 @@
     const sourceList = $("dataQualitySources");
     if (!summary || !sourceList) return;
     const warningCount = zeroSources.length;
-    summary.innerHTML = `<div class="quality-status ${warningCount ? "warning" : "ok"}">${warningCount ? `${warningCount} source warning${warningCount === 1 ? "" : "s"}` : "No empty source datasets detected"}</div><div class="quality-facts"><span>Excluded governed items: ${formatNumber(excluded.length)}</span><span>Payload hash: ${escapeHtml(manifest.payloadSha256 || "not available")}</span></div>`;
-    sourceList.innerHTML = sources.map((source) => `<div class="quality-source ${Number(source.rows) === 0 ? "warning" : "ok"}"><strong>${escapeHtml(source.name)}</strong><span>${formatNumber(source.rows)} rows · ${escapeHtml(source.file)}</span></div>`).join("");
+    summary.innerHTML = `<div class="quality-status ${warningCount ? "warning" : "ok"}">${warningCount ? `${warningCount} source warning${warningCount === 1 ? "" : "s"}` : "No empty source datasets detected"}</div><div class="quality-facts"><span>Last synchronized: ${escapeHtml(raw.meta.generatedOn || "not available")}</span><span>Excluded governed items: ${formatNumber(excluded.length)}</span><span>Payload hash: ${escapeHtml(manifest.payloadSha256 || "not available")}</span></div>`;
+    sourceList.innerHTML = sources.map((source) => { const hasRows = Number(source.rows) > 0; const status = source.name === "Jira Bug Triage queue" && !hasRows ? "Not supplied / not used" : (hasRows ? "Synchronized" : "Empty"); return `<div class="quality-source ${hasRows ? "ok" : "warning"}"><strong>${escapeHtml(source.name)}</strong><span>${escapeHtml(status)} · ${formatNumber(source.rows)} rows · ${escapeHtml(source.file)}</span></div>`; }).join("");
   }
 
   function setWorkspaceTab(tabId) {
@@ -3332,6 +3384,14 @@
     document.querySelectorAll("[data-workspace-surface]").forEach((surface) => {
       surface.hidden = surface.dataset.workspaceSurface !== tabId;
     });
+    const tabTitles = {
+      portfolioTab: ["PowerBI-style workspace", "Delivery Portfolio Overview"],
+      qualityTab: ["Source governance", "Datasources and sync status"],
+      demandTab: ["Governed demand visibility", "Demand Management"],
+    };
+    const [eyebrow, title] = tabTitles[tabId] || tabTitles.portfolioTab;
+    $("workspaceEyebrow").textContent = eyebrow;
+    $("workspaceTitle").textContent = title;
   }
 
   function updateRangeBadge() {
@@ -3482,6 +3542,10 @@
       state.detailSearch = event.target.value;
       renderDetails(filteredData());
     });
+    $("detailGroupBy").addEventListener("change", (event) => {
+      state.detailGroupBy = event.target.value;
+      renderDetails(filteredData());
+    });
     $("detailTable").addEventListener("click", (event) => {
       const button = event.target.closest("button[data-sort-key]");
       if (!button) return;
@@ -3563,6 +3627,7 @@
       const tab = event.target.closest(".tab");
       if (!tab) return;
       state.detail = tab.dataset.detail;
+      state.detailGroupBy = "";
       document.querySelectorAll(".tab").forEach((button) => button.classList.toggle("active", button === tab));
       renderFacets();
       renderDetails(filteredData());

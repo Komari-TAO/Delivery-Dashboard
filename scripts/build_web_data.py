@@ -643,11 +643,48 @@ def main() -> None:
             "account": text(backlog, "Custom field (Account)"),
             "originalEstimateHours": num(backlog, "Original estimate") / 3600,
             "remainingEstimateHours": num(backlog, "Remaining Estimate") / 3600,
+            "hasRemainingEstimate": text(backlog, "Remaining Estimate").str.strip().ne(""),
         }
     )
     summary_by_key = dict(zip(backlog_out["key"], backlog_out["summary"]))
     missing_parent_summary = backlog_out["parentSummary"].fillna("").astype(str).str.strip().eq("") & backlog_out["parentKey"].fillna("").astype(str).str.strip().ne("")
     backlog_out.loc[missing_parent_summary, "parentSummary"] = backlog_out.loc[missing_parent_summary, "parentKey"].map(summary_by_key).fillna("")
+
+    # Governed Demand layer. It is deliberately separate from the MVP's
+    # historical Tempo calculations and provides one demand record per Jira item.
+    release_end_by_cycle = dict(zip(text(releases, "Release Cycle"), releases["End"]))
+    demand_out = backlog_out.copy()
+    demand_out["demandHours"] = demand_out["remainingEstimateHours"].where(demand_out["hasRemainingEstimate"], None)
+    demand_out["demandTeam"] = demand_out["team"].where(demand_out["team"].str.strip().ne(""), "Unassigned / To Be Assigned")
+    demand_out["planningPeriod"] = demand_out["targetRelease"].fillna("").astype(str).str.strip()
+    demand_out["allocationType"] = "Target Release"
+    demand_out.loc[demand_out["planningPeriod"].eq(""), "allocationType"] = "Unscheduled / N/A"
+    due_dates = pd.to_datetime(demand_out["dueDate"], errors="coerce")
+    for index, due_date in due_dates.items():
+        target_release = demand_out.at[index, "planningPeriod"]
+        target_end = release_end_by_cycle.get(target_release)
+        if target_release and target_end is not None and pd.notna(due_date) and due_date > current_date and target_end < current_date:
+            demand_out.at[index, "planningPeriod"] = release_for_date(due_date, releases) or "Unscheduled / N/A"
+            demand_out.at[index, "allocationType"] = "Backport"
+        elif not target_release and pd.notna(due_date):
+            inferred_period = release_for_date(due_date, releases)
+            if inferred_period:
+                demand_out.at[index, "planningPeriod"] = inferred_period
+                demand_out.at[index, "allocationType"] = "Due Date fallback"
+    demand_out.loc[demand_out["planningPeriod"].eq(""), "planningPeriod"] = "Unscheduled / N/A"
+    status_key = demand_out["status"].fillna("").astype(str).str.strip().str.casefold()
+    demand_out["reportingStage"] = "Other / Unmapped"
+    demand_out.loc[status_key.str.contains("backlog|to do", regex=True), "reportingStage"] = "STEP 1 - Demand"
+    demand_out.loc[status_key.str.contains("analysis", regex=True), "reportingStage"] = "STEP 2 - DoR"
+    demand_out.loc[status_key.str.contains("ready for development|in development|testing|test complete", regex=True), "reportingStage"] = "STEP 3 - DoD"
+    demand_out.loc[status_key.str.contains("done|rejected|cancelled", regex=True), "reportingStage"] = "STEP 4 - Done / Cancelled"
+    demand_out["dorDod"] = "Other / Unmapped"
+    demand_out.loc[demand_out["reportingStage"].isin(["STEP 1 - Demand", "STEP 2 - DoR"]), "dorDod"] = "DoR"
+    demand_out.loc[demand_out["reportingStage"].isin(["STEP 3 - DoD", "STEP 4 - Done / Cancelled"]), "dorDod"] = "DoD"
+    demand_out["dataQuality"] = ""
+    demand_out.loc[~demand_out["hasRemainingEstimate"], "dataQuality"] = "Missing Remaining Estimate"
+    demand_out.loc[demand_out["demandTeam"].eq("Unassigned / To Be Assigned"), "dataQuality"] = demand_out["dataQuality"].mask(demand_out["dataQuality"].eq(""), "Unassigned Team")
+    demand_out.loc[demand_out["planningPeriod"].eq("Unscheduled / N/A"), "dataQuality"] = demand_out["dataQuality"].mask(demand_out["dataQuality"].eq(""), "Unscheduled")
     jira_by_key = backlog_out.set_index("key")
     jira_records = {
         str(row["key"]).strip().upper(): {
@@ -997,6 +1034,7 @@ def main() -> None:
         "tempoOperationalMappings": as_records(tempo_operational_mapping),
         "tempoDescriptions": as_records(tempo_operational_mapping),
         "backlog": as_records(backlog_out),
+        "demand": as_records(demand_out),
         "bugTriage": as_records(bug_triage_out),
         "capacity": as_records(capacity_out),
         "assignees": as_records(assignees_out),

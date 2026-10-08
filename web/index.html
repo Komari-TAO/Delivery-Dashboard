@@ -10,7 +10,8 @@
   <body>
     <nav class="workspace-tabs" role="tablist" aria-label="Dashboard sections">
       <button class="workspace-tab active" type="button" role="tab" aria-selected="true" aria-controls="portfolioTab" data-workspace-tab="portfolioTab">Portfolio</button>
-      <button class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="qualityTab" data-workspace-tab="qualityTab">Data quality</button>
+      <button class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="qualityTab" data-workspace-tab="qualityTab">Datasources</button>
+      <button class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="demandTab" data-workspace-tab="demandTab">Demand Management</button>
     </nav>
     <div class="app-shell">
       <aside class="filter-rail" aria-label="Portfolio filters" data-workspace-surface="portfolioTab">
@@ -217,11 +218,35 @@
         </div>
       </aside>
 
+      <aside class="filter-rail demand-filter-rail" aria-label="Demand Management filters" data-workspace-surface="demandTab" hidden>
+        <div class="rail-header">
+          <div>
+            <p class="eyebrow">Governed demand</p>
+            <h1>Demand filters</h1>
+          </div>
+          <button class="ghost-button" id="resetDemandFilters" type="button">Reset</button>
+        </div>
+        <section class="filter-block date-filter-block">
+          <div class="filter-title">Planning date range</div>
+          <div class="date-grid">
+            <label><span>From</span><input id="demandStartDate" type="date" /></label>
+            <label><span>To</span><input id="demandEndDate" type="date" /></label>
+          </div>
+        </section>
+        <div class="filter-group filter-group-core demand-filter-group">
+          <section class="filter-block"><label class="demand-filter-label" for="demandTeamFilter">Team</label><select id="demandTeamFilter"><option value="">All teams</option></select></section>
+          <section class="filter-block"><label class="demand-filter-label" for="demandClientFilter">Client</label><select id="demandClientFilter"><option value="">All clients</option></select></section>
+          <section class="filter-block"><label class="demand-filter-label" for="demandAccountFilter">Account</label><select id="demandAccountFilter"><option value="">All accounts</option></select></section>
+          <section class="filter-block"><label class="demand-filter-label" for="demandModuleFilter">Product module</label><select id="demandModuleFilter"><option value="">All modules</option></select></section>
+          <section class="filter-block"><label class="demand-filter-label" for="demandPeriodFilter">Target / planning release</label><select id="demandPeriodFilter"><option value="">All periods</option></select></section>
+        </div>
+      </aside>
+
       <main class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow">PowerBI-style workspace</p>
-            <h2>Delivery Portfolio Overview</h2>
+            <p class="eyebrow" id="workspaceEyebrow">PowerBI-style workspace</p>
+            <h2 id="workspaceTitle">Delivery Portfolio Overview</h2>
           </div>
           <div class="topbar-actions">
             <div class="range-badge" id="rangeBadge"></div>
@@ -394,6 +419,7 @@
                 <button class="tab" type="button" data-detail="deliveryProgress">Delivery Progress</button>
                 <button class="tab" type="button" data-detail="bugTriage">Bug Triage</button>
               </div>
+              <label class="table-group-control">Group by <select id="detailGroupBy" aria-label="Group detail table by column"></select></label>
               <input id="detailSearch" type="search" placeholder="Search details" />
             </div>
           </div>
@@ -414,13 +440,26 @@
           <article class="panel data-quality-panel">
             <div class="panel-header">
               <div>
-                <h3>Data quality and freshness</h3>
-                <p>Build and source checks for the currently loaded dashboard payload.</p>
+                <h3>Datasources and sync status</h3>
+                <p>Source availability, last synchronization time, and status for the currently loaded dashboard payload.</p>
               </div>
             </div>
             <div id="dataQualitySummary" class="data-quality-summary" aria-live="polite"></div>
             <div id="dataQualitySources" class="data-quality-sources"></div>
           </article>
+        </section>
+
+        <section class="workspace-tab-panel demand-tab" id="demandTab" role="tabpanel" aria-label="Demand management" hidden>
+          <p class="demand-intro">Current Tempo actuals, Jira known demand, and weekly capacity by planning period. This is not a forecast.</p>
+          <section id="demandKpis" class="kpi-grid" aria-label="Demand management KPIs"></section>
+          <section class="demand-grid">
+            <article class="panel demand-wide"><div class="panel-header"><div><h3>Team × Release / Planning Period</h3><p>Pivot table of Jira remaining estimate hours. Backports and unscheduled demand remain visible.</p></div><label class="table-group-control">Rows <select id="demandMatrixGroup"><option value="team">Team</option><option value="period">Planning period</option></select></label></div><div class="table-wrap"><table id="demandMatrix"></table></div></article>
+            <article class="panel"><div class="panel-header"><div><h3>Capacity versus Known Demand</h3><p>Pivot: each cell compares the selected value for a team and planning period.</p></div><div class="pivot-controls"><label>Rows <select id="demandCapacityRows"><option value="team">Team</option><option value="period">Planning period</option></select></label><label>Columns <select id="demandCapacityColumns"><option value="period">Planning period</option><option value="team">Team</option></select></label><label>Value <select id="demandCapacityValue"><option value="gap">Capacity gap</option><option value="planned">Capacity</option><option value="logged">Actual effort</option><option value="remaining">Remaining capacity</option><option value="known">Known demand</option></select></label></div></div><div class="table-wrap"><table id="demandCapacity"></table></div></article>
+            <article class="panel"><div class="panel-header"><div><h3>Workflow Position</h3><p>Select a stage to expand its Jira tickets directly in this panel.</p></div></div><div id="demandWorkflow" class="workflow-summary"></div><div id="demandWorkflowDetails" class="inline-ticket-details" hidden></div></article>
+            <article class="panel demand-wide"><div class="panel-header"><div><h3>Actual Effort vs Future Demand by Account</h3><p>Each account shows two separate measures: Tempo Logged Hours and Jira Remaining Estimate.</p></div></div><div id="demandAccountComparison" class="account-comparison" aria-label="Actual effort compared with future demand by account"></div></article>
+            <article class="panel"><div class="panel-header"><div><h3>Demand Data Quality</h3><p>Select an exception to expand its affected Jira tickets directly in this panel.</p></div></div><div id="demandQuality" class="workflow-summary"></div><div id="demandQualityDetails" class="inline-ticket-details" hidden></div></article>
+            <article class="panel"><div class="panel-header"><div><h3>Release Predictability</h3><p>Awaiting governed committed-feature baseline and delivery rule.</p></div></div><div class="chart-empty">Not calculated: feature hierarchy, commitment baseline, and delivered-in-expected-release rules require formal governance.</div></article>
+          </section>
         </section>
 
         <footer class="data-footer">
@@ -434,5 +473,6 @@
     <script src="./data.js"></script>
     <script src="./dashboard-core.js"></script>
     <script src="./app.js"></script>
+    <script src="./demand.js"></script>
   </body>
 </html>
