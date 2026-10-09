@@ -1228,6 +1228,44 @@ th.num {
   width: 100%;
 }
 
+.lineage-panel {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.lineage-panel details {
+  border-top: 1px solid var(--line);
+}
+
+.lineage-panel details:first-of-type {
+  border-top: 0;
+}
+
+.lineage-panel summary {
+  cursor: pointer;
+  padding: 14px 0;
+  color: var(--blue-dark);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.lineage-panel summary:hover {
+  color: var(--blue);
+}
+
+.lineage-content {
+  padding: 0 0 16px;
+}
+
+.lineage-content table {
+  min-width: 960px;
+}
+
+.lineage-content td {
+  vertical-align: top;
+  line-height: 1.45;
+}
+
 .workspace[data-active-tab="demandTab"] .topbar-actions,
 .workspace[data-active-tab="demandTab"] .active-filters {
   display: none;
@@ -1241,6 +1279,7 @@ th.num {
 .demand-intro { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
 .demand-filter-label { display: block; margin-bottom: 6px; color: var(--ink); font-size: 12px; font-weight: 700; }
 .demand-filter-rail select, #demandTreemapMetric, .table-group-control select { width: 100%; min-height: 34px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); padding: 6px 8px; color: var(--ink); }
+.demand-filter-rail select[multiple] { min-height: 132px; }
 .demand-filter-group { padding-bottom: 18px; border-bottom: 1px solid var(--line); }
 .table-group-control { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .table-group-control select { width: auto; min-width: 130px; }

@@ -35,6 +35,7 @@ ASSIGNEES_PATTERN = "*Assignees*Capacit*.csv"
 MASTER_DATE_PATTERN = "*Master*Date*.csv"
 RELEASES_PATTERN = "Release Cycle*.csv"
 BUG_TRIAGE_PATTERN = "Bug Triage_*"
+PROMOTERS_PATH = RAW_DIR / "Promoters.csv"
 TEMPO_OPERATIONAL_MAPPING = MAPPINGS_DIR / "tempo_operational_mapping.csv"
 
 PROGRAM_LABELS = {
@@ -470,6 +471,7 @@ def main() -> None:
     master_date_path = latest_csv(MASTER_DATE_PATTERN)
     releases_path = latest_csv(RELEASES_PATTERN)
     bug_triage_path, previous_bug_triage_path = latest_two_csvs(BUG_TRIAGE_PATTERN)
+    promoters_path = PROMOTERS_PATH
     tempo_operational_mapping_path = TEMPO_OPERATIONAL_MAPPING
 
     master_date = pd.read_csv(master_date_path)
@@ -499,6 +501,14 @@ def main() -> None:
     skill_by_assignee = dict(zip(text(assignees, "Assignee"), text(assignees, "Skill")))
     role_by_assignee = dict(zip(text(assignees, "Assignee"), text(assignees, "Role")))
     availability_by_assignee = dict(zip(text(assignees, "Assignee"), text(assignees, "Availability")))
+
+    promoters = pd.read_csv(promoters_path, low_memory=False)
+    promoter_to_business_area = dict(
+        zip(
+            text(promoters, "Promoter").map(normalize_assignee_name).str.casefold(),
+            text(promoters, "Business Area").str.strip(),
+        )
+    )
 
     worklogs = pd.read_csv(worklogs_path, low_memory=False)
     worklogs, excluded_worklogs = partition_governed_issue_rows(worklogs, "Work Item Key")
@@ -611,6 +621,16 @@ def main() -> None:
     backlog_team = backlog_assignee.map(team_by_assignee).fillna("")
     backlog_skill = backlog_assignee.map(skill_by_assignee).fillna("")
     backlog_program = text(backlog, "Custom field (Program)").map(normalize_program)
+    backlog_promoter = text(backlog, "Custom field (Promoter)").map(normalize_assignee_name)
+    backlog_business_area = backlog_promoter.str.casefold().map(promoter_to_business_area).fillna("")
+    backlog_business_area = backlog_business_area.mask(backlog_promoter.str.strip().eq(""), "Other/Blank")
+    backlog_business_area = backlog_business_area.mask(backlog_business_area.str.strip().eq(""), "Other/Blank")
+    tempo_client_by_key = (
+        worklogs_out.loc[worklogs_out["delivery"].fillna("").astype(str).str.strip().ne("")]
+        .drop_duplicates("key")
+        .set_index("key")["delivery"]
+        .to_dict()
+    )
     backlog_out = pd.DataFrame(
         {
             "key": text(backlog, "Issue key"),
@@ -638,8 +658,11 @@ def main() -> None:
             "labels": backlog["labels"],
             "technicalDebt": text(backlog, "Custom field (Is this technical debt ?)"),
             "delivery": text(backlog, "Custom field (Delivery)"),
+            "tempoClient": text(backlog, "Issue key").map(tempo_client_by_key).fillna(""),
             "targetRelease": text(backlog, "Custom field (Target Release)"),
             "program": backlog_program,
+            "promoter": backlog_promoter,
+            "businessArea": backlog_business_area,
             "account": text(backlog, "Custom field (Account)"),
             "originalEstimateHours": num(backlog, "Original estimate") / 3600,
             "remainingEstimateHours": num(backlog, "Remaining Estimate") / 3600,
@@ -698,6 +721,8 @@ def main() -> None:
     for worklog_frame in (worklogs_out, backlog_worklogs_out):
         worklog_frame["account"] = worklog_frame["key"].map(jira_by_key["account"].to_dict()).fillna("")
         worklog_frame["program"] = worklog_frame["key"].map(jira_by_key["program"].to_dict()).fillna("")
+        worklog_frame["businessArea"] = worklog_frame["key"].map(jira_by_key["businessArea"].to_dict()).fillna("Other/Blank")
+        worklog_frame["targetRelease"] = worklog_frame["key"].map(jira_by_key["targetRelease"].to_dict()).fillna("")
         worklog_frame["itemType"] = worklog_frame["key"].map(jira_by_key["type"].to_dict()).fillna("")
         worklog_frame["productModule"] = worklog_frame["key"].map(jira_by_key["productModule"].to_dict()).fillna("")
         worklog_frame["technicalDebt"] = worklog_frame["key"].map(jira_by_key["technicalDebt"].to_dict()).fillna("")
@@ -975,6 +1000,7 @@ def main() -> None:
         {"role": "Tempo worklogs", "file": worklogs_path.name, "path": str(worklogs_path.relative_to(ROOT)), "sha256": file_sha256(worklogs_path), "rows": int(len(worklogs_out))},
         {"role": "Jira PI backlog", "file": backlog_path.name, "path": str(backlog_path.relative_to(ROOT)), "sha256": file_sha256(backlog_path), "rows": int(len(backlog_out))},
         {"role": "Jira Bug Triage queue", "file": bug_triage_path.name, "path": str(bug_triage_path.relative_to(ROOT)), "sha256": file_sha256(bug_triage_path), "rows": int(len(bug_triage_out))},
+        {"role": "Business Area promoters", "file": promoters_path.name, "path": str(promoters_path.relative_to(ROOT)), "sha256": file_sha256(promoters_path), "rows": int(len(promoters))},
         {"role": "Weekly capacity", "file": capacity_path.name, "path": str(capacity_path.relative_to(ROOT)), "sha256": file_sha256(capacity_path), "rows": int(len(capacity_out))},
         {"role": "Assignees master", "file": assignees_path.name, "path": str(assignees_path.relative_to(ROOT)), "sha256": file_sha256(assignees_path), "rows": int(len(assignees_out))},
         {"role": "Master date", "file": master_date_path.name, "path": str(master_date_path.relative_to(ROOT)), "sha256": file_sha256(master_date_path), "rows": int(len(master_date))},

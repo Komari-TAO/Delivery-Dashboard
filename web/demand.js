@@ -12,6 +12,8 @@
   const releaseByCycle = new Map((data.releases || []).map((release) => [release.cycle, release]));
   let selectedWorkflowStage = "";
   let selectedQualityException = "";
+  const selectedAssignees = new Set();
+  const selectedTargetReleases = new Set();
   const masterByWeek = new Map();
   (data.masterDates || []).forEach((row) => {
     if (!masterByWeek.has(row.week)) masterByWeek.set(row.week, []);
@@ -30,6 +32,48 @@
     select.innerHTML = `<option value="">All ${escapeHtml(select.labels?.[0]?.textContent?.replace("All ", "") || "values")}</option>` + values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("");
     if (values.includes(current)) select.value = current;
   }
+  function pickerState(name) { return name === "assignee" ? selectedAssignees : selectedTargetReleases; }
+  function pickerValues(name) {
+    if (name === "assignee") return [...new Set([...(data.demand || []).map((row) => row.assignee), ...(data.worklogs || []).map((row) => row.person), ...(data.capacity || []).map((row) => row.assignee)].filter(Boolean))].sort();
+    return [...new Set((data.demand || []).map((row) => row.targetRelease).filter(Boolean))].sort();
+  }
+
+  function pickerMetric(name, value) {
+    if (name !== "assignee") return "";
+    const loggedHours = (data.worklogs || [])
+      .filter((row) => row.person === value)
+      .reduce((total, row) => total + (Number(row.logged) || 0), 0);
+    return `${number(loggedHours, 1)}h`;
+  }
+
+  function renderPicker(name) {
+    const values = pickerValues(name);
+    const selected = pickerState(name);
+    const search = $(name === "assignee" ? "demandAssigneeSearch" : "demandPeriodSearch").value.trim().toLowerCase();
+    const facet = $(name === "assignee" ? "demandAssigneeFacet" : "demandPeriodFacet");
+    const summary = $(name === "assignee" ? "demandAssigneePickerSummary" : "demandPeriodPickerSummary");
+    const visible = values.filter((value) => value.toLowerCase().includes(search));
+    facet.innerHTML = visible.map((value, index) => {
+      const id = `demand-${name}-facet-${index}`;
+      const metric = pickerMetric(name, value);
+      return `<label class="facet" for="${id}" title="${escapeHtml(value)}"><input id="${id}" type="checkbox" data-demand-picker="${name}" value="${escapeHtml(value)}" ${selected.has(value) ? "checked" : ""} /><span class="facet-name">${escapeHtml(value)}</span>${metric ? `<span class="facet-count">${metric}</span>` : "<span></span>"}</label>`;
+    }).join("") || `<div class="facet-empty">No matching values.</div>`;
+    const label = name === "assignee" ? "assignees" : "releases";
+    summary.textContent = selected.size ? `${selected.size} selected` : `All ${label}`;
+  }
+  function togglePicker(name) {
+    const menu = $(name === "assignee" ? "demandAssigneePickerMenu" : "demandPeriodPickerMenu");
+    const toggle = $(name === "assignee" ? "demandAssigneePickerToggle" : "demandPeriodPickerToggle");
+    const open = menu.hidden;
+    ["assignee", "period"].forEach((other) => {
+      const otherMenu = $(other === "assignee" ? "demandAssigneePickerMenu" : "demandPeriodPickerMenu");
+      const otherToggle = $(other === "assignee" ? "demandAssigneePickerToggle" : "demandPeriodPickerToggle");
+      otherMenu.hidden = true;
+      otherToggle.setAttribute("aria-expanded", "false");
+    });
+    menu.hidden = !open;
+    toggle.setAttribute("aria-expanded", String(open));
+  }
   function initialise() {
     const dates = (data.masterDates || []).map((row) => row.date).filter(Boolean).sort();
     const start = dates[0] || data.meta.dateMin;
@@ -37,15 +81,43 @@
     $("demandStartDate").min = start; $("demandStartDate").max = end; $("demandStartDate").value = start;
     $("demandEndDate").min = start; $("demandEndDate").max = end; $("demandEndDate").value = end;
     populate("demandTeamFilter", [...new Set((data.demand || []).map((row) => row.demandTeam).filter(Boolean))].sort());
-    populate("demandClientFilter", [...new Set((data.demand || []).map((row) => row.delivery).filter(Boolean))].sort());
+    populate("demandClientFilter", [...new Set([...(data.worklogs || []).map((row) => row.delivery), ...(data.demand || []).map((row) => row.tempoClient || "Other/Blank")].filter(Boolean))].sort());
+    populate("demandBusinessAreaFilter", [...new Set((data.demand || []).map((row) => row.businessArea || "Other/Blank"))].sort());
     populate("demandAccountFilter", [...new Set((data.demand || []).map((row) => row.account).filter(Boolean))].sort());
     populate("demandModuleFilter", [...new Set((data.demand || []).map((row) => row.productModule).filter(Boolean))].sort());
-    populate("demandPeriodFilter", [...new Set((data.demand || []).map((row) => row.planningPeriod).filter(Boolean))].sort());
-    document.querySelectorAll(".demand-filter-rail input, .demand-filter-rail select, #demandMatrixGroup, #demandCapacityRows, #demandCapacityColumns, #demandCapacityValue").forEach((input) => input.addEventListener("change", render));
+    renderPicker("assignee");
+    renderPicker("period");
+    document.querySelectorAll(".demand-filter-rail input:not([data-demand-picker]), .demand-filter-rail select, #demandMatrixGroup, #demandCapacityRows, #demandCapacityColumns, #demandCapacityValue").forEach((input) => input.addEventListener("change", render));
+    $("demandAssigneePickerToggle").addEventListener("click", () => togglePicker("assignee"));
+    $("demandPeriodPickerToggle").addEventListener("click", () => togglePicker("period"));
+    $("demandAssigneeSearch").addEventListener("input", () => renderPicker("assignee"));
+    $("demandPeriodSearch").addEventListener("input", () => renderPicker("period"));
+    document.querySelector(".demand-filter-rail").addEventListener("change", (event) => {
+      const option = event.target.closest("input[data-demand-picker]");
+      if (!option) return;
+      const selected = pickerState(option.dataset.demandPicker);
+      if (option.checked) selected.add(option.value);
+      else selected.delete(option.value);
+      renderPicker(option.dataset.demandPicker);
+      render();
+    });
+    document.querySelector(".demand-filter-rail").addEventListener("click", (event) => {
+      const action = event.target.closest("button[data-demand-picker-action]");
+      if (!action) return;
+      const selected = pickerState(action.dataset.demandPicker);
+      selected.clear();
+      if (action.dataset.demandPickerAction === "all") pickerValues(action.dataset.demandPicker).forEach((value) => selected.add(value));
+      renderPicker(action.dataset.demandPicker);
+      render();
+    });
     $("resetDemandFilters").addEventListener("click", () => {
       $("demandStartDate").value = start;
       $("demandEndDate").value = end;
-      ["demandTeamFilter", "demandClientFilter", "demandAccountFilter", "demandModuleFilter", "demandPeriodFilter"].forEach((id) => { $(id).value = ""; });
+      ["demandTeamFilter", "demandClientFilter", "demandBusinessAreaFilter", "demandAccountFilter", "demandModuleFilter", "demandAssigneeSearch", "demandPeriodSearch"].forEach((id) => { $(id).value = ""; });
+      selectedAssignees.clear();
+      selectedTargetReleases.clear();
+      renderPicker("assignee");
+      renderPicker("period");
       selectedWorkflowStage = "";
       selectedQualityException = "";
       render();
@@ -69,23 +141,30 @@
       start: $("demandStartDate").value,
       end: $("demandEndDate").value,
       team: $("demandTeamFilter").value,
+      assignees: selectedAssignees,
       client: $("demandClientFilter").value,
+      businessArea: $("demandBusinessAreaFilter").value,
       account: $("demandAccountFilter").value,
       module: $("demandModuleFilter").value,
-      period: $("demandPeriodFilter").value,
+      periods: selectedTargetReleases,
     };
     const demand = (data.demand || []).filter((row) =>
       releaseIntersects(row.planningPeriod, filters.start, filters.end)
       && (!filters.team || row.demandTeam === filters.team)
-      && (!filters.client || row.delivery === filters.client)
+      && (!filters.assignees.size || filters.assignees.has(row.assignee))
+      && (!filters.client || (row.tempoClient || "Other/Blank") === filters.client)
+      && (!filters.businessArea || (row.businessArea || "Other/Blank") === filters.businessArea)
       && (!filters.account || row.account === filters.account)
       && (!filters.module || row.productModule === filters.module)
-      && (!filters.period || row.planningPeriod === filters.period));
+      && (!filters.periods.size || filters.periods.has(row.targetRelease)));
     const actual = (data.worklogs || []).filter((row) => inRange(row.date, filters.start, filters.end)
       && (!filters.team || row.team === filters.team)
+      && (!filters.assignees.size || filters.assignees.has(row.person))
       && (!filters.client || row.delivery === filters.client)
+      && (!filters.businessArea || (row.businessArea || "Other/Blank") === filters.businessArea)
       && (!filters.account || row.account === filters.account)
-      && (!filters.module || row.module === filters.module));
+      && (!filters.module || row.module === filters.module)
+      && (!filters.periods.size || filters.periods.has(row.targetRelease)));
     return { filters, demand, actual };
   }
   function periodCapacity(filters) {
@@ -93,9 +172,8 @@
     (data.capacity || []).forEach((row) => {
       const dates = masterByWeek.get(row.week) || [];
       const date = dates.find((value) => inRange(value, filters.start, filters.end));
-      if (!date || (filters.team && row.team !== filters.team)) return;
+      if (!date || (filters.team && row.team !== filters.team) || (filters.assignees.size && !filters.assignees.has(row.assignee))) return;
       const period = (data.releases || []).find((release) => release.start <= date && release.end >= date)?.cycle || "Unscheduled / N/A";
-      if (filters.period && period !== filters.period) return;
       rows.push({ ...row, period });
     });
     return rows;
@@ -110,6 +188,8 @@
       ["Actual Effort", hours(actualHours), "Tempo Logged Hours in the selected period."],
       ["Remaining Period Capacity", hours(capacityHours - actualHours), "Weekly Capacity less Tempo actual effort in the same period."],
       ["Data Quality Exceptions", number(missing), "Tickets with no usable Remaining Estimate."],
+      ["Release Predictability", "—", "TODO — hardcoded placeholder; no governed calculation."],
+      ["Release KPI", "—", "TODO — hardcoded placeholder; no governed calculation."],
     ].map(([label, value, note]) => `<article class="kpi-card"><span><i class="tone"></i>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></article>`).join("");
   }
   function renderMatrix(demand) {

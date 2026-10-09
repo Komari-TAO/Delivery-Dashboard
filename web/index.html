@@ -10,8 +10,8 @@
   <body>
     <nav class="workspace-tabs" role="tablist" aria-label="Dashboard sections">
       <button class="workspace-tab active" type="button" role="tab" aria-selected="true" aria-controls="portfolioTab" data-workspace-tab="portfolioTab">Portfolio</button>
-      <button class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="qualityTab" data-workspace-tab="qualityTab">Datasources</button>
       <button class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="demandTab" data-workspace-tab="demandTab">Demand Management</button>
+      <button class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="qualityTab" data-workspace-tab="qualityTab">Datasources</button>
     </nav>
     <div class="app-shell">
       <aside class="filter-rail" aria-label="Portfolio filters" data-workspace-surface="portfolioTab">
@@ -235,10 +235,12 @@
         </section>
         <div class="filter-group filter-group-core demand-filter-group">
           <section class="filter-block"><label class="demand-filter-label" for="demandTeamFilter">Team</label><select id="demandTeamFilter"><option value="">All teams</option></select></section>
+          <section class="filter-block"><div class="filter-title">Assignee</div><div class="filter-picker demand-assignee-picker" id="demandAssigneePicker"><button class="filter-picker-toggle" id="demandAssigneePickerToggle" type="button" aria-expanded="false" aria-controls="demandAssigneePickerMenu"><span>Assignee</span><strong id="demandAssigneePickerSummary">All assignees</strong></button><div class="filter-picker-menu" id="demandAssigneePickerMenu" hidden><input class="filter-search picker-search" id="demandAssigneeSearch" type="search" placeholder="Search assignees" /><div class="filter-picker-actions"><button type="button" data-demand-picker-action="all" data-demand-picker="assignee">Select All</button><button type="button" data-demand-picker-action="clear" data-demand-picker="assignee">Clear All</button></div><div class="facet-list tall assignee-list" id="demandAssigneeFacet"></div></div></div></section>
           <section class="filter-block"><label class="demand-filter-label" for="demandClientFilter">Client</label><select id="demandClientFilter"><option value="">All clients</option></select></section>
+          <section class="filter-block"><label class="demand-filter-label" for="demandBusinessAreaFilter">Business Area</label><select id="demandBusinessAreaFilter"><option value="">All business areas</option></select></section>
           <section class="filter-block"><label class="demand-filter-label" for="demandAccountFilter">Account</label><select id="demandAccountFilter"><option value="">All accounts</option></select></section>
           <section class="filter-block"><label class="demand-filter-label" for="demandModuleFilter">Product module</label><select id="demandModuleFilter"><option value="">All modules</option></select></section>
-          <section class="filter-block"><label class="demand-filter-label" for="demandPeriodFilter">Target / planning release</label><select id="demandPeriodFilter"><option value="">All periods</option></select></section>
+          <section class="filter-block"><div class="filter-title">Target / planning release</div><div class="filter-picker demand-period-picker" id="demandPeriodPicker"><button class="filter-picker-toggle" id="demandPeriodPickerToggle" type="button" aria-expanded="false" aria-controls="demandPeriodPickerMenu"><span>Target / planning release</span><strong id="demandPeriodPickerSummary">All releases</strong></button><div class="filter-picker-menu" id="demandPeriodPickerMenu" hidden><input class="filter-search picker-search" id="demandPeriodSearch" type="search" placeholder="Search releases" /><div class="filter-picker-actions"><button type="button" data-demand-picker-action="all" data-demand-picker="period">Select All</button><button type="button" data-demand-picker-action="clear" data-demand-picker="period">Clear All</button></div><div class="facet-list tall release-list" id="demandPeriodFacet"></div></div></div></section>
         </div>
       </aside>
 
@@ -447,6 +449,67 @@
             <div id="dataQualitySummary" class="data-quality-summary" aria-live="polite"></div>
             <div id="dataQualitySources" class="data-quality-sources"></div>
           </article>
+          <article class="panel lineage-panel">
+            <div class="panel-header"><div><h3>Dashboard rules and field lineage</h3><p>Rules, calculations, and source fields used by every tab. Full field-level specification is maintained in the project user guide.</p></div></div>
+            <details open>
+              <summary>Shared rules</summary>
+              <div class="lineage-content"><table><thead><tr><th>Rule</th><th>Applied logic and exact sources</th></tr></thead><tbody>
+                <tr><td>Governed exclusions</td><td>`TEMPO-54`, `TEMPO-92`, `TEMPO-106`, `TEMPO-111`, and `TEMPO-112` are removed before aggregation and rendering.</td></tr>
+                <tr><td>Managed teams</td><td>`20260307_Assignees_Capacity.csv.Team` must also be represented by `Weekly Capacity_20261005.csv.Assignee` mapped through `20260307_Assignees_Capacity.csv.Assignee`.</td></tr>
+                <tr><td>Dates and releases</td><td>Tempo date: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date`. Calendar: `Google 2026 to 2028_Master_Date.csv.Master Date` and `.Week Number`. Release window: `Release Cycle.csv.Start Date`, `.End Date`, `.Release Cycle`.</td></tr>
+              </tbody></table></div>
+            </details>
+            <details>
+              <summary>Portfolio — filters and KPIs</summary>
+              <div class="lineage-content"><table><thead><tr><th>Component</th><th>Rule / measure</th><th>Exact source fields</th></tr></thead><tbody>
+                <tr><td>Date Range</td><td>Filters Tempo activity; Master Date sets selectable bounds.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date`; `Google 2026 to 2028_Master_Date.csv.Master Date`.</td></tr>
+                <tr><td>Team / Assignee / Skill filters</td><td>Tempo and Jira assignees resolve through the master.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`; `20260307_Assignees_Capacity.csv.Assignee`, `.Team`, `.Skill`.</td></tr>
+                <tr><td>Account / Category filters</td><td>Tempo account display plus Jira governed account.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name`, `.Account Category`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Account)`.</td></tr>
+                <tr><td>Priority / Status / Target Release / Program filters</td><td>Jira metadata joined to Tempo by key.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Priority`, `.Status`, `.Custom field (Target Release)`, `.Custom field (Program)`.</td></tr>
+                <tr><td>Annual Workforce Capacity</td><td>Sum of annual capacity in scope.</td><td>`20260307_Assignees_Capacity.csv.Actual Annual Hours`.</td></tr>
+                <tr><td>Actual Hours</td><td>Sum of governed logged effort.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`.</td></tr>
+                <tr><td>Capacity Remaining / Utilization</td><td>Capacity − Actual; Actual ÷ Capacity.</td><td>`20260307_Assignees_Capacity.csv.Actual Annual Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`.</td></tr>
+              </tbody></table></div>
+            </details>
+            <details>
+              <summary>Portfolio — charts and tables</summary>
+              <div class="lineage-content"><table><thead><tr><th>Chart / table</th><th>Rule / measure</th><th>Exact source fields</th></tr></thead><tbody>
+                <tr><td>Hours Trend</td><td>Logged and Billable hours by month or Master Date week.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Billable Hours`, `.Work date`; `Google 2026 to 2028_Master_Date.csv.Master Date`, `.Week Number`.</td></tr>
+                <tr><td>Planned vs Unplanned</td><td>Distinct work items classified from Jira labels; hours are Tempo logged hours.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Labels`.</td></tr>
+                <tr><td>Program Distribution</td><td>Tempo logged hours by joined Jira program.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Program)`.</td></tr>
+                <tr><td>Bug Severity Distribution</td><td>Distinct current triage bug keys by severity.</td><td>`Bug Triage_ignored.csv.Key`, `.Issue Type`, `.Bug Severity`.</td></tr>
+                <tr><td>Account Distribution</td><td>Tempo logged hours by account.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name`, `.Logged Hours`.</td></tr>
+                <tr><td>Team Utilization</td><td>Tempo actual vs weekly planned capacity by team.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Full name`; `Weekly Capacity_20261005.csv.Planned Hours`, `.Assignee`, `.Week Number`; `20260307_Assignees_Capacity.csv.Assignee`, `.Team`.</td></tr>
+                <tr><td>Remaining Demand vs Logged Effort</td><td>Jira remaining estimate vs Tempo actual by team.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`, `.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Full name`; `20260307_Assignees_Capacity.csv.Assignee`, `.Team`.</td></tr>
+                <tr><td>Backlog Priority</td><td>Distinct Jira work items by priority.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Priority`.</td></tr>
+                <tr><td>Engineering Work Mix</td><td>Tempo logged hours split by Jira technical-debt classification.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Is this technical debt ?)`.</td></tr>
+                <tr><td>Work Item Types</td><td>Distinct Jira work items grouped by issue type.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Issue Type`.</td></tr>
+                <tr><td>Details — Accounts</td><td>Account-level Jira scope, Tempo effort, and account health.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`, `.Issue key`, `.Summary`, `.Status`, `.Priority`, `.Remaining Estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Logged Hours`, `.Account Name`.</td></tr>
+                <tr><td>Details — People</td><td>Assignee-level Jira scope, Tempo activity, capacity, team, and skill.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`, `.Issue key`, `.Status`, `.Remaining Estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`, `.Work date`, `.Logged Hours`; `20260307_Assignees_Capacity.csv.Assignee`, `.Team`, `.Skill`, `.Actual Annual Hours`; `Weekly Capacity_20261005.csv.Assignee`, `.Planned Hours`.</td></tr>
+                <tr><td>Details — Backlog</td><td>Jira parent and child demand, status, priority, and planned dates.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Parent`, `.Parent summary`, `.Summary`, `.Status`, `.Priority`, `.Custom field (Start date)`, `.Due date`, `.Remaining Estimate`, `.Assignee`.</td></tr>
+                <tr><td>Details — Delivery Progress</td><td>Jira workflow progress and Tempo actual effort for parent and child work.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Parent`, `.Status`, `.Summary`, `.Assignee`, `.Due date`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Work date`, `.Logged Hours`.</td></tr>
+                <tr><td>Details — Bug Triage</td><td>Current triage records from the ignored bug-triage extract.</td><td>`Bug Triage_ignored.csv.Key`, `.Summary`, `.Bug Severity`, `.Status`, `.Assignee`.</td></tr>
+              </tbody></table></div>
+            </details>
+            <details>
+              <summary>Demand Management — filters, KPIs, pivots, and detail</summary>
+              <div class="lineage-content"><table><thead><tr><th>Component</th><th>Rule / measure</th><th>Exact source fields</th></tr></thead><tbody>
+                <tr><td>Date / Team / Assignee filters</td><td>Master Date bounds; assignee maps to team; Assignee picker supports multiple values.</td><td>`Google 2026 to 2028_Master_Date.csv.Master Date`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`; `20260307_Assignees_Capacity.csv.Assignee`, `.Team`; `Weekly Capacity_20261005.csv.Assignee`.</td></tr>
+                <tr><td>Client / Business Area filters</td><td>Client comes from Tempo. Business Area maps a Jira Promoter; blank/unmatched promoter is `Other/Blank`.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Client`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Promoter)`; `Promoters.csv.Promoter`, `.Business Area`.</td></tr>
+                <tr><td>Account / Module filters</td><td>Direct Jira demand metadata.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`, `.Custom field (Product Module)`.</td></tr>
+                <tr><td>Target / Planning Release</td><td>Multi-select picker sourced only from Jira Target Release.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)`.</td></tr>
+                <tr><td>Known Outstanding Demand</td><td>Sum Remaining Estimate ÷ 3,600; blank estimates are exceptions, not zero.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`.</td></tr>
+                <tr><td>Actual Effort</td><td>Sum Tempo logged hours in selected Work date range.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Work date`.</td></tr>
+                <tr><td>Remaining Period Capacity</td><td>Weekly planned hours − actual effort.</td><td>`Weekly Capacity_20261005.csv.Planned Hours`, `.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date`, `.Week Number`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`.</td></tr>
+                <tr><td>Release Predictability / Release KPI</td><td>Hardcoded `—` with `TODO`; no calculation is applied.</td><td>No source field.</td></tr>
+                <tr><td>Team × Release pivot</td><td>Remaining Estimate hours by mapped Team and planning period.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`, `.Assignee`, `.Custom field (Target Release)`, `.Due date`; `20260307_Assignees_Capacity.csv.Assignee`, `.Team`; `Release Cycle.csv.Start Date`, `.End Date`, `.Release Cycle`.</td></tr>
+                <tr><td>Capacity vs Known Demand pivot</td><td>Capacity, Actual, Remaining, Known Demand, and Gap by Team / planning period.</td><td>`Weekly Capacity_20261005.csv.Planned Hours`, `.Assignee`, `.Week Number`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Work date`, `.Full name`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`, `.Assignee`, `.Custom field (Target Release)`.</td></tr>
+                <tr><td>Workflow Position / inline ticket detail</td><td>Status maps to STEP 1–4; selected stage expands its Jira tickets.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`, `.Issue key`, `.Summary`, `.Remaining Estimate`, `.Assignee`, `.Custom field (Target Release)`.</td></tr>
+                <tr><td>Actual vs Future Demand by Account</td><td>Tempo Actual and Jira Remaining Estimate are shown separately.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Work Item Key`, `.Account Name`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Account)`, `.Remaining Estimate`.</td></tr>
+                <tr><td>Demand Data Quality / inline ticket detail</td><td>Missing estimate, unassigned team, and unscheduled demand remain visible.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`, `.Assignee`, `.Custom field (Target Release)`, `.Due date`, `.Issue key`, `.Summary`; `20260307_Assignees_Capacity.csv.Assignee`, `.Team`; `Release Cycle.csv.Start Date`, `.End Date`.</td></tr>
+              </tbody></table></div>
+            </details>
+          </article>
         </section>
 
         <section class="workspace-tab-panel demand-tab" id="demandTab" role="tabpanel" aria-label="Demand management" hidden>
@@ -458,7 +521,6 @@
             <article class="panel"><div class="panel-header"><div><h3>Workflow Position</h3><p>Select a stage to expand its Jira tickets directly in this panel.</p></div></div><div id="demandWorkflow" class="workflow-summary"></div><div id="demandWorkflowDetails" class="inline-ticket-details" hidden></div></article>
             <article class="panel demand-wide"><div class="panel-header"><div><h3>Actual Effort vs Future Demand by Account</h3><p>Each account shows two separate measures: Tempo Logged Hours and Jira Remaining Estimate.</p></div></div><div id="demandAccountComparison" class="account-comparison" aria-label="Actual effort compared with future demand by account"></div></article>
             <article class="panel"><div class="panel-header"><div><h3>Demand Data Quality</h3><p>Select an exception to expand its affected Jira tickets directly in this panel.</p></div></div><div id="demandQuality" class="workflow-summary"></div><div id="demandQualityDetails" class="inline-ticket-details" hidden></div></article>
-            <article class="panel"><div class="panel-header"><div><h3>Release Predictability</h3><p>Awaiting governed committed-feature baseline and delivery rule.</p></div></div><div class="chart-empty">Not calculated: feature hierarchy, commitment baseline, and delivered-in-expected-release rules require formal governance.</div></article>
           </section>
         </section>
 
