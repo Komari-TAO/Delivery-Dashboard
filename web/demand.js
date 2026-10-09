@@ -234,12 +234,48 @@
     const rowLabel = rowDimension === "team" ? "Team" : "Planning period";
     $("demandCapacity").innerHTML = `<thead><tr><th>${rowLabel}</th>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}<th>Total</th></tr></thead><tbody>${rows.map((row) => { const total = columns.reduce((sum, column) => sum + (cells.get(`${row}||${column}`) || 0), 0); return `<tr><td>${escapeHtml(row)}</td>${columns.map((column) => { const amount = cells.get(`${row}||${column}`) || 0; return `<td class="${value === "gap" || value === "remaining" ? (amount < 0 ? "negative" : "positive") : ""}">${hours(amount)}</td>`; }).join("")}<td><strong>${hours(total)}</strong></td></tr>`; }).join("") || `<tr><td colspan="${columns.length + 2}">No capacity, actual effort, or known demand for this selection.</td></tr>`}</tbody>`;
   }
-  function renderWorkflow(demand) {
-    const stages = ["STEP 1 - Demand", "STEP 2 - DoR", "STEP 3 - DoD", "STEP 4 - Done / Cancelled", "Other / Unmapped"];
-    const hoursByStage = sumBy(demand, "reportingStage", "demandHours");
-    const countByStage = by(demand, "reportingStage");
-    $("demandWorkflow").innerHTML = stages.map((stage) => `<div class="workflow-row"><button type="button" data-workflow-stage="${escapeHtml(stage)}" aria-pressed="${String(selectedWorkflowStage === stage)}">${escapeHtml(stage)}</button><span>${number(countByStage.get(stage) || 0)} tickets</span><span>${hours(hoursByStage.get(stage) || 0)}</span></div>`).join("");
-    renderInlineTickets("demandWorkflowDetails", selectedWorkflowStage ? demand.filter((row) => row.reportingStage === selectedWorkflowStage) : [], selectedWorkflowStage);
+  function renderWorkflow(filters) {
+    const stages = [
+      { key: "STEP 1 - Demand", number: 1, label: "Demand", description: "Backlog", tone: "demand" },
+      { key: "STEP 2 - DoR", number: 2, label: "DoR", description: "To Do or Analysis", tone: "dor" },
+      { key: "STEP 3 - DoD", number: 3, label: "DoD", description: "Ready for Development through Test Complete", tone: "dod" },
+      { key: "STEP 4 - Done", number: 4, label: "Done", description: "Done", tone: "done" },
+    ];
+    const statusCategory = (status) => {
+      const value = String(status || "").trim().toLowerCase();
+      if (value === "backlog") return "STEP 1 - Demand";
+      if (["to do", "analysis"].includes(value)) return "STEP 2 - DoR";
+      if (["ready for development", "in development", "testing", "test complete"].includes(value)) return "STEP 3 - DoD";
+      if (value === "done") return "STEP 4 - Done";
+      if (["cancelled", "canceled", "rejected", "abandoned"].includes(value)) return "Discontinued";
+      if (value === "blocked") return "Blocked";
+      return "Unmapped";
+    };
+    const epicCandidates = (data.backlog || [])
+      .filter((row) => String(row.type || "").trim().toLowerCase() === "epic")
+      .filter((row) => releaseIntersects(row.targetRelease || "Unscheduled / N/A", filters.start, filters.end))
+      .filter((row) => !filters.client || (row.tempoClient || "Other/Blank") === filters.client)
+      .filter((row) => !filters.businessArea || (row.businessArea || "Other/Blank") === filters.businessArea)
+      .filter((row) => !filters.account || row.account === filters.account)
+      .filter((row) => !filters.module || row.productModule === filters.module)
+      .filter((row) => !filters.periods.size || filters.periods.has(row.targetRelease))
+      .map((row) => ({ ...row, epicCategory: statusCategory(row.status) }));
+    const epics = Array.from(new Map(epicCandidates.map((row) => [String(row.key || "").trim().toUpperCase(), row])).values());
+    const countByStage = by(epics, "epicCategory");
+    const card = (stage, disposition = false) => {
+      const selected = selectedWorkflowStage === stage.key;
+      const numberMarkup = disposition ? "<span class=\"workflow-stage-disposition-mark\" aria-hidden=\"true\">•</span>" : `<span class="workflow-stage-number" aria-hidden="true">${stage.number}</span>`;
+      const stepMarkup = disposition ? "Other disposition" : `Step ${stage.number}`;
+      return `<button class="workflow-stage workflow-stage--${stage.tone}${disposition ? " workflow-stage--disposition" : ""}${selected ? " is-selected" : ""}" type="button" data-workflow-stage="${escapeHtml(stage.key)}" aria-pressed="${String(selected)}" aria-controls="demandWorkflowDetails">${numberMarkup}<span class="workflow-stage-copy"><span class="workflow-stage-step">${stepMarkup}</span><strong>${escapeHtml(stage.label)}</strong><small>${escapeHtml(stage.description)}</small></span><span class="workflow-stage-stats"><span><strong>${number(countByStage.get(stage.key) || 0)}</strong><small>Epics</small></span><span><strong>Unavailable</strong><small>Tempo attribution pending</small></span></span><span class="workflow-stage-chevron" aria-hidden="true">›</span></button>`;
+    };
+    const dispositions = [
+      { key: "Discontinued", label: "Discontinued", description: "Cancelled, Canceled, Rejected, or Abandoned", tone: "discontinued" },
+      { key: "Blocked", label: "Blocked", description: "Blocked", tone: "blocked" },
+      { key: "Unmapped", label: "Unmapped", description: "Status outside the approved Epic mapping", tone: "unmapped" },
+    ];
+    $("demandWorkflow").innerHTML = stages.map((stage) => card(stage)).join("")
+      + `<section class="workflow-dispositions" aria-label="Other Dispositions — not a workflow step"><h4>Other Dispositions <small>Not a workflow step</small></h4>${dispositions.map((stage) => card(stage, true)).join("")}</section>`;
+    renderEpicDetails(selectedWorkflowStage ? epics.filter((row) => row.epicCategory === selectedWorkflowStage) : [], selectedWorkflowStage);
   }
   function renderAccountComparison(demand, actual) {
     const actualByAccount = sumBy(actual.map((row) => ({ account: row.account || row.tempoAccount || "No Account / Missing Account", value: row.logged })), "account", "value");
@@ -259,6 +295,13 @@
     if (!title) { target.innerHTML = ""; return; }
     target.innerHTML = `<h4>${escapeHtml(title)} — ticket detail</h4><div class="table-wrap"><table><thead><tr><th>Jira key</th><th>Summary</th><th>Team</th><th>Planning period</th><th>Remaining estimate</th></tr></thead><tbody>${rows.slice(0, 50).map((row) => `<tr><td><a class="jira-link" href="https://oat-sa.atlassian.net/browse/${encodeURIComponent(row.key)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.key)}</a></td><td>${escapeHtml(row.summary)}</td><td>${escapeHtml(row.demandTeam)}</td><td>${escapeHtml(row.planningPeriod)}</td><td>${row.hasRemainingEstimate ? hours(row.demandHours) : "Missing"}</td></tr>`).join("") || `<tr><td colspan="5">No matching Jira tickets.</td></tr>`}</tbody></table></div>`;
   }
-  function render() { const { filters, demand, actual } = current(); const capacity = periodCapacity(filters); renderKpis(demand, actual, capacity); renderMatrix(demand); renderCapacity(demand, actual, capacity); renderWorkflow(demand); renderAccountComparison(demand, actual); renderQuality(demand); }
+  function renderEpicDetails(rows, title) {
+    const target = $("demandWorkflowDetails");
+    target.hidden = !title;
+    if (!title) { target.innerHTML = ""; return; }
+    const unavailable = "Unavailable — attribution pending";
+    target.innerHTML = `<h4>${escapeHtml(title)} — Epic detail</h4><p class="epic-attribution-note">Logged Hours and Variance remain unavailable until unique Tempo Worklog ID attribution to verified Epic descendants is implemented and reconciled.</p><div class="table-wrap"><table><thead><tr><th>Jira Key</th><th>Summary</th><th>Target Release</th><th>Effort Cap</th><th>Logged Hours</th><th>Variance Logged Hours − Effort Cap</th><th>Original Estimate</th><th>Status</th></tr></thead><tbody>${rows.slice(0, 50).map((row) => `<tr><td><a class="jira-link" href="https://oat-sa.atlassian.net/browse/${encodeURIComponent(row.key)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.key)}</a></td><td>${escapeHtml(row.summary)}</td><td>${escapeHtml(row.targetRelease || "Unavailable")}</td><td>${row.hasEffortCap ? hours(row.effortCapHours) : "Unavailable"}</td><td>${unavailable}</td><td>Unavailable</td><td>${row.hasOriginalEstimate ? hours(row.originalEstimateHours) : "Unavailable"}</td><td>${escapeHtml(row.status || "Unavailable")}</td></tr>`).join("") || `<tr><td colspan="8">No matching Epics.</td></tr>`}</tbody></table></div>`;
+  }
+  function render() { const { filters, demand, actual } = current(); const capacity = periodCapacity(filters); renderKpis(demand, actual, capacity); renderMatrix(demand); renderCapacity(demand, actual, capacity); renderWorkflow(filters); renderAccountComparison(demand, actual); renderQuality(demand); }
   initialise();
 })();

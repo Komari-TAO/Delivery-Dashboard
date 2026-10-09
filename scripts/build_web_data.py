@@ -664,7 +664,10 @@ def main() -> None:
             "promoter": backlog_promoter,
             "businessArea": backlog_business_area,
             "account": text(backlog, "Custom field (Account)"),
+            "effortCapHours": num(backlog, "Custom field (Effort CAP (hrs))"),
+            "hasEffortCap": text(backlog, "Custom field (Effort CAP (hrs))").str.strip().ne(""),
             "originalEstimateHours": num(backlog, "Original estimate") / 3600,
+            "hasOriginalEstimate": text(backlog, "Original estimate").str.strip().ne(""),
             "remainingEstimateHours": num(backlog, "Remaining Estimate") / 3600,
             "hasRemainingEstimate": text(backlog, "Remaining Estimate").str.strip().ne(""),
         }
