@@ -15,18 +15,19 @@ Business-facing specification for every KPI, chart, and diagram in the Delivery 
 
 ### Sidebar filters (when non-empty, they restrict rows)
 
-| Filter | Tempo worklogs | Jira PI backlog | Bug Triage queue | Weekly capacity |
-| --- | --- | --- | --- | --- |
-| Team | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` is normalized and matched to `20260307_Assignees_Capacity.csv.Assignee`; the filter value is `20260307_Assignees_Capacity.csv.Team`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee` is normalized and matched to `20260307_Assignees_Capacity.csv.Assignee`; the filter value is `20260307_Assignees_Capacity.csv.Team`. | `Bug Triage_ignored.csv.Assignee` is normalized and matched to `20260307_Assignees_Capacity.csv.Assignee`; the filter value is `20260307_Assignees_Capacity.csv.Team`. | `Weekly Capacity_20261005.csv.Assignee` is matched to `20260307_Assignees_Capacity.csv.Assignee`; the filter value is `20260307_Assignees_Capacity.csv.Team`. |
-| Assignee | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`, normalized against `20260307_Assignees_Capacity.csv.Assignee`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`, normalized against `20260307_Assignees_Capacity.csv.Assignee`. | `Bug Triage_ignored.csv.Assignee`, normalized against `20260307_Assignees_Capacity.csv.Assignee`. | `Weekly Capacity_20261005.csv.Assignee`, normalized against `20260307_Assignees_Capacity.csv.Assignee`. |
-| Skill | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` → `20260307_Assignees_Capacity.csv.Assignee` → `20260307_Assignees_Capacity.csv.Skill`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee` → `20260307_Assignees_Capacity.csv.Assignee` → `20260307_Assignees_Capacity.csv.Skill`. | `Bug Triage_ignored.csv.Assignee` → `20260307_Assignees_Capacity.csv.Assignee` → `20260307_Assignees_Capacity.csv.Skill`. | `Weekly Capacity_20261005.csv.Assignee` → `20260307_Assignees_Capacity.csv.Assignee` → `20260307_Assignees_Capacity.csv.Skill`. |
-| Account | Native Tempo account facet: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name`. Governed account enrichment: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`. | Not applied; `Bug Triage_ignored.csv` has no Account column. | Not applied; `Weekly Capacity_20261005.csv` has no Account column. |
-| Account Category | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Category`. | Not applied; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv` has no Account Category column. | Not applied; `Bug Triage_ignored.csv` has no Account Category column. | Not applied; `Weekly Capacity_20261005.csv` has no Account Category column. |
-| Priority | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Priority`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Priority`. | Not applied; `Bug Triage_ignored.csv` has no Priority column. | Not applied; `Weekly Capacity_20261005.csv` has no Priority column. |
-| Status | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`. | `Bug Triage_ignored.csv.Status`; it is applied only when the Status filter is active. | Not applied; `Weekly Capacity_20261005.csv` has no Status column. |
-| Target Release | Native Tempo fallback: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Version Name`. Governed value: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)`. | Not applied; `Bug Triage_ignored.csv` has no Target Release column. | Not applied; `Weekly Capacity_20261005.csv` has no Target Release column. |
-| Program | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Program)`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Program)`. | Not applied; `Bug Triage_ignored.csv` has no Program column. | Not applied; `Weekly Capacity_20261005.csv` has no Program column. |
-| Release Cycle | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` is placed between `Release Cycle.csv.Start Date` and `Release Cycle.csv.End Date`; the filter value is `Release Cycle.csv.Release Cycle`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Fix versions` is the Jira release value used by the backlog path. | Not applied; `Bug Triage_ignored.csv` has no release-cycle column. | `Weekly Capacity_20261005.csv.Week Number` is matched to `Google 2026 to 2028_Master_Date.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date` is placed between `Release Cycle.csv.Start Date` and `Release Cycle.csv.End Date`, returning `Release Cycle.csv.Release Cycle`. |
+| Filter | Tempo worklogs | Jira PI backlog | Weekly capacity |
+| --- | --- | --- | --- |
+| Team | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` is normalized and matched to `20261009_Assignees_Capacity.csv.Assignee`; the filter value is `20261009_Assignees_Capacity.csv.Team`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee` is normalized and matched to `20261009_Assignees_Capacity.csv.Assignee`; the filter value is `20261009_Assignees_Capacity.csv.Team`. | `Weekly Capacity_20261005.csv.Assignee` is matched to `20261009_Assignees_Capacity.csv.Assignee`; the filter value is `20261009_Assignees_Capacity.csv.Team`. |
+| Assignee | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`, normalized against `20261009_Assignees_Capacity.csv.Assignee`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`, normalized against `20261009_Assignees_Capacity.csv.Assignee`. | `Weekly Capacity_20261005.csv.Assignee`, normalized against `20261009_Assignees_Capacity.csv.Assignee`. |
+| Skill | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` → `20261009_Assignees_Capacity.csv.Assignee` → `20261009_Assignees_Capacity.csv.Skill`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee` → `20261009_Assignees_Capacity.csv.Assignee` → `20261009_Assignees_Capacity.csv.Skill`. | `Weekly Capacity_20261005.csv.Assignee` → `20261009_Assignees_Capacity.csv.Assignee` → `20261009_Assignees_Capacity.csv.Skill`. |
+| Client | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Client`; blank Client is `Other/Blank`. | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, carrying Tempo Client to the Jira row; no matched Client is `Other/Blank`. | Not applied; `Weekly Capacity_20261005.csv` has no Client column. |
+| Account | Native Tempo account facet: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name`. Governed account enrichment: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`. | Not applied; `Weekly Capacity_20261005.csv` has no Account column. |
+| Account Category | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Category`. | Not applied; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv` has no Account Category column. | Not applied; `Weekly Capacity_20261005.csv` has no Account Category column. |
+| Priority | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Priority`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Priority`. | Not applied; `Weekly Capacity_20261005.csv` has no Priority column. |
+| Status | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`. | Not applied; `Weekly Capacity_20261005.csv` has no Status column. |
+| Target Release | Native Tempo fallback: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Version Name`. Governed value: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)`. | Not applied; `Weekly Capacity_20261005.csv` has no Target Release column. |
+| Program | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Program)`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Program)`. | Not applied; `Weekly Capacity_20261005.csv` has no Program column. |
+| Release Cycle | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` is placed between `Release Cycle.csv.Start Date` and `Release Cycle.csv.End Date`; the filter value is `Release Cycle.csv.Release Cycle`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Fix versions` is the Jira release value used by the backlog path. | `Weekly Capacity_20261005.csv.Week Number` is matched to `Google 2026 to 2028_Master_Date.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date` is placed between `Release Cycle.csv.Start Date` and `Release Cycle.csv.End Date`, returning `Release Cycle.csv.Release Cycle`. |
 
 **Status default:** On load, a governed default status set is applied (open / in-progress style statuses from the Jira export). Clearing or changing status affects both backlog rows and Tempo rows joined to Jira status.
 
@@ -42,11 +43,12 @@ Executive snapshot of **annual workforce capacity** versus **governed Tempo logg
 
 | KPI | Calculation | Primary fields |
 | --- | --- | --- |
-| Annual Workforce Capacity | Sum of scoped weekly planned hours for the full year | `Weekly Capacity_20261005.csv.Planned Hours` (column J), `Weekly Capacity_20261005.csv.Team`, `Weekly Capacity_20261005.csv.Assignee`, `Weekly Capacity_20261005.csv.Skill` |
-| Actual Hours | Sum of governed managed-team logged hours | `RAW_DATA_FULL_ANALYSIS_*.csv.Logged Hours` (via enriched worklogs, exclusions applied) |
-| Annual Capacity Remaining | Weekly planned hours total minus Actual Hours | `Weekly Capacity_20261005.csv.Planned Hours`, `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` |
-| Annual Capacity Utilization | Actual Hours ÷ weekly planned hours total | `Weekly Capacity_20261005.csv.Planned Hours`, `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` |
-| Work item count (note) | Distinct work item keys in governed logged scope | `RAW_DATA_FULL_ANALYSIS_*.csv.Work Item Key` |
+| Annual Workforce Legal Hours | Sum annual legal hours only where Team is Authoring, Delivery Express, Integration, Nexus, Portal, or Scoring | `20261009_Assignees_Capacity.csv.Team`; `20261009_Assignees_Capacity.csv.Actual Annual Hours` (column H) |
+| Annual Workforce Capacity | Sum of annual planned capacity across the full Weekly Capacity source | `Weekly Capacity_20261005.csv.Planned Hours` (column J) |
+| Actual Hours | Sum of the full Tempo source Logged Hours dataset | `RAW_DATA_FULL_ANALYSIS_*.csv.Logged Hours` |
+| Remaining Period Capacity | Annual Workforce Capacity minus Actual Hours | `Weekly Capacity_20261005.csv.Planned Hours`, `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` |
+| Annual Capacity Utilization | Actual Hours ÷ Annual Workforce Capacity | `Weekly Capacity_20261005.csv.Planned Hours`, `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` |
+| Demand Capacity | Sum of the full Jira Effort Cap source dataset | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Effort CAP (hrs))` |
 
 ### Filters
 
@@ -149,7 +151,7 @@ Governed managed-team worklogs; program resolved per worklog row in the browser 
 
 ### Business explanation
 
-Snapshot of the **operational Bug Triage queue** by severity (Blocker → Enhancement). This is **inventory of open triage bugs**, not Tempo effort.
+Distinct Jira PI Backlog bugs by severity, limited to **Blocker**, **Critical**, and **Major**. This is Jira work-item inventory, not Tempo effort.
 
 ### Chart type
 
@@ -159,9 +161,9 @@ Horizontal bar chart.
 
 | Concept | Fields |
 | --- | --- |
-| Bug rows | `Bug Triage_*.csv` where `Bug Triage_*.csv.Issue Type` = Bug |
-| Severity | `Bug Triage_*.csv.Bug Severity` |
-| Distinct keys | `Bug Triage_*.csv.Key` (deduplicated) |
+| Bug rows | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type` = `Bug` |
+| Severity | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Bug Severity)` limited to `Blocker`, `Critical`, or `Major` |
+| Distinct keys | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` (deduplicated) |
 
 ### Filters
 
@@ -377,23 +379,12 @@ Rows with empty issue type excluded.
 
 **Filters:** Activity in date range; **Team filter ignored** for row set (team ownership validated separately).
 
-### Bug Triage tab
-
-**Business:** Full operational bug queue listing from latest triage export.
-
-**Fields:** `Bug Triage_*.csv.Key`, `Summary`, `Bug Severity`, `Status`, `Updated`, `Assignee`.
-
-**Filters:** Team, Assignee, Skill, and Status. Team and Skill are resolved through `Bug Triage_ignored.csv.Assignee` matched to `20260307_Assignees_Capacity.csv.Assignee`; Status uses `Bug Triage_ignored.csv.Status`.
-
----
-
 ## Source file patterns (builder)
 
 | Pattern | Role |
 | --- | --- |
 | `RAW_DATA_FULL_ANALYSIS_*.csv` | Tempo worklogs |
 | `All Jira Work Items marked PI Backlog (JIRA)_*.csv` | PI backlog / Jira enrichment |
-| `Bug Triage_*` | Bug triage queue |
 | `Weekly Capacity_*.csv` | Planned hours by week |
 | `*Assignees*Capacit*.csv` | Team, skill, role, annual hours |
 | `*Master*Date*.csv` | Calendar week mapping |
@@ -421,7 +412,6 @@ This section is the field-level contract for the dashboard. It records the **exa
 | Master calendar | `Google 2026 to 2028_Master_Date.csv` | `Master Date`, `Day`, `Month`, `Year`, `Weekday`, `WeekDay Name`, `Month Name`, `Week Number` |
 | Release calendar | `Release Cycle.csv` | `Release Month`, `Release Cycle`, `Start Date`, `End Date` |
 | Business Area mapping | `Promoters.csv` | `Business Area`, `Promoter` |
-| Bug Triage | `Bug Triage_ignored.csv` | `Key`, `Issue Type`, `Summary`, `Bug Severity`, `Status`, `Updated`, `Assignee` — the current file has zero rows and is not used for a populated visual. |
 | Tempo operational mapping | `data/mappings/tempo_operational_mapping.csv` | Governed Tempo-only key classification and display mapping. It is used only where a `TEMPO-*` work item needs operational metadata not present in the Jira PI backlog export. |
 
 ### Shared derived fields
@@ -446,7 +436,7 @@ This section is the field-level contract for the dashboard. It records the **exa
 | --- | --- | --- |
 | Tempo worklogs → Jira work items | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` | Enriches Tempo with Jira Status, Priority, Account, Product Module, Program, and Target Release. |
 | Tempo, Jira, and Weekly Capacity → Assignees master | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`, `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`, and `Weekly Capacity_20261005.csv.Assignee` are normalized and matched to `20261009_Assignees_Capacity.csv.Assignee` | Returns `20261009_Assignees_Capacity.csv.Team`, `20261009_Assignees_Capacity.csv.Skill`, and availability. |
-| Weekly Capacity → Portfolio capacity KPIs | `Weekly Capacity_20261005.csv.Planned Hours` is summed after Team, Assignee, and Skill scope | Feeds Annual Workforce Capacity. Remaining = Planned Hours − Tempo Logged Hours. Utilization = Tempo Logged Hours ÷ Planned Hours. |
+| General KPI cards | `20261009_Assignees_Capacity.csv.Team` limits Annual Workforce Legal Hours to Authoring, Delivery Express, Integration, Nexus, Portal, and Scoring; then `20261009_Assignees_Capacity.csv.Actual Annual Hours` (column H) is summed. `Weekly Capacity_20261005.csv.Planned Hours` (column J), `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, and `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Effort CAP (hrs))` are summed across their complete source datasets | Feeds fixed Annual Workforce Legal Hours, Annual Workforce Capacity, Actual Hours, and Demand Capacity. Remaining = Capacity − Actual; Utilization = Actual ÷ Capacity. These values do not change with tabs or filters. |
 | Master Date → Weekly Capacity | `Weekly Capacity_20261005.csv.Week Number` = `Google 2026 to 2028_Master_Date.csv.Week Number` | Feeds date-scoped capacity visuals. The Portfolio annual KPI intentionally sums the full-year Weekly Capacity source. |
 | Tempo work date → Release Cycle | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` falls between `Release Cycle.csv.Start Date` and `Release Cycle.csv.End Date` | Returns `Release Cycle.csv.Release Cycle`. |
 | Jira Promoter → Business Area | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Promoter)` = `Promoters.csv.Promoter` | Returns `Promoters.csv.Business Area`; blank or unmatched values are `Other/Blank`. |
@@ -457,9 +447,10 @@ This section is the field-level contract for the dashboard. It records the **exa
 | Control | Exact file and field used |
 | --- | --- |
 | From / To | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` filters Tempo activity. The selectable bounds are governed by `Google 2026 to 2028_Master_Date.csv.Master Date`. |
-| Team | `20260307_Assignees_Capacity.csv.Team`, applied through the derived `team` mapping. |
-| Assignee | `20260307_Assignees_Capacity.csv.Assignee`; Tempo activity matches normalized `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`. |
-| Skill | `20260307_Assignees_Capacity.csv.Skill`, applied through the assignee-to-skill mapping. |
+| Team | `20261009_Assignees_Capacity.csv.Team`, applied through the derived `team` mapping. |
+| Assignee | `20261009_Assignees_Capacity.csv.Assignee`; Tempo activity matches normalized `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`. |
+| Skill | `20261009_Assignees_Capacity.csv.Skill`, applied through the assignee-to-skill mapping. |
+| Client | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Client`; for Jira rows, `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` carries the Tempo Client value. Blank or unmatched Client is `Other/Blank`. This is the same value list and multi-select behavior as the Demand Management Client filter. |
 | Account | Tempo display facet: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name`; Jira-governed backlog account: `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`. |
 | Account Category | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Category`. |
 | Priority | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Priority`, joined by work item key for Tempo rows. |
@@ -472,17 +463,18 @@ This section is the field-level contract for the dashboard. It records the **exa
 
 | Visual / displayed value | Exact file and field(s) used |
 | --- | --- |
-| Annual Workforce Capacity | Sum of `Weekly Capacity_20261005.csv.Planned Hours` (column J), scoped by `Weekly Capacity_20261005.csv.Team`, `Weekly Capacity_20261005.csv.Assignee`, and `Weekly Capacity_20261005.csv.Skill`. |
-| Actual Hours | Sum of `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`. |
-| Annual Capacity Remaining | **Derived:** `Weekly Capacity_20261005.csv.Planned Hours` sum minus `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` sum. |
-| Annual Capacity Utilization | **Derived:** `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` sum ÷ `Weekly Capacity_20261005.csv.Planned Hours` sum. |
-| Work item count | Distinct `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`. |
+| Annual Workforce Legal Hours | Sum of `20261009_Assignees_Capacity.csv.Actual Annual Hours` (column H) where `20261009_Assignees_Capacity.csv.Team` is Authoring, Delivery Express, Integration, Nexus, Portal, or Scoring. |
+| Annual Workforce Capacity | Sum of `Weekly Capacity_20261005.csv.Planned Hours` (column J) across the full source. |
+| Actual Hours | Sum of all `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` source rows. |
+| Remaining Period Capacity | **Derived:** full-source `Weekly Capacity_20261005.csv.Planned Hours` sum minus full-source `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` sum. |
+| Annual Capacity Utilization | **Derived:** full-source `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` sum ÷ full-source `Weekly Capacity_20261005.csv.Planned Hours` sum. |
+| Demand Capacity | Sum of all `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Effort CAP (hrs))` source rows. |
 | Hours Trend — Logged | Sum of `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` by `Work date`; weekly grouping uses `Google 2026 to 2028_Master_Date.csv.Week Number`. |
 | Hours Trend — Billable | Sum of `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Billable Hours` by the same `Work date` grain. |
 | Planned vs Unplanned — work item count | Distinct `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; classification from Jira `Labels`. |
 | Planned vs Unplanned — hours | Sum of Tempo `Logged Hours` for the same classified keys. |
 | Program Distribution | Sum of Tempo `Logged Hours`; program from Jira `Custom field (Program)`. |
-| Bug Severity Distribution | Distinct `Bug Triage_ignored.csv.Key` by `Bug Severity`, limited to `Issue Type = Bug`. The current source has zero rows. |
+| Bug Severity Distribution | Distinct `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` where `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type` = `Bug`, grouped only by `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Bug Severity)` = `Blocker`, `Critical`, or `Major`. |
 | Account Distribution | Sum of Tempo `Logged Hours` by `Account Name`; Jira `Custom field (Account)` supplies the governed backlog/estimate context. |
 | Team Utilization — capacity | Sum of `Weekly Capacity_20261005.csv.Planned Hours` by mapped `Team` and `Week Number`; week inclusion comes from `Google 2026 to 2028_Master_Date.csv.Week Number` and `Master Date`. |
 | Team Utilization — actual | Sum of Tempo `Logged Hours` by derived team. |
@@ -504,8 +496,8 @@ This section is the field-level contract for the dashboard. It records the **exa
 | Accounts — Variance Hours | **Derived:** Logged Hours minus Original Estimate Hours. |
 | Accounts — Logged vs Estimate % | **Derived:** Logged Hours ÷ Original Estimate Hours. |
 | Accounts — Work Items | Distinct Jira `Issue key` after the active scope. |
-| People — Assignee | `20260307_Assignees_Capacity.csv.Assignee`; Tempo activity display is `Full name`. |
-| People — Team / Role / Skill | `20260307_Assignees_Capacity.csv.Team`, `.Role`, `.Skill`. |
+| People — Assignee | `20261009_Assignees_Capacity.csv.Assignee`; Tempo activity display is `Full name`. |
+| People — Team / Role / Skill | `20261009_Assignees_Capacity.csv.Team`, `.Role`, `.Skill`. |
 | People — Capacity | `Weekly Capacity_20261005.csv.Planned Hours`. |
 | People — Logged / Billable | Tempo `Logged Hours`, `Billable Hours`. |
 | People — Engineering / Operations split | Tempo `Logged Hours`; **Derived** from `Work Item Key` and the operational mapping / `TEMPO-` classification. |
@@ -516,7 +508,6 @@ This section is the field-level contract for the dashboard. It records the **exa
 | Delivery Progress — Start / Due date | Jira `Custom field (Start date)` and `Due date`. |
 | Delivery Progress — Status / Priority | Jira `Status`, `Priority`. |
 | Delivery Progress — Days to Due / Delivery Health | **Derived** from Jira `Due date`, `Status`, and the latest Tempo `Work date`. |
-| Bug Triage — Key / Summary / Severity / Status / Updated / Assignee | `Bug Triage_ignored.csv.Key`, `.Summary`, `.Bug Severity`, `.Status`, `.Updated`, `.Assignee`. |
 
 ### Demand Management tab: exact fields
 
@@ -533,6 +524,8 @@ This section is the field-level contract for the dashboard. It records the **exa
 | Demand filters — Product Module | Jira `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Product Module)`. Searchable multi-select picker. |
 | Demand filters — Target / Planning Release | Jira `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)` is the searchable multi-select picker source. `Due date` and `Release Cycle.csv.Start Date` / `End Date` provide the documented planning-period fallback for unselected release allocation. |
 | Known Outstanding Demand KPI | Sum of Jira `Remaining Estimate ÷ 3,600`; records with a blank `Remaining Estimate` are excluded from the hour sum and retained as an exception. |
+| Delivered Features (%) KPI | **Derived:** `DONE feature count ÷ in-delivery feature count × 100`. Feature count includes Jira `Issue Type` = `Epic`, `Epic Basic`, `Epic Release`, or `Epic Lab`. DONE feature count uses Jira `Status` = `DONE`. In-delivery feature count uses Jira `Status` = `On Hold`, `To Do`, `In Progress`, `PMC`, `In Development`, `Testing`, `Ready for Development`, `Prepare Development`, `In Review`, `Handoff for customer testing`, `In QA`, or `OAT - Ready for PI`. This KPI is a full-source count and does not change with Demand filters. |
+| Delivered Features difference KPI | **Derived:** `DONE feature count − in-delivery feature count`, using the same Issue Type and Status sets as Delivered Features (%). This KPI is a full-source count and does not change with Demand filters. |
 | Actual Effort KPI | Sum of Tempo `Logged Hours`, limited by `Work date`. |
 | Remaining Period Capacity KPI | **Derived:** sum of `Weekly Capacity_20261005.csv.Planned Hours` minus Tempo `Logged Hours`, aligned through `Week Number`, `Master Date`, and release dates. |
 | Data Quality Exceptions KPI | Count of Jira `Issue key` where `Remaining Estimate` is blank. |
@@ -548,7 +541,7 @@ This section is the field-level contract for the dashboard. It records the **exa
 | Actual Effort vs Future Demand by Account — Actual | Tempo `Logged Hours` grouped by Jira `Custom field (Account)` joined on `Work Item Key = Issue key`; `Account Name` is the Tempo fallback. |
 | Actual Effort vs Future Demand by Account — Future | Jira `Remaining Estimate ÷ 3,600` grouped by `Custom field (Account)`. These two values are shown separately and are not added together. |
 | Demand Data Quality — Missing Remaining Estimate | Jira `Remaining Estimate` is blank. |
-| Demand Data Quality — Unassigned Team | Jira `Assignee` does not map to `20260307_Assignees_Capacity.csv.Assignee` and therefore has no `Team`. |
+| Demand Data Quality — Unassigned Team | Jira `Assignee` does not map to `20261009_Assignees_Capacity.csv.Assignee` and therefore has no `Team`. |
 | Demand Data Quality — Unscheduled | Jira `Custom field (Target Release)` is blank and `Due date` cannot be placed inside any `Release Cycle.csv.Start Date` / `End Date` window. |
 | Demand Data Quality — inline ticket details | Jira `Issue key`, `Summary`, `Assignee`→Team, planning period, and `Remaining Estimate`. |
 | Release Predictability KPI | No source fields are currently used. The KPI displays the hardcoded empty value `—` and `TODO` until feature hierarchy, baseline commitment, and delivery-in-expected-release rules are governed. |
@@ -566,9 +559,9 @@ This is the authoritative, literal reference list. Every source reference below 
 | --- | --- | --- |
 | From / To selectable dates | `Google 2026 to 2028_Master_Date.csv.Master Date` | Sets the minimum and maximum selectable dates. |
 | From / To applied to Tempo work | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` | Includes a Tempo row when Work date is in the selected range. |
-| Team filter | `20260307_Assignees_Capacity.csv.Team`; `20260307_Assignees_Capacity.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` | Full name is normalized and matched to Assignee, then Team is used. |
-| Assignee filter | `20260307_Assignees_Capacity.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` | Normalized equality match. |
-| Skill filter | `20260307_Assignees_Capacity.csv.Skill`; `20260307_Assignees_Capacity.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` | Skill is obtained through the assignee match. |
+| Team filter | `20261009_Assignees_Capacity.csv.Team`; `20261009_Assignees_Capacity.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` | Full name is normalized and matched to Assignee, then Team is used. |
+| Assignee filter | `20261009_Assignees_Capacity.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` | Normalized equality match. |
+| Skill filter | `20261009_Assignees_Capacity.csv.Skill`; `20261009_Assignees_Capacity.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` | Skill is obtained through the assignee match. |
 | Account filter — Tempo label | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name` | Tempo-native account label. |
 | Account filter — Jira-governed account | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` | Jira account joins to Tempo through Issue key = Work Item Key. |
 | Account Category filter | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Category` | Direct filter. |
@@ -593,14 +586,14 @@ This is the authoritative, literal reference list. Every source reference below 
 | Planned vs Unplanned — key count | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Labels`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` | Distinct Work Item Key; Labels determine PLANNED, UNPLANNED, Operations, or Unclassified. |
 | Planned vs Unplanned — hours | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Labels` | Sum Logged Hours within the label-derived class. |
 | Program Distribution — slice | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Program)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` | Sum Logged Hours by joined Program. |
-| Bug Severity Distribution — bar | `Bug Triage_ignored.csv.Key`; `Bug Triage_ignored.csv.Issue Type`; `Bug Triage_ignored.csv.Bug Severity` | Distinct Key where Issue Type = Bug, grouped by Bug Severity. |
+| Bug Severity Distribution — bar | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Bug Severity)` | Distinct Issue key where Issue Type = `Bug`, grouped only by Bug Severity = `Blocker`, `Critical`, or `Major`. |
 | Account Distribution — tile label | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name` | Account display label. |
 | Account Distribution — tile size | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name` | Sum Logged Hours by Account Name. |
-| Team Utilization — planned | `Weekly Capacity_20261005.csv.Planned Hours`; `Weekly Capacity_20261005.csv.Assignee`; `20260307_Assignees_Capacity.csv.Assignee`; `20260307_Assignees_Capacity.csv.Team`; `Weekly Capacity_20261005.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date` | Planned Hours sums by mapped Team for Master Date weeks in range. |
-| Team Utilization — logged | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`; `20260307_Assignees_Capacity.csv.Assignee`; `20260307_Assignees_Capacity.csv.Team` | Sum Logged Hours by mapped Team. |
+| Team Utilization — planned | `Weekly Capacity_20261005.csv.Planned Hours`; `Weekly Capacity_20261005.csv.Assignee`; `20261009_Assignees_Capacity.csv.Assignee`; `20261009_Assignees_Capacity.csv.Team`; `Weekly Capacity_20261005.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date` | Planned Hours sums by mapped Team for Master Date weeks in range. |
+| Team Utilization — logged | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`; `20261009_Assignees_Capacity.csv.Assignee`; `20261009_Assignees_Capacity.csv.Team` | Sum Logged Hours by mapped Team. |
 | Team Utilization — utilization | `Weekly Capacity_20261005.csv.Planned Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` | Sum Logged Hours ÷ Sum Planned Hours. |
-| Remaining Demand vs Logged Effort — demand | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`; `20260307_Assignees_Capacity.csv.Assignee`; `20260307_Assignees_Capacity.csv.Team` | Remaining Estimate ÷ 3,600, summed by mapped Team. |
-| Remaining Demand vs Logged Effort — actual | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`; `20260307_Assignees_Capacity.csv.Assignee`; `20260307_Assignees_Capacity.csv.Team` | Sum Logged Hours by mapped Team. |
+| Remaining Demand vs Logged Effort — demand | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`; `20261009_Assignees_Capacity.csv.Assignee`; `20261009_Assignees_Capacity.csv.Team` | Remaining Estimate ÷ 3,600, summed by mapped Team. |
+| Remaining Demand vs Logged Effort — actual | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`; `20261009_Assignees_Capacity.csv.Assignee`; `20261009_Assignees_Capacity.csv.Team` | Sum Logged Hours by mapped Team. |
 | Backlog Priority — category | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Priority` | Grouping label. |
 | Backlog Priority — count | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Created` | Count Issue key after Created date filter. |
 | Engineering Work Mix — Bug | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` | Sum Logged Hours where joined Issue Type is Bug. |
@@ -619,9 +612,9 @@ This is the authoritative, literal reference list. Every source reference below 
 | Accounts — Variance Hours | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Original estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` | Logged Hours − (Original estimate ÷ 3,600). |
 | Accounts — Logged vs Estimate % | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Original estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` | Logged Hours ÷ (Original estimate ÷ 3,600). |
 | Accounts — Work Items | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` | Distinct count. |
-| People — Assignee | `20260307_Assignees_Capacity.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` | Master assignee label with Tempo activity match. |
-| People — Team | `20260307_Assignees_Capacity.csv.Team` | Direct master field. |
-| People — Capacity | `Weekly Capacity_20261005.csv.Planned Hours`; `Weekly Capacity_20261005.csv.Assignee`; `20260307_Assignees_Capacity.csv.Assignee` | Sum Planned Hours matched by Assignee. |
+| People — Assignee | `20261009_Assignees_Capacity.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` | Master assignee label with Tempo activity match. |
+| People — Team | `20261009_Assignees_Capacity.csv.Team` | Direct master field. |
+| People — Capacity | `Weekly Capacity_20261005.csv.Planned Hours`; `Weekly Capacity_20261005.csv.Assignee`; `20261009_Assignees_Capacity.csv.Assignee` | Sum Planned Hours matched by Assignee. |
 | People — Logged Total / Engineering / Operations | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` | Total is sum Logged Hours; Work Item Key classifies Operations (`TEMPO-*`) versus Engineering. |
 | People — Billable | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Billable Hours` | Sum by person. |
 | People — Utilization / Work Items | `Weekly Capacity_20261005.csv.Planned Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` | Utilization = Logged Hours ÷ Planned Hours; Work Items = distinct Work Item Key. |
@@ -629,11 +622,10 @@ This is the authoritative, literal reference list. Every source reference below 
 | Backlog — Child Key / Child Summary | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Summary`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item summary` | Jira fields are primary; Tempo fields are fallback. |
 | Backlog — Work Item Type / Module / Status / Priority | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Product Module)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Priority` | Joined to active Tempo key. |
 | Backlog — Start / Due / Last Worklog Date | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Start date)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Due date`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` | Last Worklog Date = maximum Work date per active item. |
-| Delivery Progress — Account / Team | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`; `20260307_Assignees_Capacity.csv.Team`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee` | Team comes from Assignee-to-Team match. |
+| Delivery Progress — Account / Team | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`; `20261009_Assignees_Capacity.csv.Team`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee` | Team comes from Assignee-to-Team match. |
 | Delivery Progress — Parent / Child / Summary | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Parent`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Parent summary`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Summary` | Direct Jira fields. |
 | Delivery Progress — Status / Priority / Start / Due | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Priority`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Start date)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Due date` | Direct Jira fields. |
 | Delivery Progress — Last Worklog Date / Days to Due / Delivery Health | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Due date`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status` | Last Worklog Date = maximum Work date; Days to Due and Health are derived. |
-| Bug Triage — all columns | `Bug Triage_ignored.csv.Key`; `Bug Triage_ignored.csv.Summary`; `Bug Triage_ignored.csv.Bug Severity`; `Bug Triage_ignored.csv.Status`; `Bug Triage_ignored.csv.Updated`; `Bug Triage_ignored.csv.Assignee` | Direct fields. |
 
 ### Demand Management tab
 
@@ -647,15 +639,17 @@ This is the authoritative, literal reference list. Every source reference below 
 | Demand Account filter | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)` | Direct field. |
 | Demand Product Module filter | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Product Module)` | Direct field. |
 | Demand Target / Planning Release filter | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)` | Multi-select picker source. The selected values filter only this Jira field. |
+| Delivered Features (%) KPI | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` | Count Issue Type = Epic, Epic Basic, Epic Release, or Epic Lab and Status = DONE ÷ count of the same Issue Types with Status = On Hold, TO DO, In Progress, PMC, In Development, Testing, Ready for Development, Prepare Development, In Review, Handoff for customer testing, In QA, or OAT - Ready for PI; then × 100. Full-source count; unaffected by Demand filters. |
+| Delivered Features difference KPI | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` | Count Issue Type = Epic, Epic Basic, Epic Release, or Epic Lab and Status = DONE − count of the same Issue Types with Status = On Hold, TO DO, In Progress, PMC, In Development, Testing, Ready for Development, Prepare Development, In Review, Handoff for customer testing, In QA, or OAT - Ready for PI. Full-source count; unaffected by Demand filters. |
 | Known Outstanding Demand | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate` | Sum(Remaining Estimate ÷ 3,600); blank values remain exceptions. |
 | Actual Effort | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` | Sum Logged Hours inside selected dates. |
 | Remaining Period Capacity | `Weekly Capacity_20261005.csv.Planned Hours`; `Weekly Capacity_20261005.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` | Sum Planned Hours for selected Master Date weeks − Actual Effort. |
 | Data Quality Exceptions | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate` | Count Issue key with blank Remaining Estimate. |
 | Team × Release pivot — row/column values | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`; `20261009_Assignees_Capacity.csv.Assignee`; `20261009_Assignees_Capacity.csv.Team`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Due date`; `Release Cycle.csv.Start Date`; `Release Cycle.csv.End Date`; `Release Cycle.csv.Release Cycle` | Row/column axes are derived Team and Planning Period. |
 | Team × Release pivot — cell | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate` | Sum(Remaining Estimate ÷ 3,600). |
-| Capacity vs Known Demand pivot — Capacity cell | `Weekly Capacity_20261005.csv.Planned Hours`; `Weekly Capacity_20261005.csv.Assignee`; `20260307_Assignees_Capacity.csv.Assignee`; `20260307_Assignees_Capacity.csv.Team`; `Weekly Capacity_20261005.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date`; `Release Cycle.csv.Start Date`; `Release Cycle.csv.End Date`; `Release Cycle.csv.Release Cycle` | Sum Planned Hours by derived Team and Planning Period. |
-| Capacity vs Known Demand pivot — Actual cell | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`; `20260307_Assignees_Capacity.csv.Assignee`; `20260307_Assignees_Capacity.csv.Team`; `Release Cycle.csv.Start Date`; `Release Cycle.csv.End Date`; `Release Cycle.csv.Release Cycle` | Sum Logged Hours by derived Team and Release Cycle. |
-| Capacity vs Known Demand pivot — Known Demand cell | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`; `20260307_Assignees_Capacity.csv.Assignee`; `20260307_Assignees_Capacity.csv.Team`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)` | Sum(Remaining Estimate ÷ 3,600) by derived Team and Planning Period. |
+| Capacity vs Known Demand pivot — Capacity cell | `Weekly Capacity_20261005.csv.Planned Hours`; `Weekly Capacity_20261005.csv.Assignee`; `20261009_Assignees_Capacity.csv.Assignee`; `20261009_Assignees_Capacity.csv.Team`; `Weekly Capacity_20261005.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date`; `Release Cycle.csv.Start Date`; `Release Cycle.csv.End Date`; `Release Cycle.csv.Release Cycle` | Sum Planned Hours by derived Team and Planning Period. |
+| Capacity vs Known Demand pivot — Actual cell | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`; `20261009_Assignees_Capacity.csv.Assignee`; `20261009_Assignees_Capacity.csv.Team`; `Release Cycle.csv.Start Date`; `Release Cycle.csv.End Date`; `Release Cycle.csv.Release Cycle` | Sum Logged Hours by derived Team and Release Cycle. |
+| Capacity vs Known Demand pivot — Known Demand cell | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`; `20261009_Assignees_Capacity.csv.Assignee`; `20261009_Assignees_Capacity.csv.Team`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)` | Sum(Remaining Estimate ÷ 3,600) by derived Team and Planning Period. |
 | Capacity vs Known Demand pivot — Remaining / Gap | `Weekly Capacity_20261005.csv.Planned Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate` | Remaining = Capacity − Actual. Gap = Capacity − Actual − Known Demand. |
 | Epic Workflow — eligible population | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type` | One distinct Jira key where Issue Type is `Epic`, `Epic Lab`, or `Epic Release`. |
 | Epic Workflow — filtering | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`; `20261009_Assignees_Capacity.csv.Assignee`; `20261009_Assignees_Capacity.csv.Team`; `20261009_Assignees_Capacity.csv.Skill`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Due date`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Product Module)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Promoter)`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Client`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; `Promoters.csv.Promoter`; `Promoters.csv.Business Area`; `Release Cycle.csv.Start Date`; `Release Cycle.csv.End Date`; `Release Cycle.csv.Release Cycle` | Applies every Demand global filter: date/release, Team, Assignee, Skill, Client, Business Area, Promoter, Account, Product Module, and Target / Planning Release. |

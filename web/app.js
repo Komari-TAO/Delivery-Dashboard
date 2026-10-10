@@ -11,6 +11,7 @@
     teams: new Set(),
     assignees: new Set(),
     skills: new Set(),
+    clients: new Set(),
     accounts: new Set(),
     categories: new Set(),
     priorities: new Set(),
@@ -29,6 +30,7 @@
       bugTriage: { key: null, direction: null },
     },
     assigneeSearch: "",
+    clientSearch: "",
     accountSearch: "",
     targetReleaseSearch: "",
     programSearch: "",
@@ -57,7 +59,7 @@
     bugTriage: { key: "bugSeverity", direction: "asc" },
   };
   const BUG_SEVERITY_ORDER = ["Blocker", "Critical", "Major", "Medium", "Low", "Enhancement", "-"];
-  const BUG_SEVERITY_DISTRIBUTION_ORDER = ["Blocker", "Critical", "Major", "Medium", "Low", "Enhancement"];
+  const BUG_SEVERITY_DISTRIBUTION_ORDER = ["Blocker", "Critical", "Major"];
   const BUG_SEVERITY_DISTRIBUTION_COLORS = {
     Blocker: "#8f4a4d",
     Critical: "#a96567",
@@ -289,6 +291,14 @@
     return state.accounts.size === 0 || state.accounts.has(accountFilterValue(value));
   }
 
+  function clientFilterValue(value) {
+    return String(value || "").trim() || "Other/Blank";
+  }
+
+  function inSelectedClient(value) {
+    return state.clients.size === 0 || state.clients.has(clientFilterValue(value));
+  }
+
   function inSelectedStatus(value) {
     return state.statuses.size === 0 || state.statuses.has(value || "");
   }
@@ -297,6 +307,7 @@
     const includeStatus = options.includeStatus !== false;
     return (
       state.accounts.size ||
+      state.clients.size ||
       state.categories.size ||
       state.priorities.size ||
       (includeStatus && state.statuses.size) ||
@@ -390,6 +401,7 @@
         (ignoreTeam || inSet(state.teams, row.team)) &&
         (ignoreAssignee || inSelectedAssignee(row.person)) &&
         inSet(state.skills, row.skill) &&
+        inSelectedClient(row.delivery) &&
         (ignoreAccount || inSelectedAccount(row.tempoAccount)) &&
         inSet(state.categories, row.category) &&
         inSet(state.priorities, row.priority) &&
@@ -409,6 +421,7 @@
         (ignoreTeam || inSet(state.teams, rowTeam)) &&
         (ignoreAssignee || inSelectedAssignee(row.assignee)) &&
         inSet(state.skills, rowSkill) &&
+        inSelectedClient(row.tempoClient) &&
         (ignoreAccount || inSelectedAccount(row.account)) &&
         inSet(state.priorities, row.priority) &&
         (ignoreStatus || inSelectedStatus(row.status)) &&
@@ -426,6 +439,7 @@
         (ignoreTeam || inSet(state.teams, row.team)) &&
         (ignoreAssignee || inSelectedAssignee(row.person)) &&
         inSet(state.skills, row.skill) &&
+        inSelectedClient(row.delivery) &&
         (ignoreAccount || inSelectedAccount(row.account)) &&
         inSet(state.categories, row.category) &&
         inSet(state.priorities, row.priority) &&
@@ -471,6 +485,7 @@
         (ignoreTeam || inSet(state.teams, row.team)) &&
         (ignoreAssignee || inSelectedAssignee(row.person)) &&
         inSet(state.skills, row.skill) &&
+        inSelectedClient(row.delivery) &&
         (ignoreAccount || inSelectedAccount(row.account)) &&
         inSet(state.categories, row.category) &&
         inSet(state.priorities, row.priority) &&
@@ -528,6 +543,7 @@
         inSet(state.teams, rowTeam) &&
         inSelectedAssignee(row.assignee) &&
         inSet(state.skills, rowSkill) &&
+        inSelectedClient(row.tempoClient) &&
         inSelectedAccount(row.account) &&
         inSet(state.priorities, row.priority) &&
         inSelectedStatus(row.status) &&
@@ -689,6 +705,18 @@
       .filter((row) => row.label.toLowerCase().includes(state.assigneeSearch.toLowerCase()))
       .slice(0, 40);
     const skills = masterSkillRows();
+    const clientCounts = new Map();
+    (raw.worklogs || []).forEach((row) => {
+      const client = clientFilterValue(row.delivery);
+      clientCounts.set(client, (clientCounts.get(client) || 0) + 1);
+    });
+    (raw.backlog || []).forEach((row) => {
+      const client = clientFilterValue(row.tempoClient);
+      clientCounts.set(client, (clientCounts.get(client) || 0) + 1);
+    });
+    const clients = Array.from(clientCounts, ([label, count]) => ({ label, count }))
+      .sort((left, right) => left.label.localeCompare(right.label))
+      .filter((row) => row.label.toLowerCase().includes(state.clientSearch.toLowerCase()));
     const accounts = accountFacetRows()
       .filter((row) => accountTableDisplayValue(row.label).toLowerCase().includes(state.accountSearch.toLowerCase()));
     const categories = top(groupCount(raw.worklogs, "category"), "count", 20);
@@ -715,6 +743,8 @@
     updateAssigneePickerSummary(assignees.length);
     renderFacet("skillFacet", skills, state.skills, "skills");
     updateSkillPickerSummary(skills.length);
+    renderFacet("clientFacet", clients, state.clients, "clients");
+    updateClientPickerSummary(clients.length);
     renderFacet("accountFacet", accounts, state.accounts, "accounts", { labelFormatter: accountTableDisplayValue });
     updateAccountPickerSummary(accounts.length);
     renderFacet("categoryFacet", categories, state.categories, "categories");
@@ -819,6 +849,23 @@
   function setSkillPickerOpen(open) {
     $("skillPickerMenu").hidden = !open;
     $("skillPickerToggle").setAttribute("aria-expanded", String(open));
+  }
+
+  function updateClientPickerSummary(availableCount = 0) {
+    const selected = state.clients.size;
+    const summary = $("clientPickerSummary");
+    summary.textContent = selected ? `${formatNumber(selected)} selected` : "All clients";
+    summary.title = selected ? `${formatNumber(selected)} of ${formatNumber(availableCount)} clients selected` : "All clients included";
+  }
+
+  function clientOptionValues() {
+    return Array.from(document.querySelectorAll('#clientFacet input[data-state="clients"]'))
+      .map((input) => input.value);
+  }
+
+  function setClientPickerOpen(open) {
+    $("clientPickerMenu").hidden = !open;
+    $("clientPickerToggle").setAttribute("aria-expanded", String(open));
   }
 
   function updateAccountPickerSummary(availableCount = 0) {
@@ -936,32 +983,25 @@
     return Math.abs(h);
   }
 
-  function renderKpis(data) {
-    const filteredPeople = new Set(data.worklogs.map((row) => row.person).filter(Boolean));
-    const filteredTeams = new Set(data.worklogs.map((row) => row.team).filter(Boolean));
-    const annualCapacityRows = raw.capacity.filter((row) => {
-      const matchesCapacityFilters =
-        inSet(state.teams, row.team) &&
-        inSelectedAssignee(row.assignee) &&
-        inSet(state.skills, row.skill);
-      if (!matchesCapacityFilters) return false;
-      if (!hasWorklogOnlyFilters()) return true;
-      return filteredPeople.has(row.assignee) || filteredTeams.has(row.team);
-    });
-    const annualCapacity = sum(annualCapacityRows, "planned");
-    const actualHours = sum(data.worklogs, "logged");
+  function renderKpis() {
+    const sourceKpis = raw.meta.sourceKpis || {};
+    const legalHours = Number(sourceKpis.annualWorkforceLegalHours) || 0;
+    const annualCapacity = Number(sourceKpis.annualWorkforceCapacity) || 0;
+    const actualHours = Number(sourceKpis.actualHours) || 0;
+    const demandCapacity = Number(sourceKpis.demandCapacity) || 0;
     const remainingHours = annualCapacity - actualHours;
-    const workItems = distinctCount(data.worklogs, "key");
     const utilization = annualCapacity ? actualHours / annualCapacity : 0;
 
     const kpis = [
-      { label: "Annual Workforce Capacity", value: formatNumber(annualCapacity, 1), note: "Sum of Weekly Capacity Planned Hours for the full year.", color: colors.teal },
-      { label: "Actual Hours", value: formatNumber(actualHours, 1), note: `${formatNumber(workItems)} Tempo work items`, color: colors.blue },
-      { label: "Annual Capacity Remaining", value: formatNumber(remainingHours, 1), note: "Annual workforce capacity minus governed logged hours in the selected Date Range.", color: remainingHours < 0 ? colors.red : colors.green },
-      { label: "Annual Capacity Utilization", value: formatPercent(utilization), note: "Governed logged hours in the selected Date Range divided by annual workforce capacity.", color: utilization > 1 ? colors.amber : colors.violet },
+      { label: "Annual Workforce Legal Hours", value: formatNumber(legalHours, 1), note: "Actual Annual Hours for the six governed global-filter teams.", color: colors.slate },
+      { label: "Annual Workforce Capacity", value: formatNumber(annualCapacity, 1), note: "Sum of Weekly Capacity Planned Hours (column J).", color: colors.teal },
+      { label: "Actual Hours", value: formatNumber(actualHours, 1), note: "Sum of RAW_DATA_FULL_ANALYSIS Logged Hours.", color: colors.blue },
+      { label: "Remaining Period Capacity", value: formatNumber(remainingHours, 1), note: "Annual Workforce Capacity minus Actual Hours.", color: remainingHours < 0 ? colors.red : colors.green },
+      { label: "Annual Capacity Utilization", value: formatPercent(utilization), note: "Actual Hours divided by Annual Workforce Capacity.", color: utilization > 1 ? colors.amber : colors.violet },
+      { label: "Demand Capacity", value: formatNumber(demandCapacity, 1), note: "Sum of Jira Effort Cap.", color: colors.violet },
     ];
 
-    $("kpiGrid").innerHTML = kpis
+    $("generalKpiGrid").innerHTML = kpis
       .map((kpi) => `
         <article class="kpi-card">
           <span><i class="tone" style="background:${kpi.color}"></i>${escapeHtml(kpi.label)}</span>
@@ -978,6 +1018,7 @@
       ["teams", "Team"],
       ["assignees", "Assignee"],
       ["skills", "Skill"],
+      ["clients", "Client"],
       ["accounts", "Account"],
       ["categories", "Category"],
       ["priorities", "Priority"],
@@ -1094,7 +1135,7 @@
     renderTrendChart(effortData.worklogs);
     renderPlanningChart(effortData.worklogs || []);
     renderProgramPieChart(programWorklogs);
-    renderBugSeverityDistributionChart(data.bugTriage || []);
+    renderBugSeverityDistributionChart(data.backlog || []);
     renderAccountTreemap(data, effortData.baseFiltered.worklogs);
     renderTeamChart(effortData.worklogs, effortData.capacity);
     renderRemainingDemandChart(effortData.worklogs, demandBacklogData());
@@ -1272,11 +1313,12 @@
     horizontalBars("typeChart", rows, "count", colors.violet, null);
   }
 
-  function bugSeverityDistributionRows(queueRows) {
+  function bugSeverityDistributionRows(backlogRows) {
     const counts = new Map(BUG_SEVERITY_DISTRIBUTION_ORDER.map((severity) => [severity, 0]));
     const seenKeys = new Set();
 
-    (queueRows || []).forEach((row) => {
+    (backlogRows || []).forEach((row) => {
+      if (String(row.type || "").trim().toLowerCase() !== "bug") return;
       const key = String(row.key || "").trim();
       if (!key || seenKeys.has(key)) return;
       seenKeys.add(key);
@@ -1292,10 +1334,10 @@
       .filter((row) => row.count > 0);
   }
 
-  function renderBugSeverityDistributionChart(queueRows) {
-    const rows = bugSeverityDistributionRows(queueRows);
+  function renderBugSeverityDistributionChart(backlogRows) {
+    const rows = bugSeverityDistributionRows(backlogRows);
     if (!rows.length) {
-      return emptyChart("bugSeverityChart", "No Bug Severity values in the current Bug Triage export.");
+      return emptyChart("bugSeverityChart", "No Major, Blocker, or Critical Jira bugs for the selected filters.");
     }
     horizontalBars("bugSeverityChart", rows, "count", (row) => BUG_SEVERITY_DISTRIBUTION_COLORS[row.label], null, {
       height: 220,
@@ -2653,7 +2695,6 @@
     $("detailSubtitle").textContent = subtitle;
     renderDetailGroupControl(columns);
     $("detailTable").innerHTML = tableHtml(columns, rows, state.detail, footerRow, state.detailGroupBy);
-    renderBugTriageSnapshotSummary();
     const deliveryLegend = $("deliveryLegend");
     if (deliveryLegend) deliveryLegend.hidden = state.detail !== "deliveryProgress";
   }
@@ -3350,10 +3391,11 @@
   }
 
   function renderFooter() {
-    $("sourceSummary").textContent = raw.meta.sources.map((source) => `${source.name}: ${formatNumber(source.rows)} rows`).join(" | ");
+    const sources = (raw.meta.sources || []).filter((source) => source.name !== "Jira Bug Triage queue");
+    $("sourceSummary").textContent = sources.map((source) => `${source.name}: ${formatNumber(source.rows)} rows`).join(" | ");
     const manifest = raw.meta.buildManifest || {};
     const generated = raw.meta.generatedOn || "unknown date";
-    $("dataFreshness").textContent = `Data freshness: built ${generated} · ${raw.meta.sources.length} sources`;
+    $("dataFreshness").textContent = `Data freshness: built ${generated} · ${sources.length} sources`;
     renderDataQuality(manifest);
   }
 
@@ -3392,6 +3434,7 @@
     const [eyebrow, title] = tabTitles[tabId] || tabTitles.portfolioTab;
     $("workspaceEyebrow").textContent = eyebrow;
     $("workspaceTitle").textContent = title;
+    if (tabId === "portfolioTab" && lastUpdateContext) renderKpis();
   }
 
   function updateRangeBadge() {
@@ -3406,7 +3449,7 @@
     renderFacets();
     lastUpdateContext = buildUpdateContext();
     const { data, effortData, programWorklogs } = lastUpdateContext;
-    renderKpis(effortData);
+    renderKpis();
     renderActiveFilters();
     renderCharts(data, effortData, programWorklogs);
     renderDetails(data, effortData);
@@ -3526,6 +3569,10 @@
       state.assigneeSearch = event.target.value;
       renderFacets();
     });
+    $("clientSearch").addEventListener("input", (event) => {
+      state.clientSearch = event.target.value;
+      renderFacets();
+    });
     $("accountSearch").addEventListener("input", (event) => {
       state.accountSearch = event.target.value;
       renderFacets();
@@ -3559,6 +3606,7 @@
         "teams",
         "assignees",
         "skills",
+        "clients",
         "accounts",
         "categories",
         "priorities",
@@ -3569,11 +3617,13 @@
       resetStatusDefaults();
       state.detailSearch = "";
       state.assigneeSearch = "";
+      state.clientSearch = "";
       state.accountSearch = "";
       state.targetReleaseSearch = "";
       state.programSearch = "";
       $("detailSearch").value = "";
       $("assigneeSearch").value = "";
+      $("clientSearch").value = "";
       $("accountSearch").value = "";
       $("targetReleaseSearch").value = "";
       $("programSearch").value = "";
@@ -3585,6 +3635,7 @@
     bindFacetPicker("team", "teams", setTeamPickerOpen, teamOptionValues);
     bindFacetPicker("assignee", "assignees", setAssigneePickerOpen, assigneeOptionValues);
     bindFacetPicker("skill", "skills", setSkillPickerOpen, skillOptionValues);
+    bindFacetPicker("client", "clients", setClientPickerOpen, clientOptionValues);
     bindFacetPicker("account", "accounts", setAccountPickerOpen, accountOptionValues);
     bindFacetPicker("category", "categories", setCategoryPickerOpen, categoryOptionValues);
     bindFacetPicker("priority", "priorities", setPriorityPickerOpen, priorityOptionValues);

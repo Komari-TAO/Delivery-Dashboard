@@ -205,19 +205,17 @@
     });
     return rows;
   }
-  function renderKpis(demand, actual, capacity) {
-    const known = demand.reduce((total, row) => total + (Number(row.demandHours) || 0), 0);
-    const actualHours = actual.reduce((total, row) => total + (Number(row.logged) || 0), 0);
-    const capacityHours = capacity.reduce((total, row) => total + (Number(row.planned) || 0), 0);
-    const missing = demand.filter((row) => !row.hasRemainingEstimate).length;
-    $("demandKpis").innerHTML = [
-      ["Known Outstanding Demand", hours(known), "Jira Remaining Estimate; missing estimates are excluded, not zero."],
-      ["Actual Effort", hours(actualHours), "Tempo Logged Hours in the selected period."],
-      ["Remaining Period Capacity", hours(capacityHours - actualHours), "Weekly Capacity less Tempo actual effort in the same period."],
-      ["Data Quality Exceptions", number(missing), "Tickets with no usable Remaining Estimate."],
-      ["Release Predictability", "—", "TODO — hardcoded placeholder; no governed calculation."],
-      ["Release KPI", "—", "TODO — hardcoded placeholder; no governed calculation."],
-    ].map(([label, value, note]) => `<article class="kpi-card"><span><i class="tone"></i>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></article>`).join("");
+  function renderDeliveredFeaturesKpi() {
+    const featureTypes = new Set(["epic", "epic basic", "epic release", "epic lab"]);
+    const deliveryStatuses = new Set(["on hold", "to do", "in progress", "pmc", "in development", "testing", "ready for development", "prepare development", "in review", "handoff for customer testing", "in qa", "oat - ready for pi"]);
+    const features = (data.backlog || []).filter((row) => featureTypes.has(String(row.type || "").trim().toLowerCase()));
+    const delivered = features.filter((row) => String(row.status || "").trim().toUpperCase() === "DONE").length;
+    const inDelivery = features.filter((row) => deliveryStatuses.has(String(row.status || "").trim().toLowerCase())).length;
+    const deliveredPercent = inDelivery ? (delivered / inDelivery) * 100 : null;
+    const difference = delivered - inDelivery;
+    $("demandKpis").innerHTML = `
+      <article class="kpi-card"><span><i class="tone" style="background:#6d5bd0"></i>Delivered Features (%)</span><strong>${deliveredPercent === null ? "—" : `${number(deliveredPercent, 1)}%`}</strong><small>DONE feature count ÷ in-delivery feature count × 100. Source: Jira Epic, Epic Basic, Epic Release, and Epic Lab.</small></article>
+      <article class="kpi-card"><span><i class="tone" style="background:#6d5bd0"></i>Delivered Features difference</span><strong>${number(difference)}</strong><small>DONE feature count − in-delivery feature count. Source: Jira Epic, Epic Basic, Epic Release, and Epic Lab.</small></article>`;
   }
   function renderMatrix(demand) {
     const periods = [...new Set(demand.map((row) => row.planningPeriod))].sort();
@@ -336,6 +334,6 @@
     const note = "Logged Hours are the direct Tempo sum where Jira Issue key equals Tempo Work Item Key. No descendant roll-up is included.";
     target.innerHTML = `<h4>${escapeHtml(title)} — Epic detail</h4><p class="epic-attribution-note">${note}</p><div class="table-wrap"><table><thead><tr><th>Jira Key</th><th>Summary</th><th>Target Release</th><th>Effort Cap</th><th>Logged Hours</th><th>Variance Logged Hours − Effort Cap</th><th>Original Estimate</th><th>Status</th></tr></thead><tbody>${rows.slice(0, 50).map((row) => { const logged = directLoggedByKey.get(row.key) || 0; const loggedMarkup = hours(logged); const variance = row.hasEffortCap ? hours(logged - (Number(row.effortCapHours) || 0)) : "Unavailable"; return `<tr><td><a class="jira-link" href="https://oat-sa.atlassian.net/browse/${encodeURIComponent(row.key)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.key)}</a></td><td>${escapeHtml(row.summary)}</td><td>${escapeHtml(row.targetRelease || "Unavailable")}</td><td>${row.hasEffortCap ? hours(row.effortCapHours) : "Unavailable"}</td><td>${loggedMarkup}</td><td>${variance}</td><td>${row.hasOriginalEstimate ? hours(row.originalEstimateHours) : "Unavailable"}</td><td>${escapeHtml(row.status || "Unavailable")}</td></tr>`; }).join("") || `<tr><td colspan="8">No matching Epic records.</td></tr>`}</tbody></table></div>`;
   }
-  function render() { const { filters, demand, actual } = current(); const capacity = periodCapacity(filters); renderKpis(demand, actual, capacity); renderMatrix(demand); renderCapacity(demand, actual, capacity); renderWorkflow(filters, actual); renderAccountComparison(demand, actual); renderQuality(demand); }
+  function render() { const { filters, demand, actual } = current(); const capacity = periodCapacity(filters); renderDeliveredFeaturesKpi(); renderMatrix(demand); renderCapacity(demand, actual, capacity); renderWorkflow(filters, actual); renderAccountComparison(demand, actual); renderQuality(demand); }
   initialise();
 })();

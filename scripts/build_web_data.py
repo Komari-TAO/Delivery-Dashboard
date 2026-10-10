@@ -516,6 +516,7 @@ def main() -> None:
     )
 
     worklogs = pd.read_csv(worklogs_path, low_memory=False)
+    source_actual_hours = float(num(worklogs, "Logged Hours").sum())
     worklogs, excluded_worklogs = partition_governed_issue_rows(worklogs, "Work Item Key")
     excluded_tempo_summary = [
         {
@@ -580,6 +581,7 @@ def main() -> None:
     backlog_worklogs_out = worklogs_out.copy()
 
     backlog = pd.read_csv(backlog_path, low_memory=False)
+    source_demand_capacity = float(num(backlog, "Custom field (Effort CAP (hrs))").sum())
     backlog, excluded_backlog = partition_governed_issue_rows(backlog, "Issue key")
     excluded_summary_by_key = {row["key"]: row for row in excluded_tempo_summary}
     for key in sorted(GLOBAL_EXCLUDED_ISSUE_KEYS):
@@ -826,6 +828,18 @@ def main() -> None:
     backlog_worklogs_out["tempoDescriptionFound"] = mapped_tempo_mask
 
     capacity = pd.read_csv(capacity_path, low_memory=False)
+    source_annual_capacity = float(num(capacity, "Planned Hours").sum())
+    legal_hours_teams = {
+        "Authoring",
+        "Delivery Express",
+        "Integration",
+        "Nexus",
+        "Portal",
+        "Scoring",
+    }
+    source_legal_hours = float(
+        num(assignees.loc[text(assignees, "Team").isin(legal_hours_teams)], "Actual Annual Hours").sum()
+    )
     capacity = capacity[capacity["Assignee"].notna()].copy()
     capacity["week"] = pd.to_numeric(capacity["Week Number"], errors="coerce")
     capacity = capacity[capacity["week"].notna()].copy()
@@ -1065,6 +1079,12 @@ def main() -> None:
             "bugTriageSnapshotComparison": bug_triage_snapshot_summary,
             "excludedIssueKeys": sorted(GLOBAL_EXCLUDED_ISSUE_KEYS),
             "excludedTempoWorkItems": excluded_tempo_summary,
+            "sourceKpis": {
+                "annualWorkforceLegalHours": source_legal_hours,
+                "annualWorkforceCapacity": source_annual_capacity,
+                "actualHours": source_actual_hours,
+                "demandCapacity": source_demand_capacity,
+            },
         },
         "teams": as_records(teams_out),
         "skills": as_records(skills_out),
