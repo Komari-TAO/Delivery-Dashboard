@@ -838,50 +838,6 @@ button:focus-visible {
   margin-top: 14px;
 }
 
-.bug-triage-snapshot-summary {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin-top: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-soft);
-  font-size: 13px;
-}
-
-.bug-triage-snapshot-summary[hidden] {
-  display: none;
-}
-
-.bug-triage-snapshot-current {
-  color: var(--ink);
-}
-
-.bug-triage-snapshot-context {
-  color: var(--muted);
-}
-
-.bug-triage-snapshot-changes {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 14px;
-}
-
-.bug-triage-snapshot-added {
-  color: #a33a3a;
-}
-
-.bug-triage-snapshot-removed {
-  color: #3f7d58;
-}
-
-.bug-triage-module-panel {
-  --executive-chart-canvas-height: 220px;
-  --executive-chart-meta-height: 70px;
-}
-
 .table-controls {
   gap: 10px;
 }

@@ -101,8 +101,9 @@ C:\AI Projects\Codex_MVP
 │  ├─ validate_delivery_progress_team_ownership.cjs
 │  ├─ verify_bi_app_chrome_cdp.mjs             [Current broad browser regression]
 │  ├─ verify_bi_app.cjs                        [Older browser smoke test]
-│  ├─ profile_sources.py                       [Legacy/diagnostic profiler]
-│  ├─ prepare_dashboard_data.py                [Legacy parallel ETL]
+│  └─ legacy/
+│     ├─ profile_sources.py                     [Archived diagnostic profiler]
+│     └─ prepare_dashboard_data.py              [Archived parallel ETL]
 │  └─ build_dashboard.mjs                      [Legacy workbook generator]
 ├─ web
 │  ├─ index.html                               [Frontend structure]
@@ -122,8 +123,8 @@ C:\AI Projects\Codex_MVP
 Classification notes:
 
 - Active generation/runtime: `governed_exclusions.py`, `build_web_data.py`, `sync_dashboard.ps1`, `web/data.js`, `web/index.html`, `web/app.js`, and `web/styles.css`.
-- The workbook branch (`prepare_dashboard_data.py` → `dashboard_data.json` → `build_dashboard.mjs` → `.xlsx` and previews) is parallel and currently stale. Its hardcoded source paths point to repository-root files that are absent in the current workspace.
-- `profile_sources.py` has the same obsolete repository-root source convention.
+- The archived workbook branch (`scripts/legacy/prepare_dashboard_data.py` → `dashboard_data.json` → `build_dashboard.mjs` → `.xlsx` and previews) is parallel and stale. Its hardcoded source paths point to repository-root files that are absent in the current workspace.
+- `scripts/legacy/profile_sources.py` has the same obsolete repository-root source convention.
 - `verify_bi_app.cjs` expects at least six KPI cards while the current dashboard and current CDP harness require exactly four; it is likely obsolete.
 - `.tmp/` contains diagnostic images, Chrome profiles, logs, and prior validation extracts. These do not feed runtime and were excluded from the architecture, except as historical evidence that prior investigations occurred.
 

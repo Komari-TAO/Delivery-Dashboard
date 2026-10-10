@@ -1,15 +1,67 @@
 import fs from "node:fs/promises";
+import http from "node:http";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
-const chrome = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+const browserCandidates = [
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+];
+const chrome = (await Promise.all(
+  browserCandidates.map(async (candidate) => {
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      return null;
+    }
+  }),
+)).find(Boolean);
+
+if (!chrome) {
+  throw new Error(`No supported Chromium browser found. Checked: ${browserCandidates.join(", ")}`);
+}
 const debugPort = 9300 + Math.floor(Math.random() * 500);
-const appUrl = "http://127.0.0.1:8765";
 const webDir = path.join(root, "web");
 const userDataDir = path.join(root, ".tmp", `codex_bi_cdp_${Date.now()}`);
+
+const contentTypes = {
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+};
+
+async function startStaticServer() {
+  const server = http.createServer(async (request, response) => {
+    try {
+      const requestPath = decodeURIComponent(new URL(request.url || "/", "http://127.0.0.1").pathname);
+      const relativePath = requestPath === "/" ? "index.html" : requestPath.replace(/^\/+/, "");
+      const filePath = path.resolve(webDir, relativePath);
+      if (!filePath.startsWith(`${webDir}${path.sep}`)) throw new Error("Invalid static asset path");
+      const content = await fs.readFile(filePath);
+      response.writeHead(200, { "Content-Type": contentTypes[path.extname(filePath)] || "application/octet-stream" });
+      response.end(content);
+    } catch {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Not found");
+    }
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("Unable to determine local validation server port");
+  return { server, url: `http://127.0.0.1:${address.port}` };
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -94,6 +146,7 @@ async function capture(cdp, name) {
 }
 
 await fs.mkdir(userDataDir, { recursive: true });
+const { server: staticServer, url: appUrl } = await startStaticServer();
 
 const chromeProcess = spawn(chrome, [
   "--headless=new",
@@ -1790,114 +1843,6 @@ try {
     throw new Error(`ADF-2326 must render with Integration team ownership: ${JSON.stringify(deliveryProgressAdfIntegrationValidation.adfRows)}`);
   }
 
-  await cdp.eval(`document.querySelector("#resetFilters")?.click()`);
-  await sleep(350);
-  await cdp.eval(`document.querySelector('button[data-detail="bugTriage"]')?.click()`);
-  await sleep(350);
-  const bugTriageValidation = await cdp.eval(`(() => {
-    const headers = Array.from(document.querySelectorAll("#detailTable thead th"))
-      .map((th) => th.querySelector(".sort-header span:first-child")?.textContent.trim() || "");
-    const rows = Array.from(document.querySelectorAll("#detailTable tbody tr"))
-      .filter((tr) => tr.cells.length === headers.length)
-      .map((tr) => Object.fromEntries(headers.map((header, index) => [header, tr.cells[index]?.textContent.trim() || ""])));
-    const normalizedKey = (value) => String(value || "").trim().toUpperCase();
-    const sourceByKey = new Map((window.BI_DATA.bugTriage || []).map((row) => [normalizedKey(row.key), row]));
-    const normalize = (value) => {
-      const text = String(value || "").trim();
-      return !text || text.toUpperCase() === "N/A" ? "-" : text;
-    };
-    const mismatches = rows.flatMap((row) => {
-      const source = sourceByKey.get(normalizedKey(row.Key));
-      if (!source) {
-        return [{ key: row.Key, reason: "not in the dedicated Bug Triage queue" }];
-      }
-      const expected = {
-        Summary: normalize(source.summary),
-        "Bug Severity": normalize(source.bugSeverity),
-        Status: normalize(source.status),
-        Updated: normalize(source.updated),
-        Assignee: normalize(source.assignee),
-        Team: normalize(source.team),
-      };
-      return Object.entries(expected)
-        .filter(([field, value]) => row[field] !== value)
-        .map(([field, expectedValue]) => ({ key: row.Key, field, expected: expectedValue, actual: row[field] }));
-    });
-    const targetKey = rows[0]?.Key || "";
-    const snapshotComparison = window.BI_DATA.meta?.bugTriageSnapshotComparison || {};
-    const snapshotBanner = document.querySelector("#bugTriageSnapshotSummary");
-    const snapshotBannerText = snapshotBanner?.textContent.replace(/\\s+/g, " ").trim() || "";
-    const search = document.querySelector("#detailSearch");
-    search.value = targetKey;
-    search.dispatchEvent(new Event("input", { bubbles: true }));
-    const searchRows = Array.from(document.querySelectorAll("#detailTable tbody tr"))
-      .filter((tr) => tr.cells.length === headers.length)
-      .map((tr) => tr.cells[0]?.textContent.trim() || "");
-    search.value = "";
-    search.dispatchEvent(new Event("input", { bubbles: true }));
-    return {
-      headers,
-      renderedRows: rows.length,
-      renderedDistinctKeys: new Set(rows.map((row) => normalizedKey(row.Key))).size,
-      sourceDistinctKeys: sourceByKey.size,
-      missingQueueKeys: Array.from(sourceByKey.keys()).filter((key) => !rows.some((row) => normalizedKey(row.Key) === key)),
-      mismatches: mismatches.slice(0, 10),
-      tempoRows: rows.filter((row) => /^TEMPO-/i.test(row.Key)).map((row) => row.Key),
-      unassignedRows: rows.filter((row) => row.Assignee === "-" && row.Team === "-").length,
-      snapshotComparison,
-      snapshotBannerHidden: Boolean(snapshotBanner?.hidden),
-      snapshotBannerText,
-      search: { targetKey, renderedKeys: searchRows },
-    };
-  })()`);
-  const requiredBugTriageHeaders = ["Key", "Summary", "Bug Severity", "Status", "Updated", "Assignee", "Team"];
-  if (JSON.stringify(bugTriageValidation.headers) !== JSON.stringify(requiredBugTriageHeaders)) {
-    throw new Error(`Bug Triage table columns are not canonical: ${JSON.stringify(bugTriageValidation.headers)}`);
-  }
-  if (
-    !bugTriageValidation.renderedRows
-    || bugTriageValidation.renderedRows !== bugTriageValidation.sourceDistinctKeys
-    || bugTriageValidation.renderedDistinctKeys !== bugTriageValidation.sourceDistinctKeys
-    || bugTriageValidation.missingQueueKeys.length
-    || bugTriageValidation.mismatches.length
-    || bugTriageValidation.tempoRows.length
-  ) {
-    throw new Error(`Bug Triage queue rendering validation failed: ${JSON.stringify(bugTriageValidation)}`);
-  }
-  if (!bugTriageValidation.unassignedRows) {
-    throw new Error(`Bug Triage did not preserve unassigned queue rows: ${JSON.stringify(bugTriageValidation)}`);
-  }
-  if (bugTriageValidation.search.renderedKeys.length !== 1 || bugTriageValidation.search.renderedKeys[0] !== bugTriageValidation.search.targetKey) {
-    throw new Error(`Bug Triage Details search did not filter the active tab: ${JSON.stringify(bugTriageValidation.search)}`);
-  }
-  const snapshot = bugTriageValidation.snapshotComparison;
-  if (
-    snapshot.currentQueue !== bugTriageValidation.sourceDistinctKeys
-    || snapshot.currentDuplicateKeys !== 0
-    || !snapshot.currentFile
-    || bugTriageValidation.snapshotBannerHidden
-    || !bugTriageValidation.snapshotBannerText.includes(`Full Bug Triage queue: ${snapshot.currentQueue}`)
-  ) {
-    throw new Error(`Bug Triage current snapshot summary is invalid: ${JSON.stringify(bugTriageValidation)}`);
-  }
-  if (snapshot.hasPreviousSnapshot) {
-    if (
-      !snapshot.previousFile
-      || snapshot.previousDuplicateKeys !== 0
-      || snapshot.currentQueue !== snapshot.previousQueue + snapshot.addedToQueue - snapshot.removedFromQueue
-      || snapshot.reconciles !== true
-      || !bugTriageValidation.snapshotBannerText.includes(`${snapshot.addedToQueue} Added to queue`)
-      || !bugTriageValidation.snapshotBannerText.includes(`${snapshot.removedFromQueue} Removed from queue`)
-    ) {
-      throw new Error(`Bug Triage previous snapshot comparison is invalid: ${JSON.stringify(bugTriageValidation)}`);
-    }
-  } else if (!bugTriageValidation.snapshotBannerText.includes("No previous complete Bug Triage snapshot available.")) {
-    throw new Error(`Bug Triage one-snapshot fallback is invalid: ${JSON.stringify(bugTriageValidation)}`);
-  }
-  if (/New Bugs|Bugs Fixed|Bugs Closed/i.test(bugTriageValidation.snapshotBannerText)) {
-    throw new Error(`Bug Triage snapshot banner uses prohibited lifecycle wording: ${JSON.stringify(bugTriageValidation.snapshotBannerText)}`);
-  }
-
   cdp.close();
   console.log(JSON.stringify({
     status: "PASS",
@@ -1914,14 +1859,9 @@ try {
       nexusOwnershipRows: deliveryProgressNexusTeamValidation.visibleRowCount,
       adf2326IntegrationRows: deliveryProgressAdfIntegrationValidation.adfRows.length,
     },
-    bugTriage: {
-      rows: bugTriageValidation.renderedRows,
-      distinctKeys: bugTriageValidation.renderedDistinctKeys,
-      unassignedRows: bugTriageValidation.unassignedRows,
-      searchTarget: bugTriageValidation.search.targetKey,
-    },
   }, null, 2));
 } finally {
   chromeProcess.kill();
+  await new Promise((resolve) => staticServer.close(resolve));
 }
 

@@ -30,7 +30,6 @@ This document does NOT define:
 * visualization behavior
 
 ---
-
 # 2. Canonical Placeholder Governance
 
 Missing or unavailable values must render as:
@@ -76,12 +75,7 @@ This applies across:
 | Planning Exception   | Derived                       | Forecasting governance exception    |
 | Fix Version          | Jira                          | Jira fix version                    |
 | Product Module       | Jira                          | Jira product-module classification associated with the work item; missing values render as "-" |
-| Bug Severity         | Jira Bug Triage export         | Read-only bug-severity metadata from the dedicated Bug Triage queue; allowed values are Blocker, Critical, Major, Medium, Low, and Enhancement; missing values render as "-" |
-| Bug Triage Queue     | Jira Bug Triage export         | Inventory-based operational Bug Triage membership; one row per distinct exported Jira key |
-| Current Queue        | Derived                        | Number of distinct Jira Issue Keys in the latest Bug Triage export |
-| Added to Queue       | Derived                        | Distinct Jira Issue Keys present in the latest Bug Triage export but absent from the immediately previous export |
-| Removed from Queue   | Derived                        | Distinct Jira Issue Keys present in the immediately previous Bug Triage export but absent from the latest export |
-| Updated              | Jira Bug Triage export         | Jira Updated value displayed exactly as stored in the dedicated Bug Triage queue; missing values render as "-" |
+| Bug Severity         | Jira PI Backlog                | `Custom field (Bug Severity)` used only by the Bug Severity Distribution for Bug Issue Type values Blocker, Critical, and Major |
 | Key                  | Jira / Tempo                  | Canonical work item identifier      |
 | Parent Key           | Jira Hierarchy                | Parent work item key                |
 | Summary              | Jira / Tempo Description List | Canonical work item summary         |
@@ -139,7 +133,6 @@ The current Account resolution precedence is direct Jira Account, then immediate
 | Fix Version          | String     |
 | Product Module       | String     |
 | Bug Severity         | String     |
-| Bug Triage Queue     | String     |
 | Current Queue        | Integer    |
 | Added to Queue       | Integer    |
 | Removed from Queue   | Integer    |
@@ -579,7 +572,7 @@ These exclusions apply across:
 * charts, filters, searches, tooltips, totals, summaries, and CSV exports
 * Jira-derived planned and remaining-demand populations where these exact keys could enter
 
-Candidate keys are normalized by trimming surrounding whitespace and converting to uppercase, then compared using exact-key matching. The exclusion occurs before aggregation, classification, enrichment, joins, reconciliation, filter population, export, or rendering. Annual Capacity and Weekly Capacity source fields remain governed exclusively by the Assignees and Weekly Capacity datasets and are not changed. Bug Triage remains independent and Tempo-free.
+Candidate keys are normalized by trimming surrounding whitespace and converting to uppercase, then compared using exact-key matching. The exclusion occurs before aggregation, classification, enrichment, joins, reconciliation, filter population, export, or rendering. Annual Capacity and Weekly Capacity source fields remain governed exclusively by the Assignees and Weekly Capacity datasets and are not changed.
 
 ---
 
@@ -629,80 +622,3 @@ Organizational/workforce Team and skill semantics are governed by Assignees CSV,
 Week semantics are governed exclusively by Master Date.
 
 ---
-
-# 22. Bug Severity Governance
-
-Bug Severity is Jira-owned, read-only metadata for operational Bug Triage only.
-
-Source field in the dedicated Jira Bug Triage export:
-
-* `Custom field (Bug Severity)`
-
-Allowed values:
-
-1. Blocker
-2. Critical
-3. Major
-4. Medium
-5. Low
-6. Enhancement
-
-Bug Severity is displayed exactly as stored. The dashboard may suppress zero-count severity categories in visualizations while preserving the canonical order above. Bug Severity has no fallback, parent inheritance, filtering, grouping, aggregation, KPI, calculation, or reconciliation role.
-
----
-
-# 23. Bug Triage Queue Governance
-
-Bug Triage is an inventory-based Jira operational queue. Its authoritative source is the latest dedicated `Bug Triage_*` export in `data/raw/`, not the general Jira PI backlog export and not Tempo activity.
-
-For this queue, Key, Summary, Bug Severity, Status, Updated, and Assignee are direct Jira-export values. No parent inheritance, general-backlog fallback, or Tempo enrichment is permitted. A field absent from the dedicated export is not represented by a placeholder table column.
-
-Each distinct valid Jira key in that export appears once. Unassigned issues, unmapped-assignee issues, and issues with no Tempo worklogs remain visible. Missing Assignee, Team, or Bug Severity values render as `-`.
-
-Updated is Jira-owned metadata from the dedicated export and is displayed exactly as stored. It is never derived from Tempo.
-
-Team is resolved from the Assignees CSV using the Jira-export Assignee. If Assignee is blank, Assignee and Team render as `-`. If Assignee exists but is absent from the Assignees CSV, the Jira Assignee is preserved, Team renders as `-`, and the row remains visible. Jira Team and Tempo Team must not be used or inferred. Tempo does not participate in Bug Triage. The queue does not introduce a KPI, calculation, reconciliation population, global filter, or future AI Bug Intelligence capability.
-
-Unmapped assigned rows are written to `outputs/bi_dashboard/bug_triage_unmapped_assignees.csv` with fields Jira Key, Summary, Jira Assignee, and Reason. The governed Reason value is `Assignee not found in Assignees CSV`. This output is a validation artifact and is not a dashboard data source.
-
----
-
-# 24. Bug Triage Jira Export Dataset
-
-## Dataset Definition
-
-| Attribute | Definition |
-| --- | --- |
-| Dataset | Bug Triage Jira Export |
-| Purpose | Current operational Bug Triage queue |
-| Authoritative source | Dedicated Jira Bug Triage CSV export |
-| Refresh behavior | The latest export replaces the previous operational queue |
-| Historical behavior | Intentionally non-historical; previous exports participate only in the immediately previous snapshot comparison |
-
-## Field Source Ownership
-
-| Field | Authoritative source | Ownership notes |
-| --- | --- | --- |
-| Key | Jira Bug Triage export | Canonical Jira Issue Key |
-| Summary | Jira Bug Triage export | Jira Summary exactly as exported |
-| Bug Severity | Jira Bug Triage export | Jira-owned metadata using the canonical values in Section 22 |
-| Status | Jira Bug Triage export | Jira Status exactly as exported |
-| Updated | Jira Bug Triage export | Jira Updated value exactly as exported |
-| Assignee | Jira Bug Triage export | Jira Assignee exactly as exported; blank values render as `-` |
-| Team | Assignees CSV | Derived only through governed mapping of the Jira-export Assignee; never derived from Jira or Tempo |
-
-## Snapshot-Derived Fields
-
-The following fields are derived by the dashboard and are not stored in Jira:
-
-| Derived field | Definition |
-| --- | --- |
-| Current Queue | Number of distinct Jira Issue Keys in the latest Bug Triage export |
-| Added to Queue | Distinct Jira Issue Keys present in the latest export but absent from the immediately previous export |
-| Removed from Queue | Distinct Jira Issue Keys present in the immediately previous export but absent from the latest export |
-
-The comparison represents changes between two complete Bug Triage snapshots only. Added to Queue does not mean Bug created or Bug opened. Removed from Queue does not mean Bug fixed, resolved, or closed.
-
-## Dataset Scope Boundary
-
-The Bug Triage Jira Export dataset does not contain historical bug states, bug lifecycle history, bug trends, bug ageing, MTTR, or reopened history.

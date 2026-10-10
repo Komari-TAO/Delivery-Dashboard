@@ -27,7 +27,6 @@
       people: { key: null, direction: null },
       backlog: { key: null, direction: null },
       deliveryProgress: { key: null, direction: null },
-      bugTriage: { key: null, direction: null },
     },
     assigneeSearch: "",
     clientSearch: "",
@@ -56,9 +55,7 @@
     people: { key: "loggedTotal", direction: "desc" },
     backlog: { key: "lastWorklogDate", direction: "desc" },
     deliveryProgress: { key: "deliveryHealth", direction: "asc" },
-    bugTriage: { key: "bugSeverity", direction: "asc" },
   };
-  const BUG_SEVERITY_ORDER = ["Blocker", "Critical", "Major", "Medium", "Low", "Enhancement", "-"];
   const BUG_SEVERITY_DISTRIBUTION_ORDER = ["Blocker", "Critical", "Major"];
   const BUG_SEVERITY_DISTRIBUTION_COLORS = {
     Blocker: "#8f4a4d",
@@ -459,16 +456,7 @@
       );
     });
 
-    const bugTriage = (raw.bugTriage || []).filter((row) => {
-      return (
-        inSet(state.teams, row.team) &&
-        inSelectedAssignee(row.assigneeCanonical || row.assignee) &&
-        inSet(state.skills, row.skill) &&
-        (!isStatusFilterActive() || inSelectedStatus(row.status))
-      );
-    });
-
-    return { worklogs, backlog, backlogWorklogs, bugTriage, capacity };
+    return { worklogs, backlog, backlogWorklogs, capacity };
   }
 
   function governedLoggedWorklogRows(options = {}) {
@@ -2667,10 +2655,6 @@
       subtitle = "Backlog worked on";
       rows = backlogWorkedRows(detailData.backlogWorklogs || []);
       columns = detailColumns("backlog");
-    } else if (state.detail === "bugTriage") {
-      subtitle = "Jira operational bug queue";
-      rows = bugTriageRows(data.bugTriage || []);
-      columns = detailColumns("bugTriage");
     } else {
       subtitle = "Delivery Progress";
       rows = deliveryProgressRows(filteredData({ ignoreTeam: true }).backlogWorklogs || []);
@@ -2699,30 +2683,6 @@
     if (deliveryLegend) deliveryLegend.hidden = state.detail !== "deliveryProgress";
   }
 
-  function renderBugTriageSnapshotSummary() {
-    const container = $("bugTriageSnapshotSummary");
-    if (!container) return;
-    const comparison = raw.meta.bugTriageSnapshotComparison || {};
-    container.hidden = false;
-
-    const currentQueue = Number(comparison.currentQueue) || 0;
-    if (!comparison.hasPreviousSnapshot) {
-      container.innerHTML = `
-        <div class="bug-triage-snapshot-current">Full Bug Triage queue: <strong>${formatNumber(currentQueue)}</strong></div>
-        <div class="bug-triage-snapshot-context">No previous complete Bug Triage snapshot available.</div>
-      `;
-      return;
-    }
-
-    container.innerHTML = `
-      <div class="bug-triage-snapshot-current">Full Bug Triage queue: <strong>${formatNumber(currentQueue)}</strong></div>
-      <div class="bug-triage-snapshot-context">Compared with the previous complete snapshot</div>
-      <div class="bug-triage-snapshot-changes">
-        <span class="bug-triage-snapshot-added"><span aria-hidden="true">↑</span> ${formatNumber(comparison.addedToQueue)} Added to queue</span>
-        <span class="bug-triage-snapshot-removed"><span aria-hidden="true">↓</span> ${formatNumber(comparison.removedFromQueue)} Removed from queue</span>
-      </div>
-    `;
-  }
   function detailColumns(mode) {
     if (mode === "accounts") {
       return [
@@ -2762,17 +2722,6 @@
         { key: "lastWorklogDate", label: "Last Worklog Date" },
         { key: "daysToDue", label: "Days to Due" },
         { key: "deliveryHealth", label: "Delivery Health", health: true },
-      ];
-    }
-    if (mode === "bugTriage") {
-      return [
-        { key: "key", label: "Key", emphasize: true },
-        { key: "summary", label: "Summary" },
-        { key: "bugSeverity", label: "Bug Severity" },
-        { key: "status", label: "Status" },
-        { key: "updated", label: "Updated" },
-        { key: "assignee", label: "Assignee" },
-        { key: "team", label: "Team" },
       ];
     }
     return [
@@ -2858,19 +2807,6 @@
     const parentKey = detailPlanningValue(row.parentKey, row.key);
     if (parentKey === "-" || parentKey === row.key) return "-";
     return parentKey;
-  }
-
-  function bugTriageRows(queueRows) {
-    return (queueRows || [])
-      .map((row) => ({
-        key: detailDisplayValue(row.key),
-        summary: detailDisplayValue(row.summary),
-        bugSeverity: detailDisplayValue(row.bugSeverity),
-        status: detailDisplayValue(row.status),
-        updated: detailDisplayValue(row.updated),
-        assignee: detailDisplayValue(row.assignee),
-        team: detailDisplayValue(row.team),
-      }));
   }
 
   function backlogWorkedRows(worklogs) {
@@ -3112,25 +3048,11 @@
     return [...rows].sort((a, b) => {
       const deliveryCompare = mode === "deliveryProgress" ? compareDeliveryProgressRows(a, b, sort.key, direction) : null;
       if (deliveryCompare !== null) return deliveryCompare;
-      const bugTriageCompare = mode === "bugTriage" ? compareBugTriageRows(a, b, sort.key, direction) : null;
-      if (bugTriageCompare !== null) return bugTriageCompare;
       if (column.numeric) {
         return ((Number(a[sort.key]) || 0) - (Number(b[sort.key]) || 0)) * direction;
       }
       return String(a[sort.key] || "").localeCompare(String(b[sort.key] || "")) * direction;
     });
-  }
-
-  function bugTriageOrder(value, order) {
-    const normalized = detailDisplayValue(value);
-    const index = order.indexOf(normalized);
-    return index === -1 ? order.length : index;
-  }
-
-  function compareBugTriageRows(a, b, key, direction) {
-    if (key !== "bugSeverity") return null;
-    const severityCompare = (bugTriageOrder(a.bugSeverity, BUG_SEVERITY_ORDER) - bugTriageOrder(b.bugSeverity, BUG_SEVERITY_ORDER)) * direction;
-    return severityCompare || a.key.localeCompare(b.key);
   }
 
   function compareDeliveryProgressRows(a, b, key, direction) {
@@ -3391,7 +3313,7 @@
   }
 
   function renderFooter() {
-    const sources = (raw.meta.sources || []).filter((source) => source.name !== "Jira Bug Triage queue");
+    const sources = raw.meta.sources || [];
     $("sourceSummary").textContent = sources.map((source) => `${source.name}: ${formatNumber(source.rows)} rows`).join(" | ");
     const manifest = raw.meta.buildManifest || {};
     const generated = raw.meta.generatedOn || "unknown date";
@@ -3400,7 +3322,7 @@
   }
 
   function renderDataQuality(manifest) {
-    const sources = (raw.meta.sources || []).filter((source) => source.name !== "Jira Bug Triage queue");
+    const sources = raw.meta.sources || [];
     const zeroSources = sources.filter((source) => Number(source.rows) === 0);
     const excluded = raw.meta.excludedTempoWorkItems || [];
     const summary = $("dataQualitySummary");

@@ -114,8 +114,6 @@ This organizational/workforce Team governance applies unless a table explicitly 
 
 Work items without a mapped assignee/team in the Assignees CSV are outside the managed Delivery Management scope for this MVP.
 
-Bug Triage is an explicit table-level exception for operational queue visibility: an exported Bug Triage Jira issue remains visible when it is unassigned or its Assignee has no Assignees CSV Team mapping. The table renders Team as `-` and reports the mapping exception; it does not remove the queue row.
-
 ---
 
 ## Master Date CSV
@@ -183,7 +181,7 @@ These exclusions apply to:
 
 The exclusion is applied after trimming surrounding whitespace and converting candidate keys to uppercase, using exact-key matching only. It is enforced before aggregation, classification, enrichment, joins, reconciliation, filter population, export, or rendering. These items must never appear in governed analytical outputs. Source CSVs may retain the original records for traceability.
 
-Annual Capacity and Weekly Capacity source values are not changed by this exclusion. Bug Triage remains independent because it is governed exclusively by its dedicated Jira export.
+Annual Capacity and Weekly Capacity source values are not changed by this exclusion.
 
 ---
 
@@ -286,22 +284,6 @@ This answers:
 Jira metadata enriches the record but does not determine inclusion.
 
 Product Module is Jira-owned issue metadata that enriches Backlog Worked On rows only. It does not determine row inclusion and is never inferred or inherited from a parent or any other field.
-
-Bug Triage is a dedicated inventory-based Jira operational queue supporting Product and Engineering bug triage activities. Its purpose is visibility into the current bug queue. It is not an engineering-productivity, bug-throughput, defect-trend, quality-KPI, forecasting, or delivery-performance measure.
-
-Only the latest dedicated `Bug Triage_*` Jira export in `data/raw/` governs Bug Triage queue membership, Bug metadata, and snapshot comparison. Row inclusion, Key, Summary, Bug Severity, Status, Updated, and Assignee come from that export. The general Jira PI backlog export, Tempo activity, worklogs, logged hours, and Weekly Capacity do not participate. Every distinct valid exported key remains visible by default, including unassigned issues. Updated is displayed exactly as stored in the Jira export and is never derived from Tempo. Missing values in selected source-backed columns render as `-`; fields absent from the dedicated export are not added as placeholder columns.
-
-Team is always resolved from the exported Jira Assignee through the governed Assignees CSV. Jira Team and Tempo Team must not be used or inferred. If a Jira Assignee is absent from the Assignees CSV, the Jira Assignee is preserved, Team renders as `-`, and the queue row remains visible.
-
-Bug Severity is Jira-owned read-only metadata. The dashboard displays its current distribution for operational triage only. It is never inferred or inherited from a parent and introduces no KPI, delivery metric, quality score, forecasting metric, reconciliation role, grouping, aggregation, or global filter.
-
-The Bug Triage validation process produces `outputs/bi_dashboard/bug_triage_unmapped_assignees.csv` with Jira Key, Summary, Jira Assignee, and the reason `Assignee not found in Assignees CSV` for each assigned queue row without a governed Team match. The report is governance evidence only and must not affect rendering, filtering, inclusion, calculations, KPIs, or reconciliation.
-
-Bug Triage is an operational snapshot. The dashboard compares the current export with the immediately previous export using distinct Jira Issue Keys only. It reports Current Queue, Added to Queue, and Removed from Queue as changes between complete snapshots. Current Queue is the number of distinct nonblank Jira Issue Keys in the current export; Added to Queue is the current-key set minus the previous-key set; Removed from Queue is the previous-key set minus the current-key set. No other fields participate.
-
-These snapshot values must not be interpreted as Bugs created, fixed, closed, resolved, or as Engineering throughput. The queue is intentionally ephemeral: the latest export replaces the previous operational queue, and historical bug lifecycle analysis is outside MVP scope. When no previous export exists, the dashboard states `No previous complete Bug Triage snapshot available.` and does not infer Added or Removed values. The summary does not participate in KPIs, calculations, filters, reconciliation, table inclusion, CSV export, or forecasting.
-
-Bug ageing, MTTR, Reopened Bugs, Bug trends, historical Bug analytics, and AI Bug Intelligence are future roadmap capabilities and are outside the MVP scope.
 
 Backlog Worked On uses an activity-based Team semantic.
 

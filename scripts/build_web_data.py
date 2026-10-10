@@ -34,7 +34,6 @@ CAPACITY_PATTERN = "Weekly Capacity_*.csv"
 ASSIGNEES_PATTERN = "*Assignees*Capacit*.csv"
 MASTER_DATE_PATTERN = "*Master*Date*.csv"
 RELEASES_PATTERN = "Release Cycle*.csv"
-BUG_TRIAGE_PATTERN = "Bug Triage_*"
 PROMOTERS_PATH = RAW_DIR / "Promoters.csv"
 TEMPO_OPERATIONAL_MAPPING = MAPPINGS_DIR / "tempo_operational_mapping.csv"
 
@@ -76,72 +75,6 @@ def latest_csv(pattern: str) -> Path:
     if not matches:
         raise FileNotFoundError(f"No CSV files match pattern in {RAW_DIR}: {pattern}")
     return max(matches, key=lambda path: (parse_export_date(path), path.stat().st_mtime))
-
-
-def latest_two_csvs(pattern: str) -> tuple[Path, Path | None]:
-    matches = sorted(
-        (path for path in RAW_DIR.glob(pattern) if path.is_file()),
-        key=lambda path: (parse_export_date(path), path.stat().st_mtime),
-        reverse=True,
-    )
-    if not matches:
-        raise FileNotFoundError(f"No CSV files match pattern in {RAW_DIR}: {pattern}")
-    return matches[0], matches[1] if len(matches) > 1 else None
-
-
-def jira_key_set(frame: pd.DataFrame) -> tuple[set[str], int]:
-    keys = text(frame, "Key").str.strip().str.upper()
-    keys = keys[keys.ne("")]
-    return set(keys), int(len(keys) - keys.nunique())
-
-
-def compare_jira_key_sets(current_keys: set[str], previous_keys: set[str]) -> dict[str, int | bool]:
-    added_keys = current_keys - previous_keys
-    removed_keys = previous_keys - current_keys
-    current_queue = len(current_keys)
-    previous_queue = len(previous_keys)
-    added_to_queue = len(added_keys)
-    removed_from_queue = len(removed_keys)
-    return {
-        "currentQueue": current_queue,
-        "previousQueue": previous_queue,
-        "addedToQueue": added_to_queue,
-        "removedFromQueue": removed_from_queue,
-        "reconciles": current_queue == previous_queue + added_to_queue - removed_from_queue,
-    }
-
-
-def bug_triage_snapshot_comparison(
-    current_path: Path,
-    current_frame: pd.DataFrame,
-    previous_path: Path | None,
-) -> dict[str, Any]:
-    current_keys, current_duplicate_keys = jira_key_set(current_frame)
-    comparison: dict[str, Any] = {
-        "currentFile": current_path.name,
-        "previousFile": previous_path.name if previous_path else "",
-        "hasPreviousSnapshot": previous_path is not None,
-        "currentQueue": len(current_keys),
-        "previousQueue": None,
-        "addedToQueue": None,
-        "removedFromQueue": None,
-        "currentDuplicateKeys": current_duplicate_keys,
-        "previousDuplicateKeys": None,
-        "reconciles": None,
-    }
-    if previous_path is None:
-        return comparison
-
-    previous_frame = pd.read_csv(previous_path, low_memory=False)
-    previous_keys, previous_duplicate_keys = jira_key_set(previous_frame)
-    set_comparison = compare_jira_key_sets(current_keys, previous_keys)
-    comparison.update(
-        {
-            **set_comparison,
-            "previousDuplicateKeys": previous_duplicate_keys,
-        }
-    )
-    return comparison
 
 
 def clean(value: Any) -> Any:
@@ -470,7 +403,6 @@ def main() -> None:
     assignees_path = latest_csv(ASSIGNEES_PATTERN)
     master_date_path = latest_csv(MASTER_DATE_PATTERN)
     releases_path = latest_csv(RELEASES_PATTERN)
-    bug_triage_path, previous_bug_triage_path = latest_two_csvs(BUG_TRIAGE_PATTERN)
     promoters_path = PROMOTERS_PATH
     tempo_operational_mapping_path = TEMPO_OPERATIONAL_MAPPING
 
@@ -885,55 +817,6 @@ def main() -> None:
             }
         )
     teams_out = pd.DataFrame(team_dimension_rows)
-    bug_triage = pd.read_csv(bug_triage_path, low_memory=False)
-    bug_triage_snapshot_summary = bug_triage_snapshot_comparison(
-        bug_triage_path,
-        bug_triage,
-        previous_bug_triage_path,
-    )
-    bug_triage["normalizedKey"] = text(bug_triage, "Key").str.strip().str.upper()
-    bug_triage_valid = bug_triage[
-        text(bug_triage, "Issue Type").str.strip().str.casefold().eq("bug")
-        & bug_triage["normalizedKey"].ne("")
-    ].copy()
-    bug_triage_source_rows = int(len(bug_triage_valid))
-    bug_triage_distinct_keys = int(bug_triage_valid["normalizedKey"].nunique())
-    bug_triage_duplicate_keys = int(bug_triage_source_rows - bug_triage_distinct_keys)
-    bug_triage_valid = bug_triage_valid.drop_duplicates(subset=["normalizedKey"], keep="first").copy()
-    bug_triage_assignee = text(bug_triage_valid, "Assignee").map(normalize_assignee_name)
-    bug_triage_assignee_canonical = canonicalize_assignee_series(bug_triage_assignee, assignee_name_lookup)
-    bug_triage_out = pd.DataFrame(
-        {
-            "key": text(bug_triage_valid, "Key").str.strip(),
-            "normalizedKey": bug_triage_valid["normalizedKey"],
-            "summary": text(bug_triage_valid, "Summary"),
-            "bugSeverity": text(bug_triage_valid, "Bug Severity"),
-            "status": text(bug_triage_valid, "Status"),
-            "updated": text(bug_triage_valid, "Updated"),
-            "assignee": bug_triage_assignee,
-            "assigneeCanonical": bug_triage_assignee_canonical,
-            "team": bug_triage_assignee_canonical.map(team_by_assignee).fillna(""),
-            "skill": bug_triage_assignee_canonical.map(skill_by_assignee).fillna(""),
-        }
-    )
-    bug_triage_assigned = bug_triage_out["assignee"].fillna("").astype(str).str.strip().ne("")
-    bug_triage_mapping_exceptions = bug_triage_out.loc[
-        bug_triage_assigned & bug_triage_out["team"].fillna("").astype(str).str.strip().eq(""),
-        ["key", "assignee"],
-    ].to_dict(orient="records")
-    bug_severity_counts = bug_triage_out["bugSeverity"].fillna("").astype(str).str.strip().replace("", "-")
-    bug_triage_summary = {
-        "sourceFile": bug_triage_path.name,
-        "sourceRows": int(len(bug_triage)),
-        "validBugRows": bug_triage_source_rows,
-        "distinctKeys": bug_triage_distinct_keys,
-        "duplicateKeys": bug_triage_duplicate_keys,
-        "availableColumns": list(bug_triage.columns.drop("normalizedKey")),
-        "severityDistribution": {value: int((bug_severity_counts == value).sum()) for value in sorted(bug_severity_counts.unique())},
-        "assignedKeys": int(bug_triage_assigned.sum()),
-        "unassignedKeys": int((~bug_triage_assigned).sum()),
-        "assigneeTeamMappingExceptions": bug_triage_mapping_exceptions,
-    }
     program_counts = backlog_out["program"].fillna("").astype(str).str.strip()
     programs_out = pd.DataFrame(
         [
@@ -1029,7 +912,6 @@ def main() -> None:
     source_manifest = [
         {"role": "Tempo worklogs", "file": worklogs_path.name, "path": str(worklogs_path.relative_to(ROOT)), "sha256": file_sha256(worklogs_path), "rows": int(len(worklogs_out))},
         {"role": "Jira PI backlog", "file": backlog_path.name, "path": str(backlog_path.relative_to(ROOT)), "sha256": file_sha256(backlog_path), "rows": int(len(backlog_out))},
-        {"role": "Jira Bug Triage queue", "file": bug_triage_path.name, "path": str(bug_triage_path.relative_to(ROOT)), "sha256": file_sha256(bug_triage_path), "rows": int(len(bug_triage_out))},
         {"role": "Business Area promoters", "file": promoters_path.name, "path": str(promoters_path.relative_to(ROOT)), "sha256": file_sha256(promoters_path), "rows": int(len(promoters))},
         {"role": "Weekly capacity", "file": capacity_path.name, "path": str(capacity_path.relative_to(ROOT)), "sha256": file_sha256(capacity_path), "rows": int(len(capacity_out))},
         {"role": "Assignees master", "file": assignees_path.name, "path": str(assignees_path.relative_to(ROOT)), "sha256": file_sha256(assignees_path), "rows": int(len(assignees_out))},
@@ -1069,14 +951,11 @@ def main() -> None:
                 "Backlog and Delivery Progress metadata inherits Account, Delivery, Target Release, and Fix Version from the Jira parent only when a child Tempo work item is absent from the Jira export and the parent exists; the child key is preserved.",
                 "Work Item Types dimension is sourced from Jira Issue Type and joined to Tempo worklogs by work item key; the chart metric is Tempo worklog row count.",
                 "Status dimension is sourced from Jira Status and joined to Tempo worklogs by work item key; selecting a status filters both Jira demand rows and matched Tempo worklogs.",
-                "Bug Triage is an inventory-based Jira queue from the dedicated Bug Triage export. Jira Updated is displayed exactly as exported; Tempo does not participate in this table.",
             ],
             "programSummary": program_summary,
             "statusSummary": status_summary,
             "skillSummary": skill_summary,
             "issueTypeSummary": issue_type_summary,
-            "bugTriageSummary": bug_triage_summary,
-            "bugTriageSnapshotComparison": bug_triage_snapshot_summary,
             "excludedIssueKeys": sorted(GLOBAL_EXCLUDED_ISSUE_KEYS),
             "excludedTempoWorkItems": excluded_tempo_summary,
             "sourceKpis": {
@@ -1098,7 +977,6 @@ def main() -> None:
         "backlog": as_records(backlog_out),
         "demand": as_records(demand_out),
         "promoters": as_records(promoters_out),
-        "bugTriage": as_records(bug_triage_out),
         "capacity": as_records(capacity_out),
         "assignees": as_records(assignees_out),
         "masterDates": as_records(master_dates_out),

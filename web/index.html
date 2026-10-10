@@ -332,7 +332,7 @@
               <p class="chart-business-hint">Business hint: Shows where governed Tempo hours landed by business program, including mapped and unmapped effort.</p>
             </article>
 
-            <article class="panel executive-chart-panel bug-triage-module-panel">
+            <article class="panel executive-chart-panel bug-severity-module-panel">
               <div class="panel-header">
                 <div>
                   <h3>Bug Severity Distribution</h3>
@@ -469,7 +469,7 @@
             <div id="dataQualitySources" class="data-quality-sources"></div>
           </article>
           <article class="panel lineage-panel">
-            <div class="panel-header"><div><h3>Dashboard rules and field lineage</h3><p>Rules, calculations, and source fields used by every tab. Full field-level specification is maintained in the project user guide.</p></div></div>
+            <div class="panel-header"><div><h3>Dashboard rules and field lineage</h3><p>Source availability, relationships, filters, and measures used by every tab. The detailed field contract is maintained in Chart and Visual Specification.</p></div></div>
             <details open>
               <summary>Shared rules</summary>
               <div class="lineage-content"><table><thead><tr><th>Rule</th><th>Applied logic and exact sources</th></tr></thead><tbody>
@@ -480,14 +480,15 @@
             </details>
             <details>
               <summary>Data relationships and joins</summary>
-              <div class="lineage-content"><table><thead><tr><th>Relationship</th><th>Join rule</th><th>Result used by the dashboard</th></tr></thead><tbody>
-                <tr><td>Tempo worklogs → Jira work items</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`.</td><td>Enriches Tempo rows with Jira `Status`, `Priority`, `Custom field (Account)`, `Custom field (Product Module)`, `Custom field (Program)`, `Custom field (Target Release)`, and other Jira metadata.</td></tr>
-                <tr><td>Tempo, Jira, and Weekly Capacity → Assignees master</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`, `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`, and `Weekly Capacity_20261005.csv.Assignee` are normalized and matched to `20261009_Assignees_Capacity.csv.Assignee`.</td><td>Returns governed `20261009_Assignees_Capacity.csv.Team`, `20261009_Assignees_Capacity.csv.Skill`, and availability for filtering and aggregation.</td></tr>
+              <div class="lineage-content"><table><thead><tr><th>Relationship</th><th>Join rule</th><th>Coverage, fallback, and dashboard use</th></tr></thead><tbody>
+                <tr><td>Tempo worklogs → Jira work items</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`.</td><td>One direct key match enriches Tempo rows with Jira `Status`, `Priority`, `Custom field (Account)`, `Custom field (Product Module)`, `Custom field (Program)`, and `Custom field (Target Release)`. No Jira match remains Tempo-only.</td></tr>
+                <tr><td>Tempo, Jira, and Weekly Capacity → Assignees master</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`, `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`, and `Weekly Capacity_20261005.csv.Assignee` are normalized and matched to `20261009_Assignees_Capacity.csv.Assignee`.</td><td>Returns governed `20261009_Assignees_Capacity.csv.Team` and `.Skill` for filters and aggregation. No master match is treated as unmapped and is visible in data-quality exceptions where applicable.</td></tr>
                 <tr><td>General KPI cards</td><td>`20261009_Assignees_Capacity.csv.Actual Annual Hours` (column H) supplies Annual Workforce Legal Hours only for Team = Authoring, Delivery Express, Integration, Nexus, Portal, or Scoring. `Weekly Capacity_20261005.csv.Planned Hours` (column J) supplies Annual Workforce Capacity. `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` supplies Actual Hours. `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Effort CAP (hrs))` supplies Demand Capacity.</td><td>All six cards remain unchanged when tabs or filters change. Remaining Period Capacity = Annual Workforce Capacity − Actual Hours. Annual Capacity Utilization = Actual Hours ÷ Annual Workforce Capacity.</td></tr>
                 <tr><td>Master Date → Weekly Capacity</td><td>`Weekly Capacity_20261005.csv.Week Number` = `Google 2026 to 2028_Master_Date.csv.Week Number`; selected dates supply the eligible calendar weeks.</td><td>Feeds date-scoped capacity in Team Utilization and Demand Capacity versus Known Demand. The Portfolio annual KPI intentionally sums the full-year Weekly Capacity source.</td></tr>
                 <tr><td>Tempo work date → Release Cycle</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` falls between `Release Cycle.csv.Start Date` and `Release Cycle.csv.End Date`.</td><td>Returns `Release Cycle.csv.Release Cycle` for the Portfolio Release Cycle filter and Demand actual-effort planning period.</td></tr>
-                <tr><td>Jira Promoter → Business Area</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Promoter)` = `Promoters.csv.Promoter`.</td><td>Returns `Promoters.csv.Business Area`; blank or unmatched values become `Other/Blank`.</td></tr>
-                <tr><td>Tempo worklogs → Epic Workflow</td><td>No production relationship is applied. A worklog can join to its direct Jira issue, but it is not yet reconciled through a complete issue-parent hierarchy to one Epic.</td><td>Epic Workflow therefore counts and details Epics from Jira only. Tempo Logged Hours and Variance are shown as not attributed until the bridge is implemented.</td></tr>
+                <tr><td>Jira Promoter or Reporter → Business Area</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Promoter)` <strong>OR</strong> `.Reporter` = `Promoters.csv.Promoter`.</td><td>Returns `Promoters.csv.Business Area`. The selected Promoter filter accepts either Jira field; blank or unmatched values become `Other/Blank`.</td></tr>
+                <tr><td>Tempo Client → Jira demand</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; Client originates in `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Client`.</td><td>Provides one common Client picker for Portfolio and Demand Management. No linked Tempo Client becomes `Other/Blank` for Jira demand.</td></tr>
+                <tr><td>Jira Epic → Tempo hours</td><td>Only a direct `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` = `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` match is used.</td><td>Epic Workflow has no parent/child descendant roll-up. Direct Epic hours are shown only where that direct key match exists; otherwise the value is not attributed.</td></tr>
               </tbody></table></div>
             </details>
             <details>
