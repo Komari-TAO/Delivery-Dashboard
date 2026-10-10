@@ -503,6 +503,11 @@ def main() -> None:
     availability_by_assignee = dict(zip(text(assignees, "Assignee"), text(assignees, "Availability")))
 
     promoters = pd.read_csv(promoters_path, low_memory=False)
+    promoters_out = pd.DataFrame({
+        "promoter": text(promoters, "Promoter").map(normalize_assignee_name),
+        "businessArea": text(promoters, "Business Area").str.strip(),
+    })
+    promoters_out = promoters_out[promoters_out["promoter"].str.strip().ne("")].drop_duplicates().sort_values(["businessArea", "promoter"])
     promoter_to_business_area = dict(
         zip(
             text(promoters, "Promoter").map(normalize_assignee_name).str.casefold(),
@@ -625,6 +630,10 @@ def main() -> None:
     backlog_business_area = backlog_promoter.str.casefold().map(promoter_to_business_area).fillna("")
     backlog_business_area = backlog_business_area.mask(backlog_promoter.str.strip().eq(""), "Other/Blank")
     backlog_business_area = backlog_business_area.mask(backlog_business_area.str.strip().eq(""), "Other/Blank")
+    backlog_reporter = text(backlog, "Reporter").map(normalize_assignee_name)
+    backlog_reporter_business_area = backlog_reporter.str.casefold().map(promoter_to_business_area).fillna("")
+    backlog_reporter_business_area = backlog_reporter_business_area.mask(backlog_reporter.str.strip().eq(""), "Other/Blank")
+    backlog_reporter_business_area = backlog_reporter_business_area.mask(backlog_reporter_business_area.str.strip().eq(""), "Other/Blank")
     tempo_client_by_key = (
         worklogs_out.loc[worklogs_out["delivery"].fillna("").astype(str).str.strip().ne("")]
         .drop_duplicates("key")
@@ -653,7 +662,8 @@ def main() -> None:
             "team": backlog_team,
             "skill": backlog_skill,
             "assignee": backlog_assignee.replace("", "(unassigned)"),
-            "reporter": text(backlog, "Reporter"),
+            "reporter": backlog_reporter,
+            "reporterBusinessArea": backlog_reporter_business_area,
             "release": backlog["release"],
             "labels": backlog["labels"],
             "technicalDebt": text(backlog, "Custom field (Is this technical debt ?)"),
@@ -724,7 +734,10 @@ def main() -> None:
     for worklog_frame in (worklogs_out, backlog_worklogs_out):
         worklog_frame["account"] = worklog_frame["key"].map(jira_by_key["account"].to_dict()).fillna("")
         worklog_frame["program"] = worklog_frame["key"].map(jira_by_key["program"].to_dict()).fillna("")
+        worklog_frame["promoter"] = worklog_frame["key"].map(jira_by_key["promoter"].to_dict()).fillna("")
+        worklog_frame["reporter"] = worklog_frame["key"].map(jira_by_key["reporter"].to_dict()).fillna("")
         worklog_frame["businessArea"] = worklog_frame["key"].map(jira_by_key["businessArea"].to_dict()).fillna("Other/Blank")
+        worklog_frame["reporterBusinessArea"] = worklog_frame["key"].map(jira_by_key["reporterBusinessArea"].to_dict()).fillna("Other/Blank")
         worklog_frame["targetRelease"] = worklog_frame["key"].map(jira_by_key["targetRelease"].to_dict()).fillna("")
         worklog_frame["itemType"] = worklog_frame["key"].map(jira_by_key["type"].to_dict()).fillna("")
         worklog_frame["productModule"] = worklog_frame["key"].map(jira_by_key["productModule"].to_dict()).fillna("")
@@ -1064,6 +1077,7 @@ def main() -> None:
         "tempoDescriptions": as_records(tempo_operational_mapping),
         "backlog": as_records(backlog_out),
         "demand": as_records(demand_out),
+        "promoters": as_records(promoters_out),
         "bugTriage": as_records(bug_triage_out),
         "capacity": as_records(capacity_out),
         "assignees": as_records(assignees_out),

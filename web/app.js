@@ -939,7 +939,7 @@
   function renderKpis(data) {
     const filteredPeople = new Set(data.worklogs.map((row) => row.person).filter(Boolean));
     const filteredTeams = new Set(data.worklogs.map((row) => row.team).filter(Boolean));
-    const annualCapacityRows = raw.assignees.filter((row) => {
+    const annualCapacityRows = raw.capacity.filter((row) => {
       const matchesCapacityFilters =
         inSet(state.teams, row.team) &&
         inSelectedAssignee(row.assignee) &&
@@ -948,14 +948,14 @@
       if (!hasWorklogOnlyFilters()) return true;
       return filteredPeople.has(row.assignee) || filteredTeams.has(row.team);
     });
-    const annualCapacity = sum(annualCapacityRows, "annualHours");
+    const annualCapacity = sum(annualCapacityRows, "planned");
     const actualHours = sum(data.worklogs, "logged");
     const remainingHours = annualCapacity - actualHours;
     const workItems = distinctCount(data.worklogs, "key");
     const utilization = annualCapacity ? actualHours / annualCapacity : 0;
 
     const kpis = [
-      { label: "Annual Workforce Capacity", value: formatNumber(annualCapacity, 1), note: "Total governed workforce capacity for the full year.", color: colors.teal },
+      { label: "Annual Workforce Capacity", value: formatNumber(annualCapacity, 1), note: "Sum of Weekly Capacity Planned Hours for the full year.", color: colors.teal },
       { label: "Actual Hours", value: formatNumber(actualHours, 1), note: `${formatNumber(workItems)} Tempo work items`, color: colors.blue },
       { label: "Annual Capacity Remaining", value: formatNumber(remainingHours, 1), note: "Annual workforce capacity minus governed logged hours in the selected Date Range.", color: remainingHours < 0 ? colors.red : colors.green },
       { label: "Annual Capacity Utilization", value: formatPercent(utilization), note: "Governed logged hours in the selected Date Range divided by annual workforce capacity.", color: utilization > 1 ? colors.amber : colors.violet },
@@ -3358,15 +3358,15 @@
   }
 
   function renderDataQuality(manifest) {
-    const sources = raw.meta.sources || [];
-    const zeroSources = sources.filter((source) => Number(source.rows) === 0 && source.name !== "Jira Bug Triage queue");
+    const sources = (raw.meta.sources || []).filter((source) => source.name !== "Jira Bug Triage queue");
+    const zeroSources = sources.filter((source) => Number(source.rows) === 0);
     const excluded = raw.meta.excludedTempoWorkItems || [];
     const summary = $("dataQualitySummary");
     const sourceList = $("dataQualitySources");
     if (!summary || !sourceList) return;
     const warningCount = zeroSources.length;
     summary.innerHTML = `<div class="quality-status ${warningCount ? "warning" : "ok"}">${warningCount ? `${warningCount} source warning${warningCount === 1 ? "" : "s"}` : "No empty source datasets detected"}</div><div class="quality-facts"><span>Last synchronized: ${escapeHtml(raw.meta.generatedOn || "not available")}</span><span>Excluded governed items: ${formatNumber(excluded.length)}</span><span>Payload hash: ${escapeHtml(manifest.payloadSha256 || "not available")}</span></div>`;
-    sourceList.innerHTML = sources.map((source) => { const hasRows = Number(source.rows) > 0; const status = source.name === "Jira Bug Triage queue" && !hasRows ? "Not supplied / not used" : (hasRows ? "Synchronized" : "Empty"); return `<div class="quality-source ${hasRows ? "ok" : "warning"}"><strong>${escapeHtml(source.name)}</strong><span>${escapeHtml(status)} · ${formatNumber(source.rows)} rows · ${escapeHtml(source.file)}</span></div>`; }).join("");
+    sourceList.innerHTML = sources.map((source) => { const hasRows = Number(source.rows) > 0; const status = hasRows ? "Synchronized" : "Empty"; return `<div class="quality-source ${hasRows ? "ok" : "warning"}"><strong>${escapeHtml(source.name)}</strong><span>${escapeHtml(status)} · ${formatNumber(source.rows)} rows · ${escapeHtml(source.file)}</span></div>`; }).join("");
   }
 
   function setWorkspaceTab(tabId) {
