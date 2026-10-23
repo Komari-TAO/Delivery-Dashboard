@@ -1,0 +1,282 @@
+[
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\data\\.dashboard_sync_state.json",
+    "sha256": "5936948a4321a6d24fa38f00c8d68b3d24fd1691d4644d12e9ffbeb46015f544"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\data\\mappings\\tempo_operational_mapping.csv",
+    "sha256": "c0ae3fbc2c9df3e026c3055a62797e9181c49d72a43b69290cf2fc45c2672e9e"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\data\\raw\\20261009_Assignees_Capacity.csv",
+    "sha256": "ac445b5839dbb0dffc567b07a93430916f2e16d1bed2cdaa8dcdde10f744237c"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\data\\raw\\All Jira Work Items marked PI Backlog (JIRA)_20261022.csv",
+    "sha256": "2c128cbea345176723c4b96ee8dc4983a4982e3b0abe5949202365cc43651582"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\data\\raw\\Google 2026 to 2028_Master_Date.csv",
+    "sha256": "5a5338279c05ee5e2a7ed0bf7800d3865f240f9343c1e9a0cb9b616d29bc4123"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\data\\raw\\Promoters.csv",
+    "sha256": "78003388ea130490934dd8e4c4d50e623cdba1b53c0c87ed68a545d0a8770fe1"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\data\\raw\\RAW_DATA_FULL_ANALYSIS_01_Jan_26_22_Oct_26.csv",
+    "sha256": "225389a17efd08dd2be9f10980b5cbba2e3e45b02137e97933b06abee07cc7dc"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\data\\raw\\Release Cycle.csv",
+    "sha256": "cc0e9cddd157728289166f83ab5380b2e0cd737869c9d519615357d2bd95dd52"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\data\\raw\\Weekly Capacity_20261016.csv",
+    "sha256": "f3b49ebdf812e3e99e40e35b2192d9b436697bb9331ecc89283687eecc5e28f7"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\audit\\CURRENT_ARCHITECTURE_AND_DEPENDENCY_GRAPH.md",
+    "sha256": "163a5c5d35a99f53d374307624947095a2b272b28b437e153e56df64ba6f3f10"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\audit\\POST_BASELINE_DRIFT_AND_GOVERNANCE_RISK_ANALYSIS.md",
+    "sha256": "3591e32dce658c80419043461df0fe28ddee12964cb7e6bbc2b0729e3eb12ef6"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\governance\\Calculation_Governance.md",
+    "sha256": "b4ae69e895419b8a093b8b16df6952e626728e1a07994c8ff04c8636b813c8a1"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\governance\\Data_Dictionary.md",
+    "sha256": "185f1d8c8a2b505413745758393da780be86b558ba8d4f044a7d8fc4e11df569"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\governance\\Forecasting_Governance.md",
+    "sha256": "675909d52742453a29b3a7dfd381b250f0c400265da02626a3187b632d6c52eb"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\governance\\Forecast_Resolution_Specification.md",
+    "sha256": "f230d300950faeadb5038bb4acab2ba73cb0f6cbadfad8c1df700323c13d5cae"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\governance\\KPI_Definitions.md",
+    "sha256": "3d96c68a9589352750edad8fb527a7dd9940b3b3b23cdf3d82776c236c1f35c1"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\governance\\MVP_Business_Rules.md",
+    "sha256": "c83fc785d53c930c72cbf9c944aa36d12be9652469977ec4f4b883f5c27b5a92"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\governance\\Release_Cycle_Governance.md",
+    "sha256": "aab23003b21aac1e6fde468a3e0792bcb29c61e81485feeb38f447c6ed86c786"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\governance\\Semantic_Visualization_Governance.md",
+    "sha256": "fd4f6b56198af9ad7be9f404ad8cd98cab7f12efb9c662a51081f6d9d10a2b20"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\user-guides\\Authoring_Team_Capacity_Report.md",
+    "sha256": "b227cb22f2dd22fdf5e1906be3b395ab3fc30df0e6a4e216cc50f5c2121344b3"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\user-guides\\Chart_and_Visual_Specification.md",
+    "sha256": "9e30207ec21979765acfd4cdbce3573601f666fa03ec57766776aa413a2d6515"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\docs\\user-guides\\User_Guide.md",
+    "sha256": "0888af732304f051dfe2ba7b60fd34bff80299f9063c2c336fc5f284b58f481c"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\analyze_weekly_capacity.py",
+    "sha256": "9cba6eb54f3597db1c2c58793f18c0b89e18968393d02d1b64034ba878c1aa5f"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\build_authoring_team_capacity_workbook.mjs",
+    "sha256": "0ac66a1e526986958f7f9ab8f05e38d84924ce3e13a4c34729d036035af93029"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\build_capacity_effort_workbook.mjs",
+    "sha256": "65ea4bfd176b5fe091af207fb22f048a0b37dfb51b5cf0a7fa9727c3acec2a4a"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\build_dashboard.mjs",
+    "sha256": "8bb7bb3988b3a9082ad162f867e8e0e3dffeec06c9c7bfe0748c530d7b594ccf"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\build_web_data.py",
+    "sha256": "9d13ab8bedbaed42a7e81e202cc0f31d830e46e31eafe5e23b17e2e0d42ec637"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\generate_authoring_team_capacity_report.py",
+    "sha256": "c9521be3fb0ff1ee36477e3e90ae0c2b29030827b984019a231d2563404a3799"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\generate_capacity_effort_report.py",
+    "sha256": "0b44c4cf4d3e4bd0bab56705e2d0d0ad04ec9b37a1c49c61c769d8ce62c988f4"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\governed_exclusions.py",
+    "sha256": "f101cbed05e4bf6f4f55077310cdd5893da44880f95b630a78169ee90362e617"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\sync_dashboard.ps1",
+    "sha256": "a622520e4ee0429b04bc8c2f6d98a5ab7684e5734795ce4061a491e72a3f435d"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\test_authoring_capacity_effort_report.py",
+    "sha256": "784ddb9b3e46740522fa94e0654727adc6df0d80343cb613d151f85c724356cb"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\test_global_tempo_exclusions.py",
+    "sha256": "c7426e077e903e897eaae2b8b5f09d321cc10838914943e772072d485dd8302f"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\validate_delivery_progress_team_ownership.cjs",
+    "sha256": "13fcf6f140d73ff319ed7781f3ab3fa605804cb7bf373ca3a6a8271479b81f74"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\verify_bi_app.cjs",
+    "sha256": "87772075e2cd021884ccdeda276e462d8df3bd8d5b35f114490b89728c0bf3ab"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\verify_bi_app_chrome_cdp.mjs",
+    "sha256": "316e217a7812ecb8e274dc98d356845ca4101a2e93be26016f262936f15a567d"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\legacy\\prepare_dashboard_data.py",
+    "sha256": "c92815704b23ae021173fa630dd4519352a8d2bc17c5bb63511a4d0501441d59"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\legacy\\profile_sources.py",
+    "sha256": "86d260a5a4f96d7dbdca905e3fb033856284289cfbdfd7f895dd49451af3fee4"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\scripts\\legacy\\README.md",
+    "sha256": "4b237a26bc48aeafcd6b463f552172437f0ed9c81cc85bebfe61fa40c47cf241"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\web\\app.js",
+    "sha256": "c221b1666acc6a1a7a5c97bb23372a17cacd36c99a257811201a6d920f22a171"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\web\\build-manifest.json",
+    "sha256": "51aaa1b099b4d31e8d8752f07ec8a324ecb2846046bd451b122a48e7e47c50a9"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\web\\dashboard-core.js",
+    "sha256": "d872f6f48e52d19891ade09245fcadabef0102feb61715c445fcc67b2a161ac4"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\web\\data.js",
+    "sha256": "b2fae80a82870dbae7c6a47ae1d3f077003f02f7156440dbf989115ed0cb7f8d"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\web\\demand.js",
+    "sha256": "e3e8fcb0a0282a749072055fbca4d6f199bd06f35d9b6b283c8bc7e0c853bcb1"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\web\\index.html",
+    "sha256": "41374d4af0d1c11d5b3c54d0e1a5103db985d455f73c272cd02d5ab0816e8857"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\web\\styles.css",
+    "sha256": "3549eca2f928222e4b75e263606c617d5cc91ba6816a6298fd4e5e1db83d068b"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\web\\verification-desktop.png",
+    "sha256": "fe7b21457bf00336a545f17bde2f0b75c472f5eac167ad331665798be72bc184"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\web\\verification-mobile.png",
+    "sha256": "12f87580bd45f765030f79b7a82794d8516667e7e8100c6469f98ad9156c20b8"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\web\\verification-utilization-chart.png",
+    "sha256": "75f45e906e720c99db34cac2481e64f0f8b7a5c5f473021b09aee74de7bd52bb"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\.gitignore",
+    "sha256": "644b3680aa4900feb392a6e6dbc833f43caf8c0a73cced0256b7af3972e9e0b2"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\.sharedctx.json",
+    "sha256": "be6c31e47b4ea068a1f625a85f34d6948b94539af13750a209a29d4cb86a1dbc"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.10_2026-07-23.txt",
+    "sha256": "50406c40e8c36397fd856e8d246efe12bc1c060ff98f396b10f735602e398fb1"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.11_2026-08-05.txt",
+    "sha256": "cbf35ee3c54bc6fb6ff7138c06c2605c03279cf8752ab35a7a09bdc0759a8f23"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.12_2026-08-05.txt",
+    "sha256": "6bf9548c744c9e19e2bddf7580065172a8b1a3cf96d8dcd1f1653ea5464811b9"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.13_2026-08-05.txt",
+    "sha256": "b6a67aacd245c27743b5b496f9b6f9e0cd534791eec306539efd1dfabf506e65"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.14_2026-08-05.txt",
+    "sha256": "c85ddddc57d3d4f3f99d3ad6dcb4715f77d1c8bec5b29a74500fa910ae51f8ff"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.15_2026-08-06.txt",
+    "sha256": "4a65e33683018323906f2d6007035dcbfd6dbcce47a633508400f5b2ddb960a7"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.16_2026-08-26.txt",
+    "sha256": "f4628f612717e80392c03e351c29d0d7086a0023a106dc97179ffd7cf643f97e"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.2_2026-06-16.txt.txt",
+    "sha256": "1abaa44c81474cf34a700ebfe101555e03bdc15666eae8d95e0a26f1f92f8f80"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.2_2026-06-30.txt.txt",
+    "sha256": "108b6ab1780d2a4b949369dae50f9f649f5b23a2351fb347b5396df4cd39d0dd"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.3_2026-07-01.txt",
+    "sha256": "1365b16c229fd491d07def03509c078b385eeb5c74206dfd59cd29c9dbab9cf7"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.4_2026-07-06.txt",
+    "sha256": "27695c5e61d6bfd3d2504a360a3d091d39756d788b26fb5af4853d9e5331f174"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.5_2026-07-07.txt",
+    "sha256": "708a1ad74440b0c7209d76562de03c664d27e55787041a36fefd05f8a3d81631"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.6_2026-07-08.txt",
+    "sha256": "d7bd661018965ff44d7b5e2bf9e28e1703de625cc0d08d187f5c52c8f9b5a4c1"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.7_2026-07-21.txt",
+    "sha256": "2a77226c9471695963af5609e394ea309e68ec07b02394629a185e420c812f2c"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.8_2026-07-21.txt",
+    "sha256": "ad576423752666393237e5a8e2dd33f03a48a217e107f74d2be2718e87f0c6bf"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\BASELINE_v0.9_2026-07-21.txt",
+    "sha256": "58b38501ce2e102acd9650182a59f71fb47ec004d6f6dc8384fc430c3c2377fa"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\http-server.err.log",
+    "sha256": "93b2cb32d05a067e3d9cc4c4e97d04d63996f66257aa829bb2800a19cb36e399"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\http-server.out.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "C:\\AI Projects\\Codex_MVP\\README.md",
+    "sha256": "64f8f51679f31298aeeb14525bef8be6f73b6f30ef3d6b336fc6d6a49a335826"
+  }
+]

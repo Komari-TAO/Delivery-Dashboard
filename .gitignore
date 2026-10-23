@@ -25,3 +25,6 @@ venv/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Installed JavaScript dependencies
+node_modules/

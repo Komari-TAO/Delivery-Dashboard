@@ -40,11 +40,12 @@ Use Portfolio to understand actual delivery work and current operational context
 Use Demand Management to inspect known delivery demand and its workflow position.
 
 - The filter rail follows the same multi-select pattern as Portfolio.
-- **Client** is a Tempo Client value carried to Jira demand through the direct work-item key relationship. No linked client appears as `Other/Blank`.
+- **Client** = Tempo Customer Account (`Account Customer`), validated through Tempo Account Key. Jira demand requires complete direct work-item evidence for exactly one customer; missing, incomplete, or ambiguous attribution appears as `N/A`. Jira Client, Tempo Account Name, and Jira Account never supply a fallback. Capacity and the fixed source KPI cards retain their existing filter scope.
 - **Business Area** is mapped from the Jira Promoter or Reporter to `Promoters.csv`; the relationship is an OR match and blanks/unmatched values appear as `Other/Blank`.
 - **Target / Planning Release** comes directly from the Jira Target Release field.
 - **Delivered Features (%)** is DONE feature count divided by the defined in-delivery feature count, multiplied by 100. **Delivered Features difference** is DONE feature count minus that in-delivery count. Both are full-source values and do not respond to Demand filters.
 - **Epic Workflow** uses Jira Epic, Epic Lab, and Epic Release rows. A workflow card can show direct Tempo hours only where the Epic key directly matches a Tempo work-item key; it does not roll up descendant tickets.
+- **Capacity versus Known Assigned Demand** compares the six Engineering teams. Choose **Release** and a governed release, or **Through year-end**. The displayed reporting date and horizon control this panel independently of the sidebar Date Range. Team, Assignee and Skill filter capacity and demand; customer and Jira metadata filters affect demand only. Demand uses eligible open child Remaining Estimates first, including confirmed zero; use the parent's own estimate only when no eligible child has a valid estimate. Completed subtasks do not suppress the parent. Expand **Parent/child estimation overlaps** for governance-review records with original parent and child estimates and Jira links; review records add no demand hours. Grey bars show capacity, blue shows assigned demand up to capacity, and red shows excess. A missing capacity value makes the affected gap and load unavailable (`-`); the known capacity subtotal is not a complete total. Expand exception and assigned-demand sections for Jira-key detail. Unallocated demand remains visible across Team selections and is never added to team gaps or load.
 
 ## Datasources and data quality
 

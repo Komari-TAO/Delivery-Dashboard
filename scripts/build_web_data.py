@@ -394,6 +394,75 @@ def apply_master_date_week(worklogs: pd.DataFrame, master_date: pd.DataFrame) ->
     worklogs["isWorkday"] = worklog_dates.map(is_workday_by_date).fillna(worklogs["date"].dt.dayofweek < 5)
 
 
+CLIENT_NA = "N/A"
+
+
+def resolve_tempo_customers(worklogs: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, dict[str, str]], dict[str, Any]]:
+    """Validate account/customer pairs, then resolve direct issue attribution without joins.
+
+    The export is the available evidence, not a complete Tempo account registry.
+    Never use Account Name, Jira Account, legacy Client, or parent metadata as a customer.
+    """
+    required = {"Work Item Key", "Account Key", "Account Name", "Account Customer"}
+    missing = required.difference(worklogs.columns)
+    if missing:
+        raise ValueError(f"Tempo Customer Account attribution requires columns: {', '.join(sorted(missing))}")
+    evidence = pd.DataFrame({
+        "key": normalize_issue_key_series(text(worklogs, "Work Item Key")),
+        "accountKey": text(worklogs, "Account Key").str.strip(),
+        "accountName": text(worklogs, "Account Name").str.strip(),
+        "customer": text(worklogs, "Account Customer").str.strip(),
+    })
+    mapping: dict[str, str] = {}
+    conflicts: set[str] = set()
+    accounts = []
+    for account_key, rows in evidence[evidence["accountKey"].ne("")].groupby("accountKey", sort=True):
+        customers = sorted(set(rows["customer"]) - {""})
+        status = "Verified" if len(customers) == 1 else "Conflicting account customers" if customers else "Missing account customer"
+        if len(customers) == 1:
+            mapping[account_key] = customers[0]
+        elif customers:
+            conflicts.add(account_key)
+        accounts.append({"accountKey": account_key, "accountNames": sorted(set(rows["accountName"]) - {""}),
+                         "customers": customers, "status": status})
+    resolved = pd.DataFrame(index=worklogs.index)
+    resolved["tempoCustomerAccount"] = evidence["accountKey"].map(mapping).fillna(CLIENT_NA)
+    resolved["clientAttributionStatus"] = evidence["accountKey"].map(
+        lambda key: "Verified" if key in mapping else "Conflicting account customers" if key in conflicts
+        else "Missing account customer" if key else "Missing Tempo account key"
+    )
+    # A missing row customer may use a unique validated Account Key mapping.
+    # Conflicting keys are quarantined even when a particular row has a customer.
+    issues: dict[str, dict[str, str]] = {}
+    issue_exceptions = []
+    for key, rows in evidence[evidence["key"].ne("")].groupby("key", sort=True):
+        attribution = resolved.loc[rows.index]
+        customers = sorted(set(attribution.loc[attribution["clientAttributionStatus"].eq("Verified"), "tempoCustomerAccount"]))
+        complete = attribution["clientAttributionStatus"].eq("Verified").all()
+        status = "Verified" if complete and len(customers) == 1 else "Multiple customers" if len(customers) > 1 else "Incomplete Tempo customer mapping"
+        issues[key] = {"tempoCustomerAccount": customers[0] if status == "Verified" else CLIENT_NA,
+                       "clientAttributionStatus": status}
+        if status != "Verified":
+            issue_exceptions.append({"key": key, "status": status, "customers": customers,
+                                     "accountKeys": sorted(set(rows["accountKey"]) - {""})})
+    audit = {
+        "sourceField": "Account Customer", "accountIdentityField": "Account Key",
+        "join": "normalized Tempo Work Item Key = normalized Jira Issue key (direct only)",
+        "rule": "Worklog: unique nonblank customer per Account Key; Jira item: all direct worklogs verified and exactly one customer; otherwise N/A. No parent or Jira Client fallback.",
+        "accountMappings": accounts, "issueExceptions": issue_exceptions,
+        "worklogRows": int(len(resolved)),
+        "unattributedWorklogRows": int(resolved["clientAttributionStatus"].ne("Verified").sum()),
+    }
+    return resolved, issues, audit
+
+
+def jira_customer_attribution(keys: pd.Series, issues: dict[str, dict[str, str]]) -> pd.DataFrame:
+    return pd.DataFrame([
+        issues.get(key, {"tempoCustomerAccount": CLIENT_NA, "clientAttributionStatus": "No direct Tempo worklogs"})
+        for key in normalize_issue_key_series(keys)
+    ], index=keys.index)
+
+
 def main() -> None:
     WEB_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -472,6 +541,7 @@ def main() -> None:
     worklog_date_min = worklogs["date"].min().strftime("%Y-%m-%d")
     worklog_date_max = worklogs["date"].max().strftime("%Y-%m-%d")
     apply_master_date_week(worklogs, master_date)
+    customer_rows, customer_by_issue, customer_audit = resolve_tempo_customers(worklogs)
     worklogs["month"] = worklogs["date"].dt.to_period("M").astype(str)
     worklogs["releaseCycle"] = worklogs["date"].apply(lambda d: release_for_date(d, releases))
     worklog_person = canonicalize_assignee_series(text(worklogs, "Full name"), assignee_name_lookup)
@@ -490,8 +560,11 @@ def main() -> None:
             "assigneeId": text(worklogs, "Assignee ID"),
             "account": "",
             "tempoAccount": text(worklogs, "Account Name"),
+            "tempoAccountKey": text(worklogs, "Account Key").str.strip(),
             "category": text(worklogs, "Account Category"),
-            "delivery": text(worklogs, "Client"),
+            "delivery": "",
+            "tempoCustomerAccount": customer_rows["tempoCustomerAccount"],
+            "clientAttributionStatus": customer_rows["clientAttributionStatus"],
             "program": "",
             "itemType": "",
             "tempoItemType": text(worklogs, "Work Item Type"),
@@ -568,12 +641,7 @@ def main() -> None:
     backlog_reporter_business_area = backlog_reporter.str.casefold().map(promoter_to_business_area).fillna("")
     backlog_reporter_business_area = backlog_reporter_business_area.mask(backlog_reporter.str.strip().eq(""), "Other/Blank")
     backlog_reporter_business_area = backlog_reporter_business_area.mask(backlog_reporter_business_area.str.strip().eq(""), "Other/Blank")
-    tempo_client_by_key = (
-        worklogs_out.loc[worklogs_out["delivery"].fillna("").astype(str).str.strip().ne("")]
-        .drop_duplicates("key")
-        .set_index("key")["delivery"]
-        .to_dict()
-    )
+    jira_customers = jira_customer_attribution(text(backlog, "Issue key"), customer_by_issue)
     backlog_out = pd.DataFrame(
         {
             "key": text(backlog, "Issue key"),
@@ -602,7 +670,8 @@ def main() -> None:
             "labels": backlog["labels"],
             "technicalDebt": text(backlog, "Custom field (Is this technical debt ?)"),
             "delivery": text(backlog, "Custom field (Delivery)"),
-            "tempoClient": text(backlog, "Issue key").map(tempo_client_by_key).fillna(""),
+            "tempoCustomerAccount": jira_customers["tempoCustomerAccount"],
+            "clientAttributionStatus": jira_customers["clientAttributionStatus"],
             "targetRelease": text(backlog, "Custom field (Target Release)"),
             "program": backlog_program,
             "promoter": backlog_promoter,
@@ -789,6 +858,22 @@ def main() -> None:
     )
     capacity_out = capacity_out[capacity_out["team"].str.strip().ne("")].copy()
 
+    # This panel must retain source missingness and contributing-team mappings.
+    # The established payloads below keep their existing calculation semantics.
+    coverage_capacity = capacity_out.copy()
+    coverage_capacity["planned"] = pd.to_numeric(
+        text(capacity, "Planned Hours").str.replace(",", "", regex=False).str.strip(), errors="coerce"
+    ).reindex(coverage_capacity.index)
+    coverage_demand = demand_out.copy()
+    coverage_demand["remainingEstimateHours"] = pd.to_numeric(
+        text(backlog, "Remaining Estimate").str.replace(",", "", regex=False).str.strip(), errors="coerce"
+    ) / 3600
+    coverage_people = pd.DataFrame({
+        "assignee": text(assignees, "Assignee"),
+        "team": text(assignees, "Team"),
+        "skill": text(assignees, "Skill"),
+    })
+
     assignees_out = pd.DataFrame(
         {
             "team": text(assignees, "Team"),
@@ -947,11 +1032,18 @@ def main() -> None:
                 "Team dimension is sourced from Assignees master and constrained to teams with weekly capacity records.",
                 "Skill dimension is sourced from Assignees master and filters worklogs, Jira demand, and capacity through assignee mapping.",
                 "Account dimension is sourced from Jira Custom field (Account) and joined to Tempo worklogs by work item key.",
+                "Client = Tempo Account Customer, validated through Tempo Account Key. Jira items require one complete, unambiguous direct customer mapping; missing or ambiguous attribution is N/A. Client is separate from Tempo Account, Jira Account, and Jira Delivery.",
                 "Program dimension is sourced from Jira Custom field (Program) and joined to Tempo worklogs by work item key.",
                 "Backlog and Delivery Progress metadata inherits Account, Delivery, Target Release, and Fix Version from the Jira parent only when a child Tempo work item is absent from the Jira export and the parent exists; the child key is preserved.",
                 "Work Item Types dimension is sourced from Jira Issue Type and joined to Tempo worklogs by work item key; the chart metric is Tempo worklog row count.",
                 "Status dimension is sourced from Jira Status and joined to Tempo worklogs by work item key; selecting a status filters both Jira demand rows and matched Tempo worklogs.",
             ],
+            "clientAttribution": {
+                **customer_audit,
+                "jiraItems": int(len(backlog_out)),
+                "jiraAttributionStatuses": {str(key): int(count) for key, count in backlog_out["clientAttributionStatus"].value_counts().items()},
+                "jiraExceptions": as_records(backlog_out.loc[backlog_out["clientAttributionStatus"].ne("Verified"), ["key", "tempoCustomerAccount", "clientAttributionStatus"]]),
+            },
             "programSummary": program_summary,
             "statusSummary": status_summary,
             "skillSummary": skill_summary,
@@ -976,6 +1068,15 @@ def main() -> None:
         "tempoDescriptions": as_records(tempo_operational_mapping),
         "backlog": as_records(backlog_out),
         "demand": as_records(demand_out),
+        "capacityCoverage": {
+            "reportingDate": current_date.strftime("%Y-%m-%d"),
+            "capacityYear": parse_export_date(capacity_path).year,
+            "capacityYearBasis": "Weekly Capacity has no year field; only the export snapshot year is supported. Other years are unavailable.",
+            "capacity": as_records(coverage_capacity),
+            "demand": as_records(coverage_demand),
+            "assignees": as_records(coverage_people),
+            "hierarchyRule": "Child-first, parent-fallback: eligible open descendant Remaining Estimates (including confirmed zero) replace the parent estimate; otherwise use the parent's own Remaining Estimate. Preserve source estimates and flag overlaps for non-additive governance review. Scoped to this panel, approved 2026-10-22.",
+        },
         "promoters": as_records(promoters_out),
         "capacity": as_records(capacity_out),
         "assignees": as_records(assignees_out),

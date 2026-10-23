@@ -1,6 +1,9 @@
 (function (global) {
   "use strict";
   global.DashboardCore = Object.freeze({
+    clientValue(row) {
+      return String(row.tempoCustomerAccount || "").trim() || "N/A";
+    },
     clonePayload(payload) {
       if (typeof structuredClone === "function") return structuredClone(payload);
       return JSON.parse(JSON.stringify(payload));

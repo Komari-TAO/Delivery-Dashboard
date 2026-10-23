@@ -26,9 +26,13 @@ Portfolio represents actual and historical delivery effort. Its filter rail, cha
 
 Demand Management represents actual effort, known future demand, capacity, delivery workflow position, and release context. It is demand visibility, not forecasting.
 
-Its filter rail uses searchable multi-select controls. The shared Client filter uses Tempo Client values; Business Area uses a Jira Promoter **or** Reporter match to the Promoters mapping. Unmatched values are explicitly represented as `Other/Blank`.
+Its filter rail uses searchable multi-select controls. Both Client pickers use only validated Tempo `Account Customer` values plus the explicit `N/A` attribution bucket. Client retains its position, styling, search, multi-select, Select All, Clear All, and reset behavior. Business Area uses a Jira Promoter **or** Reporter match to the Promoters mapping; its unmatched values remain `Other/Blank`.
+
+Client = Tempo Customer Account, never Jira Client, Tempo Account Name, or Jira Account. Both tabs and the Portfolio snapshot export use `tempoCustomerAccount` through the shared `DashboardCore.clientValue` helper. Worklogs retain their direct account/customer attribution; Jira counts and estimates use only complete, single-customer direct issue mappings. Missing or ambiguous items remain visible under `N/A` without parent inheritance or splitting estimates. See [Calculation Governance](Calculation_Governance.md#client-attribution-2026-10-22) for the deterministic rule. Fixed source KPIs, full-source Delivered Features KPIs, and workforce capacity retain their existing scope.
 
 Epic Workflow uses Jira Issue Type = Epic, Epic Lab, or Epic Release. A card and its inline detail represent Jira rows in the selected stage. Logged hours are direct Jira Issue key to Tempo Work Item Key matches only; descendant hierarchy attribution is not implied.
+
+Capacity versus Known Assigned Demand replaces the capacity pivot with a six-team comparison, aggregate KPI cards, an independent future-horizon selector, and separate unallocated/exception disclosure. Its scoped source and hierarchy rules are recorded in [Calculation Governance](Calculation_Governance.md#capacity-versus-known-assigned-demand--scoped-authorization-2026-10-22). Use a common bar scale, grey capacity, pastel-blue assigned demand capped at capacity, and muted-red excess demand. Sort known gaps ascending with alphabetical ties; unavailable gaps follow. Missing values render `-`, confirmed zeros render zero, and incomplete capacity never renders as a zero bar or a valid portfolio load. The exception indicator labels its broader Team scope. Existing demand panels retain their previous semantics.
 
 ### Datasources
 

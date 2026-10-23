@@ -32,7 +32,7 @@ This document does NOT define:
 ---
 # 2. Canonical Placeholder Governance
 
-Missing or unavailable values must render as:
+Missing or unavailable values must render as (except the explicit Client attribution bucket below):
 
 ```text id="3pcwt2"
 -
@@ -52,6 +52,8 @@ This applies across:
 * filters
 * drilldowns
 
+**Client exception:** unavailable, incomplete, or ambiguous Tempo customer attribution is the selectable semantic bucket `N/A`. This exception applies to Client filters, source records, and exports; it is not a general placeholder change.
+
 ---
 
 # 3. Canonical Field Definitions
@@ -61,7 +63,9 @@ This applies across:
 | Team                 | Assignees CSV                 | Canonical delivery team attribution |
 | Skill                | Assignees CSV                 | Canonical skill attribution         |
 | Assignee             | Assignees CSV / Tempo         | Canonical person mapping            |
-| Account              | Jira                          | Mandatory delivery/customer grouping for normal Jira work items; a present-but-blank value is an exception |
+| Client               | Tempo `Account Customer`      | Customer attribution validated through `Account Key`; never Jira Client. Canonical payload field: `tempoCustomerAccount`; unresolved = `N/A`. |
+| Tempo Account        | Tempo `Account Key` / `Account Name` | Account identity/display, distinct from its Customer Account. Payload: `tempoAccountKey` / `tempoAccount`. |
+| Account              | Jira                          | Jira Account, separate from Client and Tempo Account. Mandatory delivery grouping for normal Jira work items; a present-but-blank value is an exception |
 | Program              | Jira                          | Program grouping                    |
 | Delivery             | Jira Release Cycle            | Delivery release stream             |
 | Target Release       | Jira                          | Planned target release              |

@@ -2,7 +2,9 @@
   "use strict";
 
   const data = window.BI_DATA;
-  const { escapeHtml } = window.DashboardCore;
+  const { escapeHtml, clientValue } = window.DashboardCore;
+  const coverage = window.CapacityCoverage;
+  const coverageResolution = coverage.resolve(data);
   const $ = (id) => document.getElementById(id);
   const number = (value, digits = 0) => new Intl.NumberFormat("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(Number(value) || 0);
   const hours = (value) => `${number(value, 1)} h`;
@@ -17,7 +19,7 @@
     team: { label: "teams", values: () => (data.teams || []).map((row) => row.team) },
     assignee: { label: "assignees", values: () => (data.assignees || []).map((row) => row.assignee) },
     skill: { label: "skills", values: () => (data.skills || []).map((row) => row.skill) },
-    client: { label: "clients", values: () => [...(data.worklogs || []).map((row) => row.delivery), ...(data.demand || []).map((row) => row.tempoClient || "Other/Blank")] },
+    client: { label: "clients", values: () => [...(data.worklogs || []).map(clientValue), ...(data.demand || []).map(clientValue)] },
     businessArea: { label: "business areas", values: () => [...(data.promoters || []).map((row) => row.businessArea), "Other/Blank"] },
     promoter: { label: "promoters", values: () => [...(data.promoters || []).map((row) => row.promoter), "Other/Blank"] },
     account: { label: "accounts", values: () => (data.demand || []).map((row) => row.account || "Other/Blank") },
@@ -110,7 +112,9 @@
       $(`demand${suffix}PickerToggle`).addEventListener("click", () => togglePicker(name));
       $(`demand${suffix}Search`).addEventListener("input", () => renderPicker(name));
     });
-    document.querySelectorAll(".demand-filter-rail input:not([data-demand-picker]), #demandMatrixGroup, #demandCapacityRows, #demandCapacityColumns, #demandCapacityValue").forEach((input) => input.addEventListener("change", render));
+    const futureReleases = (data.releases || []).filter((release) => release.end >= data.capacityCoverage?.reportingDate).sort((a, b) => a.start.localeCompare(b.start));
+    $("coverageRelease").innerHTML = futureReleases.map((release) => `<option value="${escapeHtml(release.cycle)}">${escapeHtml(release.cycle)}</option>`).join("");
+    document.querySelectorAll(".demand-filter-rail input:not([data-demand-picker]), #demandMatrixGroup, #coverageHorizon, #coverageRelease").forEach((input) => input.addEventListener("change", render));
     document.querySelector(".demand-filter-rail").addEventListener("change", (event) => {
       const option = event.target.closest("input[data-demand-picker]");
       if (!option) return;
@@ -176,7 +180,7 @@
       && (!filters.teams.size || filters.teams.has(row.demandTeam))
       && (!filters.assignees.size || filters.assignees.has(row.assignee))
       && (!filters.skills.size || filters.skills.has(row.skill))
-      && (!filters.clients.size || filters.clients.has(row.tempoClient || "Other/Blank"))
+      && (!filters.clients.size || filters.clients.has(clientValue(row)))
       && businessAreaMatches(row, filters.businessAreas)
       && promoterMatches(row, filters.promoters)
       && (!filters.accounts.size || filters.accounts.has(row.account || "Other/Blank"))
@@ -186,7 +190,7 @@
       && (!filters.teams.size || filters.teams.has(row.team))
       && (!filters.assignees.size || filters.assignees.has(row.person))
       && (!filters.skills.size || filters.skills.has(row.skill))
-      && (!filters.clients.size || filters.clients.has(row.delivery || "Other/Blank"))
+      && (!filters.clients.size || filters.clients.has(clientValue(row)))
       && businessAreaMatches(row, filters.businessAreas)
       && promoterMatches(row, filters.promoters)
       && (!filters.accounts.size || filters.accounts.has(row.account || "Other/Blank"))
@@ -229,35 +233,56 @@
     const rowLabel = groupByPeriod ? "Planning period" : "Team";
     $("demandMatrix").innerHTML = `<thead><tr><th>${rowLabel}</th>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}<th>Total known demand</th></tr></thead><tbody>${rows.map((row) => { const total = headers.reduce((sum, column) => sum + (getValue(row, column) || 0), 0); return `<tr><td>${escapeHtml(row)}</td>${headers.map((column) => `<td>${hours(getValue(row, column) || 0)}</td>`).join("")}<td><strong>${hours(total)}</strong></td></tr>`; }).join("") || `<tr><td colspan="${headers.length + 2}">No known demand for this selection.</td></tr>`}</tbody>`;
   }
-  function renderCapacity(demand, actual, capacity) {
-    const values = new Map();
-    const get = (team, period) => {
-      const safeTeam = team || "Unassigned / To Be Assigned";
-      const safePeriod = period || "Unscheduled / N/A";
-      const key = `${safeTeam}||${safePeriod}`;
-      if (!values.has(key)) values.set(key, { team: safeTeam, period: safePeriod, planned: 0, logged: 0, known: 0 });
-      return values.get(key);
+  function coverageModel(filters) {
+    const window = coverage.horizon(data, $("coverageHorizon").value, $("coverageRelease").value);
+    return coverage.calculate(data, coverageResolution, window, filters, (row) =>
+      (!filters.clients.size || filters.clients.has(clientValue(row)))
+      && businessAreaMatches(row, filters.businessAreas) && promoterMatches(row, filters.promoters)
+      && (!filters.accounts.size || filters.accounts.has(row.account || "Other/Blank"))
+      && (!filters.modules.size || filters.modules.has(row.productModule || "Other/Blank"))
+      && (!filters.periods.size || filters.periods.has(row.targetRelease || "Unscheduled / N/A")));
+  }
+  function renderCapacity(filters) {
+    $("coverageReleaseLabel").hidden = $("coverageHorizon").value !== "release";
+    const model = coverageModel(filters);
+    const content = $("coverageContent");
+    if (model.error) { $("coverageRange").textContent = model.error; content.innerHTML = `<p class="coverage-warning">Capacity coverage is unavailable until the governed inputs are complete.</p>`; return; }
+    const h = (value) => value === null ? "-" : hours(value);
+    const pct = (value) => value === null ? "-" : `${number(value, 1)}%`;
+    const tone = (value) => value === null || value === 0 ? "" : value < 0 ? "coverage-deficit" : "coverage-headroom";
+    $("coverageRange").textContent = `${model.window.start} to ${model.window.end} · Reporting date ${model.window.reportingDate}`;
+    const kpi = (label, value, note, className = "") => `<article class="coverage-kpi ${className}"><span>${label}</span><strong>${value}</strong><small>${note}</small></article>`;
+    const max = Math.max(1, ...model.teams.flatMap((row) => [row.capacity || 0, row.demand]));
+    const width = (value) => (value / max * 100).toFixed(3);
+    const bars = (row) => row.capacity === null ? `<span class="coverage-unavailable">Capacity unavailable</span>`
+      : `<div class="coverage-bar" role="img" aria-label="${escapeHtml(row.team)}: capacity ${hours(row.capacity)}, demand ${hours(row.demand)}, overload ${hours(Math.max(0, row.demand - row.capacity))}"><i class="coverage-capacity-bar" style="width:${width(row.capacity)}%"></i><i class="coverage-demand-bar" style="width:${width(Math.min(row.capacity, row.demand))}%"></i><i class="coverage-overload-bar" style="left:${width(row.capacity)}%;width:${width(Math.max(0, row.demand - row.capacity))}%"></i></div>`;
+    const labels = { unallocated: "Missing or unmapped team", outside: "Assigned outside Engineering scope", unscheduled: "Undated or unscheduled", estimate: "Missing or invalid estimates", hierarchy: "Unresolved hierarchy or allocation" };
+    const detailRow = (row) => {
+      const flags = row.exceptionFlags.length ? ` · ${escapeHtml(row.exceptionFlags.join("; "))}` : "";
+      const conflicts = row.sourceRepresentations.length ? `<small>Conflicting source records: ${row.sourceRepresentations.map((source) => `${escapeHtml(source.assignee)} · ${escapeHtml(source.status)} · ${escapeHtml(source.targetRelease)} · Remaining Estimate ${escapeHtml(source.remainingEstimateHours)}`).join(" / ")}</small>` : "";
+      const overlap = row.overlapChildren ? `<small>Parent estimate excluded (${escapeHtml(row.outcome)}). Eligible estimated descendants: ${row.overlapChildren.map((child) => `<a class="jira-link" href="https://oat-sa.atlassian.net/browse/${encodeURIComponent(child.key)}" target="_blank" rel="noopener noreferrer">${escapeHtml(child.key)}</a> · ${hours(child.estimate)} · ${escapeHtml(child.status)} · ${escapeHtml(child.outcome)}`).join("; ")}. Source estimates are unchanged.</small>` : "";
+      return `<div><a class="jira-link" href="https://oat-sa.atlassian.net/browse/${encodeURIComponent(row.key)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.key || "Missing key")}</a><span>${escapeHtml(row.team || "Unmapped team")} · ${escapeHtml(row.status)} · ${escapeHtml(row.bucket)} · ${row.estimate === null ? "-" : hours(row.estimate)}</span><small>${escapeHtml(row.summary)}${row.parentKey ? ` · Parent ${escapeHtml(row.parentKey)}` : ""}${flags}</small>${conflicts}${overlap}</div>`;
     };
-    capacity.forEach((row) => { get(row.team, row.period).planned += Number(row.planned) || 0; });
-    actual.forEach((row) => { get(row.team, row.releaseCycle).logged += Number(row.logged) || 0; });
-    demand.forEach((row) => { get(row.demandTeam, row.planningPeriod).known += Number(row.demandHours) || 0; });
-    const rowDimension = $("demandCapacityRows").value;
-    const columnDimension = $("demandCapacityColumns").value;
-    const value = $("demandCapacityValue").value;
-    if (rowDimension === columnDimension) {
-      $("demandCapacityColumns").value = rowDimension === "team" ? "period" : "team";
-      return renderCapacity(demand, actual, capacity);
-    }
-    const cellValue = (row) => ({ planned: row.planned, logged: row.logged, remaining: row.planned - row.logged, known: row.known, gap: row.planned - row.logged - row.known }[value]);
-    const rows = [...new Set([...values.values()].map((row) => row[rowDimension]))].sort();
-    const columns = [...new Set([...values.values()].map((row) => row[columnDimension]))].sort();
-    const cells = new Map();
-    [...values.values()].forEach((row) => {
-      const key = `${row[rowDimension]}||${row[columnDimension]}`;
-      cells.set(key, (cells.get(key) || 0) + cellValue(row));
-    });
-    const rowLabel = rowDimension === "team" ? "Team" : "Planning period";
-    $("demandCapacity").innerHTML = `<thead><tr><th>${rowLabel}</th>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}<th>Total</th></tr></thead><tbody>${rows.map((row) => { const total = columns.reduce((sum, column) => sum + (cells.get(`${row}||${column}`) || 0), 0); return `<tr><td>${escapeHtml(row)}</td>${columns.map((column) => { const amount = cells.get(`${row}||${column}`) || 0; return `<td class="${value === "gap" || value === "remaining" ? (amount < 0 ? "negative" : "positive") : ""}">${hours(amount)}</td>`; }).join("")}<td><strong>${hours(total)}</strong></td></tr>`; }).join("") || `<tr><td colspan="${columns.length + 2}">No capacity, actual effort, or known demand for this selection.</td></tr>`}</tbody>`;
+    const details = (title, rows, reviewOnly = false) => `<details class="coverage-detail"><summary>${escapeHtml(title)} · ${number(rows.length)} items${reviewOnly ? " · Governance review only" : rows.every((row) => row.estimate !== null) ? ` · ${hours(rows.reduce((total, row) => total + row.estimate, 0))}` : " · Hours unavailable for some items"}</summary><div class="coverage-tickets">${rows.map(detailRow).join("") || "No matching items."}</div></details>`;
+    const missing = model.teams.reduce((total, row) => total + row.missingRecords + row.duplicateRecords, 0);
+    content.innerHTML = `<div class="coverage-kpis">
+      ${kpi("Available capacity", h(model.capacity), model.capacity === null ? `${hours(model.knownCapacity)} known subtotal; capacity incomplete.` : "Weekly Capacity · selected Engineering workforce")}
+      ${kpi("Known assigned demand", h(model.demand), "Eligible, resolved Jira Remaining Estimate")}
+      ${kpi("Capacity gap", h(model.gap), "Available capacity − known assigned demand", tone(model.gap))}
+      ${kpi("Portfolio load", pct(model.load), "Aggregate demand ÷ aggregate capacity")}</div>
+      <p class="coverage-scope">The planning horizon controls this panel; the sidebar Date Range does not apply. Capacity includes the full Master Date weeks touched by the horizon, without daily proration. Available capacity represents workforce availability, not dedicated customer or account capacity. Client attribution is limited to verified Tempo account metadata; unlogged Jira demand remains included under Client N/A.</p>
+      ${!model.yearSupported ? `<p class="coverage-warning">Capacity is unavailable outside the Weekly Capacity snapshot year. ${escapeHtml(model.capacityYearBasis)}</p>` : ""}
+      ${!model.calendarComplete ? `<p class="coverage-warning">Master Date does not fully support this planning window.</p>` : ""}
+      ${missing ? `<p class="coverage-warning">${number(missing)} assignee-week capacity values are missing, invalid, or duplicated. Affected team and portfolio capacity, gap, and load are unavailable. Known capacity subtotal: ${hours(model.knownCapacity)}.</p>` : ""}
+      <div class="coverage-legend"><span><i class="coverage-capacity-bar"></i>Capacity</span><span><i class="coverage-demand-bar"></i>Assigned demand</span><span><i class="coverage-overload-bar"></i>Overload</span></div>
+      <div class="coverage-comparisons" role="table" aria-label="Engineering capacity comparison"><div class="coverage-row coverage-column-headings" role="row"><span role="columnheader">Team</span><span role="columnheader">Capacity coverage · common scale</span><span role="columnheader">Capacity</span><span role="columnheader">Demand</span><span role="columnheader">Gap</span><span role="columnheader">Load</span></div>
+      ${model.teams.map((row) => `<div class="coverage-row" role="row" data-coverage-team="${escapeHtml(row.team)}"><strong role="cell">${escapeHtml(row.team)}</strong><div role="cell">${bars(row)}</div><span role="cell" data-label="Capacity">${h(row.capacity)}</span><span role="cell" data-label="Demand">${h(row.demand)}</span><span role="cell" data-label="Gap" class="${tone(row.gap)}">${h(row.gap)}</span><span role="cell" data-label="Load" class="${row.load > 100 ? "coverage-deficit" : ""}">${pct(row.load)}</span></div>`).join("") || `<p>No Engineering teams match the selected workforce scope.</p>`}</div>
+      <section class="coverage-unallocated"><div><h4>Unallocated demand is not a capacity gap.</h4><strong>${hours(model.unallocatedHours)}</strong></div><p>Eligible future demand with a missing or unmapped workforce team. Exceptions below cover all teams, regardless of the Team selection; selected Assignee, Skill and demand filters still apply. Undated items have no horizon allocation. Known non-Engineering demand is shown separately.</p>
+      ${Object.entries(labels).map(([category, label]) => details(label, model.exceptions[category])).join("")}</section>
+      <section aria-label="Estimation overlap governance exceptions"><h4>Parent/child estimation overlaps</h4><p class="coverage-scope">Overlaps are flagged for reconciliation and review. Eligible open child estimates take precedence, including confirmed zero; otherwise the parent's own estimate is used. Review records span all teams and match the horizon or unscheduled scope and applicable filters through the parent or an affected child. These records are not additional demand or unallocated hours.</p>${details("Estimation overlap governance exceptions", model.estimationOverlaps, true)}</section>
+      ${details("Assigned-demand Jira trace", model.contributions)}
+      <p class="coverage-scope">${number(model.trace.filter((row) => row.outcome === "covered-parent").length)} parent estimates are excluded because an eligible estimated descendant exists. Hierarchy is resolved before presentation filters; no estimates or ownership are inherited or distributed. Coverage is limited to the supplied Jira export; absent descendants cannot be assessed.</p>
+      <p class="coverage-interpretation">Positive headroom means capacity exceeds known assigned estimates. It does not establish that teams can absorb unallocated, undated, or unestimated work.</p>`;
   }
   function renderWorkflow(filters, actual) {
     const stages = [
@@ -282,7 +307,7 @@
       .filter((row) => !filters.teams.size || filters.teams.has(row.team || "Unassigned / To Be Assigned"))
       .filter((row) => !filters.assignees.size || filters.assignees.has(row.assignee))
       .filter((row) => !filters.skills.size || filters.skills.has(row.skill))
-      .filter((row) => !filters.clients.size || filters.clients.has(row.tempoClient || "Other/Blank"))
+      .filter((row) => !filters.clients.size || filters.clients.has(clientValue(row)))
       .filter((row) => businessAreaMatches(row, filters.businessAreas))
       .filter((row) => promoterMatches(row, filters.promoters))
       .filter((row) => !filters.accounts.size || filters.accounts.has(row.account || "Other/Blank"))
@@ -334,6 +359,6 @@
     const note = "Logged Hours are the direct Tempo sum where Jira Issue key equals Tempo Work Item Key. No descendant roll-up is included.";
     target.innerHTML = `<h4>${escapeHtml(title)} — Epic detail</h4><p class="epic-attribution-note">${note}</p><div class="table-wrap"><table><thead><tr><th>Jira Key</th><th>Summary</th><th>Target Release</th><th>Effort Cap</th><th>Logged Hours</th><th>Variance Logged Hours − Effort Cap</th><th>Original Estimate</th><th>Status</th></tr></thead><tbody>${rows.slice(0, 50).map((row) => { const logged = directLoggedByKey.get(row.key) || 0; const loggedMarkup = hours(logged); const variance = row.hasEffortCap ? hours(logged - (Number(row.effortCapHours) || 0)) : "Unavailable"; return `<tr><td><a class="jira-link" href="https://oat-sa.atlassian.net/browse/${encodeURIComponent(row.key)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.key)}</a></td><td>${escapeHtml(row.summary)}</td><td>${escapeHtml(row.targetRelease || "Unavailable")}</td><td>${row.hasEffortCap ? hours(row.effortCapHours) : "Unavailable"}</td><td>${loggedMarkup}</td><td>${variance}</td><td>${row.hasOriginalEstimate ? hours(row.originalEstimateHours) : "Unavailable"}</td><td>${escapeHtml(row.status || "Unavailable")}</td></tr>`; }).join("") || `<tr><td colspan="8">No matching Epic records.</td></tr>`}</tbody></table></div>`;
   }
-  function render() { const { filters, demand, actual } = current(); const capacity = periodCapacity(filters); renderDeliveredFeaturesKpi(); renderMatrix(demand); renderCapacity(demand, actual, capacity); renderWorkflow(filters, actual); renderAccountComparison(demand, actual); renderQuality(demand); }
+  function render() { const { filters, demand, actual } = current(); renderDeliveredFeaturesKpi(); renderMatrix(demand); renderCapacity(filters); renderWorkflow(filters, actual); renderAccountComparison(demand, actual); renderQuality(demand); }
   initialise();
 })();

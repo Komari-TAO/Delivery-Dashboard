@@ -407,12 +407,11 @@ try {
       return Object.fromEntries(Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8));
     })(),
     priorityRenderedCounts: (() => {
-      const parseCount = (value) => value.endsWith("k") ? Number(value.slice(0, -1)) * 1000 : Number(value.replaceAll(",", ""));
-      const texts = Array.from(document.querySelectorAll("#priorityChart svg text")).map((text) => text.textContent.trim());
       const counts = {};
-      for (let i = 0; i < texts.length; i += 2) {
-        if (texts[i] && texts[i + 1]) counts[texts[i]] = parseCount(texts[i + 1]);
-      }
+      Array.from(document.querySelectorAll("#priorityChart svg title")).forEach((title) => {
+        const match = title.textContent.trim().match(/^(.+): ([\\d,]+)$/);
+        if (match) counts[match[1]] = Number(match[2].replaceAll(",", ""));
+      });
       return counts;
     })(),
     typeSubtitle: document.querySelector("#typeChart")?.closest(".panel")?.querySelector("p")?.textContent.trim() || "",
@@ -1353,10 +1352,10 @@ try {
   await sleep(350);
   await capture(cdp, "verification-mobile.png");
 
-  if (initial.kpis !== 4 || initial.charts < 5 || initial.rows < 1) {
+  if (initial.kpis !== 8 || initial.charts < 5 || initial.rows < 1) {
     throw new Error(`Unexpected initial render: ${JSON.stringify(initial)}`);
   }
-  for (const required of ["Annual Workforce Capacity", "Actual Hours", "Annual Capacity Remaining", "Annual Capacity Utilization"]) {
+  for (const required of ["Annual Workforce Capacity", "Actual Hours", "Remaining Period Capacity", "Annual Capacity Utilization"]) {
     if (!initial.labels.includes(required)) {
       throw new Error(`Missing required KPI card: ${required}. Labels: ${JSON.stringify(initial.labels)}`);
     }

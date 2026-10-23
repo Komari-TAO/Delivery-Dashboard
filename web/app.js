@@ -1,10 +1,12 @@
 (function () {
   "use strict";
 
-  const { clonePayload, escapeHtml, parseDataScript } = window.DashboardCore;
+  const { clonePayload, escapeHtml, parseDataScript, clientValue } = window.DashboardCore;
 
   let raw = applyGlobalIssueExclusions(window.BI_DATA);
   let lastUpdateContext = null;
+  // Embedded Tempo dimensions never write to the shared dashboard filters.
+  const accountDistributionSelection = { client: "", account: "" };
   const state = {
     startDate: raw.meta.dateMin,
     endDate: raw.meta.dateMax,
@@ -288,12 +290,8 @@
     return state.accounts.size === 0 || state.accounts.has(accountFilterValue(value));
   }
 
-  function clientFilterValue(value) {
-    return String(value || "").trim() || "Other/Blank";
-  }
-
-  function inSelectedClient(value) {
-    return state.clients.size === 0 || state.clients.has(clientFilterValue(value));
+  function inSelectedClient(row) {
+    return state.clients.size === 0 || state.clients.has(clientValue(row));
   }
 
   function inSelectedStatus(value) {
@@ -398,7 +396,7 @@
         (ignoreTeam || inSet(state.teams, row.team)) &&
         (ignoreAssignee || inSelectedAssignee(row.person)) &&
         inSet(state.skills, row.skill) &&
-        inSelectedClient(row.delivery) &&
+        inSelectedClient(row) &&
         (ignoreAccount || inSelectedAccount(row.tempoAccount)) &&
         inSet(state.categories, row.category) &&
         inSet(state.priorities, row.priority) &&
@@ -418,7 +416,7 @@
         (ignoreTeam || inSet(state.teams, rowTeam)) &&
         (ignoreAssignee || inSelectedAssignee(row.assignee)) &&
         inSet(state.skills, rowSkill) &&
-        inSelectedClient(row.tempoClient) &&
+        inSelectedClient(row) &&
         (ignoreAccount || inSelectedAccount(row.account)) &&
         inSet(state.priorities, row.priority) &&
         (ignoreStatus || inSelectedStatus(row.status)) &&
@@ -436,7 +434,7 @@
         (ignoreTeam || inSet(state.teams, row.team)) &&
         (ignoreAssignee || inSelectedAssignee(row.person)) &&
         inSet(state.skills, row.skill) &&
-        inSelectedClient(row.delivery) &&
+        inSelectedClient(row) &&
         (ignoreAccount || inSelectedAccount(row.account)) &&
         inSet(state.categories, row.category) &&
         inSet(state.priorities, row.priority) &&
@@ -473,7 +471,7 @@
         (ignoreTeam || inSet(state.teams, row.team)) &&
         (ignoreAssignee || inSelectedAssignee(row.person)) &&
         inSet(state.skills, row.skill) &&
-        inSelectedClient(row.delivery) &&
+        inSelectedClient(row) &&
         (ignoreAccount || inSelectedAccount(row.account)) &&
         inSet(state.categories, row.category) &&
         inSet(state.priorities, row.priority) &&
@@ -531,7 +529,7 @@
         inSet(state.teams, rowTeam) &&
         inSelectedAssignee(row.assignee) &&
         inSet(state.skills, rowSkill) &&
-        inSelectedClient(row.tempoClient) &&
+        inSelectedClient(row) &&
         inSelectedAccount(row.account) &&
         inSet(state.priorities, row.priority) &&
         inSelectedStatus(row.status) &&
@@ -695,11 +693,11 @@
     const skills = masterSkillRows();
     const clientCounts = new Map();
     (raw.worklogs || []).forEach((row) => {
-      const client = clientFilterValue(row.delivery);
+      const client = clientValue(row);
       clientCounts.set(client, (clientCounts.get(client) || 0) + 1);
     });
     (raw.backlog || []).forEach((row) => {
-      const client = clientFilterValue(row.tempoClient);
+      const client = clientValue(row);
       clientCounts.set(client, (clientCounts.get(client) || 0) + 1);
     });
     const clients = Array.from(clientCounts, ([label, count]) => ({ label, count }))
@@ -1345,12 +1343,15 @@
   }
 
   function renderAccountTreemap(data, tempoWorklogs) {
-    const scope = accountDistributionScope(tempoWorklogs || []);
-    const rows = accountTreemapRows(data, scope.tempoAccounts);
+    const worklogs = (tempoWorklogs || []).filter((row) => validTeamSet.has(row.team) && !isExcludedOperationalItem(row.key));
+    const totals = peopleTotalsRow(groupPeople(worklogs, []));
+    const customerWorklogs = worklogs.filter((row) => !isTempoWorkItem(row.key));
+    renderAccountDistributionFilters(customerWorklogs, worklogs);
+    const rows = accountDistributionRows(customerWorklogs);
     const totalLogged = rows.reduce((total, row) => total + row.logged, 0);
     if (!rows.length || totalLogged <= 0) {
-      emptyChart("accountTreemap", "No account-attributed engineering effort for the selected filters.");
-      renderAccountAttributionExceptionFooter(scope.exceptions);
+      emptyChart("accountTreemap", "No eligible customer/account effort for the selected filters.");
+      addTreemapSummary(totals, totalLogged);
       return;
     }
 
@@ -1363,7 +1364,7 @@
 
     tiles.forEach((tile) => {
       const row = tile.data;
-      const selected = state.accounts.has(row.filterValue);
+      const selected = row.dimension === "account" && accountDistributionSelection.account === row.filterValue;
       const fill = accountTreemapFill(row.filterValue);
       const stroke = selected ? colors.text : "rgba(255,255,255,0.9)";
       const percentage = totalLogged ? row.logged / totalLogged : 0;
@@ -1385,14 +1386,15 @@
       });
       addTitle(group, accountTreemapTooltip(row, percentage));
       group.addEventListener("click", (event) => {
-        if (!(event.ctrlKey || event.metaKey)) {
-          const onlySelected = state.accounts.size === 1 && state.accounts.has(row.filterValue);
-          state.accounts.clear();
-          if (!onlySelected) state.accounts.add(row.filterValue);
-          update();
-          return;
-        }
-        toggleFilter("accounts", row.filterValue);
+        if (row.dimension === "client") accountDistributionSelection.client = row.filterValue;
+        else accountDistributionSelection.account = selected ? "" : row.filterValue;
+        renderAccountTreemap(data, tempoWorklogs);
+      });
+      group.setAttribute("tabindex", "0");
+      group.setAttribute("role", "button");
+      group.setAttribute("aria-pressed", String(selected));
+      group.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); group.dispatchEvent(new MouseEvent("click")); }
       });
 
       const labelPad = 8;
@@ -1428,8 +1430,70 @@
       rect.setAttribute("aria-label", `${row.accountDisplay}: ${formatNumber(row.logged, 1)} hours, ${formatPercent(percentage)}`);
     });
 
-    addTreemapSummary(totalLogged);
-    renderAccountAttributionExceptionFooter(scope.exceptions);
+    addTreemapSummary(totals, totalLogged);
+  }
+
+  function tempoTreemapClient(row) {
+    return row.clientAttributionStatus === "Verified" ? String(row.tempoCustomerAccount || "").trim() : "";
+  }
+
+  function tempoTreemapAccount(row) {
+    // Missing keys are an explicit unknown bucket, never a name-based identity.
+    return String(row.tempoAccountKey || "").trim();
+  }
+
+  function renderAccountDistributionFilters(worklogs, contextWorklogs) {
+    const selection = accountDistributionSelection;
+    const clientId = (row) => JSON.stringify([tempoTreemapClient(row)]);
+    const accountId = (row) => JSON.stringify([tempoTreemapAccount(row)]);
+    const clients = new Map(worklogs.map((row) => [clientId(row), tempoTreemapClient(row) || "-"]));
+    // Retain Client even when a global filter temporarily removes its worklogs.
+    if (selection.client && !clients.has(selection.client)) clients.set(selection.client, JSON.parse(selection.client)[0] || "-");
+    const clientRows = worklogs.filter((row) => !selection.client || clientId(row) === selection.client);
+    const accounts = new Map(clientRows.map((row) => [accountId(row), tempoTreemapAccount(row) ? `${String(row.tempoAccount || "").trim() || "-"} (${tempoTreemapAccount(row)})` : "-"]));
+    const fill = (id, options, all, value) => {
+      const select = $(id);
+      select.replaceChildren(new Option(all, ""), ...Array.from(options).sort((a, b) => a[1].localeCompare(b[1])).map(([key, label]) => new Option(label, key)));
+      select.value = value;
+    };
+    // An account remains selected through unrelated global changes. Only a Client
+    // change clears an incompatible account, using the complete eligible source.
+    if (selection.account && !accounts.has(selection.account)) {
+      const known = raw.worklogs.find((row) => accountId(row) === selection.account);
+      accounts.set(selection.account, known ? `${known.tempoAccount || "-"} (${tempoTreemapAccount(known) || "-"})` : "-");
+    }
+    fill("accountDistributionClient", clients, "All Clients", selection.client);
+    fill("accountDistributionAccount", accounts, "All Accounts", selection.account);
+    $("accountTreemapSubtitle").textContent = selection.client || selection.account ? "Tempo logged hours by account" : "Tempo logged hours by client";
+    $("accountDistributionClient").onchange = (event) => {
+      selection.client = event.target.value;
+      if (selection.account && !raw.worklogs.some((row) => validTeamSet.has(row.team) && !isExcludedOperationalItem(row.key) && !isTempoWorkItem(row.key) && (!selection.client || clientId(row) === selection.client) && accountId(row) === selection.account)) selection.account = "";
+      renderAccountTreemap(null, contextWorklogs);
+    };
+    $("accountDistributionAccount").onchange = (event) => {
+      selection.account = event.target.value;
+      renderAccountTreemap(null, contextWorklogs);
+    };
+  }
+
+  function accountDistributionRows(worklogs) {
+    const selection = accountDistributionSelection;
+    const dimension = selection.client || selection.account ? "account" : "client";
+    const identity = (row) => JSON.stringify([dimension === "client" ? tempoTreemapClient(row) : tempoTreemapAccount(row)]);
+    const visible = worklogs.filter((row) => (
+      (!selection.client || JSON.stringify([tempoTreemapClient(row)]) === selection.client)
+      && (!selection.account || JSON.stringify([tempoTreemapAccount(row)]) === selection.account)
+    ));
+    const labels = new Map();
+    visible.forEach((row) => {
+      if (!labels.has(identity(row))) labels.set(identity(row), dimension === "client" ? tempoTreemapClient(row) || "-" : tempoTreemapAccount(row) ? `${String(row.tempoAccount || "").trim() || "-"} (${tempoTreemapAccount(row)})` : "-");
+    });
+    const map = governedTempoAccountAggregation(visible, identity);
+    return Array.from(map.values()).filter((row) => row.logged > 0).map((row) => ({
+      ...row, dimension, filterValue: row.account, accountDisplay: labels.get(row.account),
+      itemCount: row.items.size, assigneeCount: row.assignees.size,
+      teamsList: Array.from(row.teams).sort(), programsList: Array.from(row.programs).sort(),
+    })).sort((a, b) => b.logged - a.logged || a.accountDisplay.localeCompare(b.accountDisplay));
   }
 
   function renderProgramPieChart(worklogs) {
@@ -1987,14 +2051,14 @@
     };
   }
 
-  function governedTempoAccountAggregation(worklogs) {
+  function governedTempoAccountAggregation(worklogs, accountDimension = (row) => accountLabel(row.tempoAccount)) {
     const map = new Map();
     worklogs.filter((row) => (
       validTeamSet.has(row.team)
       && !isExcludedOperationalItem(row.key)
-      && Boolean(accountLabel(row.tempoAccount))
+      && Boolean(accountDimension(row))
     )).forEach((row) => {
-      const account = accountLabel(row.tempoAccount);
+      const account = accountDimension(row);
       if (!map.has(account)) {
         map.set(account, {
           account,
@@ -2106,11 +2170,21 @@
     return palette[Math.abs(hash) % palette.length];
   }
 
-  function addTreemapSummary(totalLogged) {
+  function addTreemapSummary(totals, customerEffort) {
     const el = $("accountTreemap");
     const summary = document.createElement("div");
-    summary.className = "treemap-summary";
-    summary.textContent = `Total logged hours (selected period): ${formatNumber(totalLogged, 1)} h`;
+    summary.className = "treemap-summary treemap-totals";
+    [
+      ["total", "Total logged hours", "global filters", totals.loggedTotal],
+      ["operations", "Operational Tempo hours", "global filters", totals.loggedOperations],
+      ["customer", "Customer/account effort", "global + local filters", customerEffort],
+    ].forEach(([metric, label, scope, hours]) => {
+      const value = document.createElement("div");
+      value.dataset.metric = metric;
+      value.dataset.hours = String(hours);
+      value.textContent = `${label} (${scope}): ${formatNumber(hours, 1)} h`;
+      summary.appendChild(value);
+    });
     el.appendChild(summary);
   }
 
@@ -2130,13 +2204,13 @@
 
   function accountTreemapTooltip(row, percentage) {
     const lines = [
-      `Account: ${row.accountDisplay}`,
+      `${row.dimension === "client" ? "Client" : "Account"}: ${row.accountDisplay}`,
       `Logged Hours: ${formatNumber(row.logged, 1)}`,
       `Percentage of filtered total: ${formatPercent(percentage)}`,
       `Billable Hours: ${formatNumber(row.billable, 1)}`,
-      `Original Estimate: ${formatNumber(row.estimated, 1)}`,
-      `Variance Hours: ${formatNumber(row.variance, 1)}`,
-      `Variance %: ${row.variancePercent === null ? "n/a" : formatPercent(row.variancePercent)}`,
+      "Original Estimate: -",
+      "Variance Hours: -",
+      "Variance %: -",
       `Work Items: ${formatNumber(row.itemCount)}`,
       `Number of Assignees: ${formatNumber(row.assigneeCount)}`,
       `Teams contributing hours: ${row.teamsList.length ? row.teamsList.join(", ") : "-"}`,
@@ -2382,10 +2456,10 @@
     const second = rows.slice(splitIndex);
     const firstTotal = first.reduce((sum, row) => sum + row.logged, 0);
     const ratio = firstTotal / total;
-    const gap = 2;
+    const gap = Math.min(2, Math.min(bounds.width, bounds.height) * Math.min(ratio, 1 - ratio));
 
     if (bounds.width >= bounds.height) {
-      const firstWidth = Math.max(0, Math.round(bounds.width * ratio) - gap / 2);
+      const firstWidth = Math.max(0, bounds.width * ratio - gap / 2);
       const secondWidth = Math.max(0, bounds.width - firstWidth - gap);
       return [
         ...splitTreemap(first, { x: bounds.x, y: bounds.y, width: firstWidth, height: bounds.height }, firstTotal),
@@ -2393,7 +2467,7 @@
       ];
     }
 
-    const firstHeight = Math.max(0, Math.round(bounds.height * ratio) - gap / 2);
+    const firstHeight = Math.max(0, bounds.height * ratio - gap / 2);
     const secondHeight = Math.max(0, bounds.height - firstHeight - gap);
     return [
       ...splitTreemap(first, { x: bounds.x, y: bounds.y, width: bounds.width, height: firstHeight }, firstTotal),
@@ -3566,11 +3640,6 @@
     bindFacetPicker("program", "programs", setProgramPickerOpen, programOptionValues);
     bindFacetPicker("release", "releases", setReleasePickerOpen, releaseOptionValues);
 
-    document.querySelector(".segmented").addEventListener("click", (event) => {
-      const button = event.target.closest("button[data-preset]");
-      if (button) setPreset(button.dataset.preset);
-    });
-
     document.body.addEventListener("change", (event) => {
       const input = event.target.closest("input[data-state]");
       if (!input) return;
@@ -3625,7 +3694,6 @@
   resetStatusDefaults();
   bindEvents();
   setWorkspaceTab("portfolioTab");
-  document.querySelector('.segmented button[data-preset="full"]').classList.add("active");
   update();
   refreshDataIfChanged();
   window.setInterval(refreshDataIfChanged, 5 * 60 * 1000);
