@@ -8,8 +8,16 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <nav class="workspace-tabs" role="tablist" aria-label="Dashboard sections">
+      <button class="workspace-tab active" type="button" role="tab" aria-selected="true" aria-controls="portfolioTab" data-workspace-tab="portfolioTab">Portfolio</button>
+      <button class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="demandTab" data-workspace-tab="demandTab">Demand Management</button>
+      <button class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="qualityTab" data-workspace-tab="qualityTab">Datasources</button>
+    </nav>
+    <section class="global-kpi-shell" aria-label="General KPI cards">
+      <div class="kpi-grid global-kpi-grid" id="generalKpiGrid"></div>
+    </section>
     <div class="app-shell">
-      <aside class="filter-rail" aria-label="Filters">
+      <aside class="filter-rail" aria-label="Portfolio filters" data-workspace-surface="portfolioTab">
         <div class="rail-header">
           <div>
             <p class="eyebrow">Interactive BI</p>
@@ -29,9 +37,6 @@
               <span>To</span>
               <input id="endDate" type="date" />
             </label>
-          </div>
-          <div class="segmented date-presets" role="group" aria-label="Date presets">
-            <button type="button" data-preset="full">Full</button>
           </div>
           <div class="filter-picker release-picker" id="releasePicker" hidden>
             <button class="filter-picker-toggle" id="releasePickerToggle" type="button" aria-expanded="false" aria-controls="releasePickerMenu">
@@ -97,6 +102,24 @@
                   <button type="button" id="skillClearAll">Clear All</button>
                 </div>
                 <div class="facet-list skill-list" id="skillFacet"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="filter-block">
+            <div class="filter-title">Client</div>
+            <div class="filter-picker client-picker" id="clientPicker">
+              <button class="filter-picker-toggle" id="clientPickerToggle" type="button" aria-expanded="false" aria-controls="clientPickerMenu">
+                <span>Client</span>
+                <strong id="clientPickerSummary">All clients</strong>
+              </button>
+              <div class="filter-picker-menu" id="clientPickerMenu" hidden>
+                <input class="filter-search picker-search" id="clientSearch" type="search" placeholder="Search clients" />
+                <div class="filter-picker-actions">
+                  <button type="button" id="clientSelectAll">Select All</button>
+                  <button type="button" id="clientClearAll">Clear All</button>
+                </div>
+                <div class="facet-list tall client-list" id="clientFacet"></div>
               </div>
             </div>
           </section>
@@ -210,11 +233,39 @@
         </div>
       </aside>
 
+      <aside class="filter-rail demand-filter-rail" aria-label="Demand Management filters" data-workspace-surface="demandTab" hidden>
+        <div class="rail-header">
+          <div>
+            <p class="eyebrow">Governed demand</p>
+            <h1>Demand filters</h1>
+          </div>
+          <button class="ghost-button" id="resetDemandFilters" type="button">Reset</button>
+        </div>
+        <section class="filter-block date-filter-block">
+          <div class="filter-title">Planning date range</div>
+          <div class="date-grid">
+            <label><span>From</span><input id="demandStartDate" type="date" /></label>
+            <label><span>To</span><input id="demandEndDate" type="date" /></label>
+          </div>
+        </section>
+        <div class="filter-group filter-group-core demand-filter-group">
+          <section class="filter-block"><div class="filter-title">Team</div><div class="filter-picker" id="demandTeamPicker"><button class="filter-picker-toggle" id="demandTeamPickerToggle" type="button" aria-expanded="false" aria-controls="demandTeamPickerMenu"><span>Team</span><strong id="demandTeamPickerSummary">All teams</strong></button><div class="filter-picker-menu" id="demandTeamPickerMenu" hidden><input class="filter-search picker-search" id="demandTeamSearch" type="search" placeholder="Search teams" /><div class="filter-picker-actions"><button type="button" data-demand-picker-action="all" data-demand-picker="team">Select All</button><button type="button" data-demand-picker-action="clear" data-demand-picker="team">Clear All</button></div><div class="facet-list team-list" id="demandTeamFacet"></div></div></div></section>
+          <section class="filter-block"><div class="filter-title">Assignee</div><div class="filter-picker demand-assignee-picker" id="demandAssigneePicker"><button class="filter-picker-toggle" id="demandAssigneePickerToggle" type="button" aria-expanded="false" aria-controls="demandAssigneePickerMenu"><span>Assignee</span><strong id="demandAssigneePickerSummary">All assignees</strong></button><div class="filter-picker-menu" id="demandAssigneePickerMenu" hidden><input class="filter-search picker-search" id="demandAssigneeSearch" type="search" placeholder="Search assignees" /><div class="filter-picker-actions"><button type="button" data-demand-picker-action="all" data-demand-picker="assignee">Select All</button><button type="button" data-demand-picker-action="clear" data-demand-picker="assignee">Clear All</button></div><div class="facet-list tall assignee-list" id="demandAssigneeFacet"></div></div></div></section>
+          <section class="filter-block"><div class="filter-title">Skill</div><div class="filter-picker" id="demandSkillPicker"><button class="filter-picker-toggle" id="demandSkillPickerToggle" type="button" aria-expanded="false" aria-controls="demandSkillPickerMenu"><span>Skill</span><strong id="demandSkillPickerSummary">All skills</strong></button><div class="filter-picker-menu" id="demandSkillPickerMenu" hidden><input class="filter-search picker-search" id="demandSkillSearch" type="search" placeholder="Search skills" /><div class="filter-picker-actions"><button type="button" data-demand-picker-action="all" data-demand-picker="skill">Select All</button><button type="button" data-demand-picker-action="clear" data-demand-picker="skill">Clear All</button></div><div class="facet-list skill-list" id="demandSkillFacet"></div></div></div></section>
+          <section class="filter-block"><div class="filter-title">Client</div><div class="filter-picker" id="demandClientPicker"><button class="filter-picker-toggle" id="demandClientPickerToggle" type="button" aria-expanded="false" aria-controls="demandClientPickerMenu"><span>Client</span><strong id="demandClientPickerSummary">All clients</strong></button><div class="filter-picker-menu" id="demandClientPickerMenu" hidden><input class="filter-search picker-search" id="demandClientSearch" type="search" placeholder="Search clients" /><div class="filter-picker-actions"><button type="button" data-demand-picker-action="all" data-demand-picker="client">Select All</button><button type="button" data-demand-picker-action="clear" data-demand-picker="client">Clear All</button></div><div class="facet-list tall" id="demandClientFacet"></div></div></div></section>
+          <section class="filter-block"><div class="filter-title">Business Area</div><div class="filter-picker" id="demandBusinessAreaPicker"><button class="filter-picker-toggle" id="demandBusinessAreaPickerToggle" type="button" aria-expanded="false" aria-controls="demandBusinessAreaPickerMenu"><span>Business Area</span><strong id="demandBusinessAreaPickerSummary">All business areas</strong></button><div class="filter-picker-menu" id="demandBusinessAreaPickerMenu" hidden><input class="filter-search picker-search" id="demandBusinessAreaSearch" type="search" placeholder="Search business areas" /><div class="filter-picker-actions"><button type="button" data-demand-picker-action="all" data-demand-picker="businessArea">Select All</button><button type="button" data-demand-picker-action="clear" data-demand-picker="businessArea">Clear All</button></div><div class="facet-list" id="demandBusinessAreaFacet"></div></div></div></section>
+          <section class="filter-block"><div class="filter-title" title="A selected Promoter matches Jira Custom field (Promoter) OR Jira Reporter. Both relationships are applied.">Promoter ⓘ</div><div class="filter-picker" id="demandPromoterPicker"><button class="filter-picker-toggle" id="demandPromoterPickerToggle" type="button" aria-expanded="false" aria-controls="demandPromoterPickerMenu" title="Matches Jira Custom field (Promoter) OR Jira Reporter."><span>Promoter</span><strong id="demandPromoterPickerSummary">All promoters</strong></button><div class="filter-picker-menu" id="demandPromoterPickerMenu" hidden><input class="filter-search picker-search" id="demandPromoterSearch" type="search" placeholder="Search promoters" /><div class="filter-picker-actions"><button type="button" data-demand-picker-action="all" data-demand-picker="promoter">Select All</button><button type="button" data-demand-picker-action="clear" data-demand-picker="promoter">Clear All</button></div><div class="facet-list tall" id="demandPromoterFacet"></div></div></div></section>
+          <section class="filter-block"><div class="filter-title">Account</div><div class="filter-picker" id="demandAccountPicker"><button class="filter-picker-toggle" id="demandAccountPickerToggle" type="button" aria-expanded="false" aria-controls="demandAccountPickerMenu"><span>Account</span><strong id="demandAccountPickerSummary">All accounts</strong></button><div class="filter-picker-menu" id="demandAccountPickerMenu" hidden><input class="filter-search picker-search" id="demandAccountSearch" type="search" placeholder="Search accounts" /><div class="filter-picker-actions"><button type="button" data-demand-picker-action="all" data-demand-picker="account">Select All</button><button type="button" data-demand-picker-action="clear" data-demand-picker="account">Clear All</button></div><div class="facet-list tall" id="demandAccountFacet"></div></div></div></section>
+          <section class="filter-block"><div class="filter-title">Product module</div><div class="filter-picker" id="demandModulePicker"><button class="filter-picker-toggle" id="demandModulePickerToggle" type="button" aria-expanded="false" aria-controls="demandModulePickerMenu"><span>Product module</span><strong id="demandModulePickerSummary">All modules</strong></button><div class="filter-picker-menu" id="demandModulePickerMenu" hidden><input class="filter-search picker-search" id="demandModuleSearch" type="search" placeholder="Search modules" /><div class="filter-picker-actions"><button type="button" data-demand-picker-action="all" data-demand-picker="module">Select All</button><button type="button" data-demand-picker-action="clear" data-demand-picker="module">Clear All</button></div><div class="facet-list tall" id="demandModuleFacet"></div></div></div></section>
+          <section class="filter-block"><div class="filter-title">Target / planning release</div><div class="filter-picker demand-period-picker" id="demandPeriodPicker"><button class="filter-picker-toggle" id="demandPeriodPickerToggle" type="button" aria-expanded="false" aria-controls="demandPeriodPickerMenu"><span>Target / planning release</span><strong id="demandPeriodPickerSummary">All releases</strong></button><div class="filter-picker-menu" id="demandPeriodPickerMenu" hidden><input class="filter-search picker-search" id="demandPeriodSearch" type="search" placeholder="Search releases" /><div class="filter-picker-actions"><button type="button" data-demand-picker-action="all" data-demand-picker="period">Select All</button><button type="button" data-demand-picker-action="clear" data-demand-picker="period">Clear All</button></div><div class="facet-list tall release-list" id="demandPeriodFacet"></div></div></div></section>
+        </div>
+      </aside>
+
       <main class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow">PowerBI-style workspace</p>
-            <h2>Delivery Portfolio Overview</h2>
+            <p class="eyebrow" id="workspaceEyebrow">PowerBI-style workspace</p>
+            <h2 id="workspaceTitle">Delivery Portfolio Overview</h2>
           </div>
           <div class="topbar-actions">
             <div class="range-badge" id="rangeBadge"></div>
@@ -224,8 +275,7 @@
 
         <div class="active-filters" id="activeFilters"></div>
 
-        <section class="kpi-grid" id="kpiGrid" aria-label="KPI cards"></section>
-
+        <section class="workspace-tab-panel active" id="portfolioTab" role="tabpanel" aria-label="Portfolio charts and details">
         <section class="dashboard-grid">
           <div class="executive-chart-grid">
             <article class="panel executive-chart-panel">
@@ -243,6 +293,7 @@
               <div class="chart-canvas"></div>
               <div class="chart-meta"></div>
             </div>
+            <p class="chart-business-hint">Business hint: Shows how logged and billable effort evolve over time, helping identify delivery spikes, seasonality, and billable versus non-billable drift.</p>
             </article>
 
             <article class="panel panel-planning-effort executive-chart-panel">
@@ -256,6 +307,7 @@
                 <div class="chart-canvas"></div>
                 <div class="chart-meta"></div>
               </div>
+              <p class="chart-business-hint">Business hint: Compares planned and unplanned delivery work using distinct work items, supporting visibility into planning discipline.</p>
             </article>
           </div>
 
@@ -271,20 +323,21 @@
                 <div class="chart-canvas"></div>
                 <div class="chart-meta"></div>
               </div>
+              <p class="chart-business-hint">Business hint: Shows where governed Tempo hours landed by business program, including mapped and unmapped effort.</p>
             </article>
 
-            <article class="panel executive-chart-panel bug-triage-module-panel">
+            <article class="panel executive-chart-panel bug-severity-module-panel">
               <div class="panel-header">
                 <div>
                   <h3>Bug Severity Distribution</h3>
-                  <p>Current operational Bug Triage queue by severity</p>
+                  <p>Jira PI Backlog bugs by Major, Blocker, and Critical severity</p>
                 </div>
               </div>
-              <div id="bugTriageSnapshotSummary" class="bug-triage-snapshot-summary" hidden></div>
               <div class="chart-frame executive-chart-frame" id="bugSeverityChart">
                 <div class="chart-canvas"></div>
                 <div class="chart-meta"></div>
               </div>
+              <p class="chart-business-hint">Business hint: Summarizes Jira PI Backlog bugs by Blocker, Critical, and Major severity; this is an inventory view, not a Tempo-effort view.</p>
             </article>
           </div>
 
@@ -292,10 +345,15 @@
             <div class="panel-header">
               <div>
                 <h3>Account Distribution</h3>
-                <p>Tempo logged hours by account</p>
+                <p id="accountTreemapSubtitle">Tempo logged hours by client</p>
+              </div>
+              <div class="pivot-controls account-distribution-controls">
+                <label>Client<select id="accountDistributionClient" aria-label="Account Distribution Client"><option value="">All Clients</option></select></label>
+                <label>Account<select id="accountDistributionAccount" aria-label="Account Distribution Account"><option value="">All Accounts</option></select></label>
               </div>
             </div>
             <div class="chart-frame treemap-frame" id="accountTreemap"></div>
+            <p class="chart-business-hint">Shows how delivery effort is distributed across Tempo Clients and their Accounts. Operational Tempo activity is excluded from the treemap but included in Total logged hours. Client and Account selections apply only to this visualization.</p>
           </article>
 
           <div class="executive-chart-grid">
@@ -310,6 +368,7 @@
                 <div class="chart-canvas"></div>
                 <div class="chart-meta"></div>
               </div>
+              <p class="chart-business-hint">Business hint: Compares planned weekly capacity with logged hours by team to show variance and utilization.</p>
             </article>
 
             <article class="panel executive-chart-panel">
@@ -323,6 +382,7 @@
                 <div class="chart-canvas"></div>
                 <div class="chart-meta"></div>
               </div>
+              <p class="chart-business-hint">Business hint: Compares outstanding Jira remaining estimate with logged effort by team to highlight demand carried versus effort spent.</p>
             </article>
           </div>
 
@@ -335,6 +395,7 @@
                 </div>
               </div>
               <div class="chart-frame" id="priorityChart"></div>
+              <p class="chart-business-hint">Business hint: Shows the priority mix of backlog items created in the selected range, making incoming demand visible.</p>
             </article>
 
             <article class="panel panel-compact-analytics">
@@ -348,6 +409,7 @@
                 <div class="chart-canvas"></div>
                 <div class="chart-meta"></div>
               </div>
+              <p class="chart-business-hint">Business hint: Splits governed engineering hours into Bugs, Technical Debt, and Rest; operational Tempo work is excluded.</p>
             </article>
 
             <article class="panel panel-compact-analytics">
@@ -358,6 +420,7 @@
                 </div>
               </div>
               <div class="chart-frame" id="typeChart"></div>
+              <p class="chart-business-hint">Business hint: Shows which Jira issue types account for the most Tempo worklog rows, indicating activity volume by type.</p>
             </article>
           </div>
         </section>
@@ -369,13 +432,13 @@
               <p id="detailSubtitle">Top account demand</p>
             </div>
             <div class="table-controls">
-              <div class="tabs" role="tablist">
+              <div class="tabs detail-tabs" role="tablist">
                 <button class="tab active" type="button" data-detail="accounts">Accounts</button>
                 <button class="tab" type="button" data-detail="people">People</button>
                 <button class="tab" type="button" data-detail="backlog">Backlog</button>
                 <button class="tab" type="button" data-detail="deliveryProgress">Delivery Progress</button>
-                <button class="tab" type="button" data-detail="bugTriage">Bug Triage</button>
               </div>
+              <label class="table-group-control">Group by <select id="detailGroupBy" aria-label="Group detail table by column"></select></label>
               <input id="detailSearch" type="search" placeholder="Search details" />
             </div>
           </div>
@@ -390,15 +453,125 @@
             <span><i class="health-green"></i>Green: completed</span>
           </div>
         </section>
+        </section>
+
+        <section class="workspace-tab-panel" id="qualityTab" role="tabpanel" aria-label="Data quality summary" hidden>
+          <article class="panel data-quality-panel">
+            <div class="panel-header">
+              <div>
+                <h3>Datasources and sync status</h3>
+                <p>Source availability, last synchronization time, and status for the currently loaded dashboard payload.</p>
+              </div>
+            </div>
+            <div id="dataQualitySummary" class="data-quality-summary" aria-live="polite"></div>
+            <div id="dataQualitySources" class="data-quality-sources"></div>
+          </article>
+          <article class="panel lineage-panel">
+            <div class="panel-header"><div><h3>Dashboard rules and field lineage</h3><p>Source availability, relationships, filters, and measures used by every tab. The detailed field contract is maintained in Chart and Visual Specification.</p></div></div>
+            <details open>
+              <summary>Shared rules</summary>
+              <div class="lineage-content"><table><thead><tr><th>Rule</th><th>Applied logic and exact sources</th></tr></thead><tbody>
+                <tr><td>Governed exclusions</td><td>`TEMPO-54`, `TEMPO-92`, `TEMPO-106`, `TEMPO-111`, and `TEMPO-112` are removed before aggregation and rendering.</td></tr>
+                <tr><td>Managed teams</td><td>`20261009_Assignees_Capacity.csv.Team` must also be represented by `Weekly Capacity_20261005.csv.Assignee` mapped through `20261009_Assignees_Capacity.csv.Assignee`.</td></tr>
+                <tr><td>Dates and releases</td><td>Tempo date: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date`. Calendar: `Google 2026 to 2028_Master_Date.csv.Master Date` and `.Week Number`. Release window: `Release Cycle.csv.Start Date`, `.End Date`, `.Release Cycle`.</td></tr>
+              </tbody></table></div>
+            </details>
+            <details>
+              <summary>Data relationships and joins</summary>
+              <div class="lineage-content"><table><thead><tr><th>Relationship</th><th>Join rule</th><th>Coverage, fallback, and dashboard use</th></tr></thead><tbody>
+                <tr><td>Tempo worklogs → Jira work items</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`.</td><td>One direct key match enriches Tempo rows with Jira `Status`, `Priority`, `Custom field (Account)`, `Custom field (Product Module)`, `Custom field (Program)`, and `Custom field (Target Release)`. No Jira match remains Tempo-only.</td></tr>
+                <tr><td>Tempo, Jira, and Weekly Capacity → Assignees master</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`, `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`, and `Weekly Capacity_20261005.csv.Assignee` are normalized and matched to `20261009_Assignees_Capacity.csv.Assignee`.</td><td>Returns governed `20261009_Assignees_Capacity.csv.Team` and `.Skill` for filters and aggregation. No master match is treated as unmapped and is visible in data-quality exceptions where applicable.</td></tr>
+                <tr><td>General KPI cards</td><td>`20261009_Assignees_Capacity.csv.Actual Annual Hours` (column H) supplies Annual Workforce Legal Hours only for Team = Authoring, Delivery Express, Integration, Nexus, Portal, or Scoring. `Weekly Capacity_20261005.csv.Planned Hours` (column J) supplies Annual Workforce Capacity. `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` supplies Actual Hours. `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Effort CAP (hrs))` supplies Demand Capacity.</td><td>All six cards remain unchanged when tabs or filters change. Remaining Period Capacity = Annual Workforce Capacity − Actual Hours. Annual Capacity Utilization = Actual Hours ÷ Annual Workforce Capacity.</td></tr>
+                <tr><td>Master Date → Weekly Capacity</td><td>Weekly Capacity `Week Number` = Master Date `Week Number`; selected dates supply eligible reporting weeks.</td><td>Feeds Team Utilization and Capacity versus Known Assigned Demand. The new panel uses its embedded future horizon, preserves missing capacity, and supports only the capacity snapshot year. The Portfolio annual KPI intentionally sums the full-year Weekly Capacity source.</td></tr>
+                <tr><td>Tempo work date → Release Cycle</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` falls between `Release Cycle.csv.Start Date` and `Release Cycle.csv.End Date`.</td><td>Returns `Release Cycle.csv.Release Cycle` for the Portfolio Release Cycle filter and Demand actual-effort planning period.</td></tr>
+                <tr><td>Jira Promoter or Reporter → Business Area</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Promoter)` <strong>OR</strong> `.Reporter` = `Promoters.csv.Promoter`.</td><td>Returns `Promoters.csv.Business Area`. The selected Promoter filter accepts either Jira field; blank or unmatched values become `Other/Blank`.</td></tr>
+                <tr><td>Tempo Customer Account → Jira demand</td><td>Client = Tempo `Account Customer` (column S), validated by `Account Key`. Normalized Tempo `Work Item Key` = Jira `Issue key`, direct matches only.</td><td>Worklogs retain their validated account customer. Jira items require complete direct evidence for exactly one customer; missing, incomplete, or multiple-customer attribution is `N/A`. No Jira Client, account-name, or parent fallback. Client, Tempo Account, and Jira Account are separate dimensions.</td></tr>
+                <tr><td>Jira Epic → Tempo hours</td><td>Only a direct `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` = `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` match is used.</td><td>Epic Workflow has no parent/child descendant roll-up. Direct Epic hours are shown only where that direct key match exists; otherwise the value is not attributed.</td></tr>
+              </tbody></table></div>
+            </details>
+            <details>
+              <summary>Portfolio — filters and KPIs</summary>
+              <div class="lineage-content"><table><thead><tr><th>Component</th><th>Rule / measure</th><th>Exact source fields</th></tr></thead><tbody>
+                <tr><td>Date Range</td><td>Filters Tempo activity; Master Date sets selectable bounds.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date`; `Google 2026 to 2028_Master_Date.csv.Master Date`.</td></tr>
+                <tr><td>Team / Assignee / Skill filters</td><td>Tempo and Jira assignees resolve through the master.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`; `20261009_Assignees_Capacity.csv.Assignee`, `.Team`, `.Skill`.</td></tr>
+                <tr><td>Client filter</td><td>Same Client dimension and searchable multi-select behavior as Demand Management. Tempo Customer Account is applied directly to worklogs and is carried to Jira rows through the Jira-to-Tempo key relationship; unverified values are `N/A`.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Customer`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`.</td></tr>
+                <tr><td>Account / Category filters</td><td>Tempo account display plus Jira governed account.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name`, `.Account Category`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Account)`.</td></tr>
+                <tr><td>Priority / Status / Target Release / Program filters</td><td>Jira metadata joined to Tempo by key.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Priority`, `.Status`, `.Custom field (Target Release)`, `.Custom field (Program)`.</td></tr>
+                <tr><td>General KPI cards</td><td>Always visible outside the tabs. Legal Hours is fixed to the six governed Team values: Authoring, Delivery Express, Integration, Nexus, Portal, and Scoring. The other cards are fixed source totals. None change with tab or filter selection.</td><td>`20261009_Assignees_Capacity.csv.Team`, `.Actual Annual Hours` (column H); `Weekly Capacity_20261005.csv.Planned Hours` (column J); `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Effort CAP (hrs))`.</td></tr>
+              </tbody></table></div>
+            </details>
+            <details>
+              <summary>Portfolio — charts and tables</summary>
+              <div class="lineage-content"><table><thead><tr><th>Chart / table</th><th>Rule / measure</th><th>Exact source fields</th></tr></thead><tbody>
+                <tr><td>Hours Trend</td><td>Logged and Billable hours by month or Master Date week.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Billable Hours`, `.Work date`; `Google 2026 to 2028_Master_Date.csv.Master Date`, `.Week Number`.</td></tr>
+                <tr><td>Planned vs Unplanned</td><td>Distinct work items classified from Jira labels; hours are Tempo logged hours.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Labels`.</td></tr>
+                <tr><td>Program Distribution</td><td>Tempo logged hours by joined Jira program.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Program)`.</td></tr>
+                <tr><td>Bug Severity Distribution</td><td>Distinct Jira PI Backlog Issue keys where Issue Type is Bug, grouped only as Major, Blocker, or Critical.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Issue Type`, `.Custom field (Bug Severity)`.</td></tr>
+                <tr><td>Account Distribution</td><td>Governed nonoperational Tempo effort by validated Client/Account Key; missing attribution displays -. Percentages use visible customer/account effort. Total and Operational Tempo hours retain global scope; customer/account effort also follows local selections.</td><td>Tempo `Work Item Key` through the shared operational classification; `Account Customer`, `Account Key`, `Account Name`, `Logged Hours`, `Work date`. Existing customer validation and managed-team/global exclusion rules apply.</td></tr>
+                <tr><td>Team Utilization</td><td>Tempo actual vs weekly planned capacity by team.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Full name`; `Weekly Capacity_20261005.csv.Planned Hours`, `.Assignee`, `.Week Number`; `20261009_Assignees_Capacity.csv.Assignee`, `.Team`.</td></tr>
+                <tr><td>Remaining Demand vs Logged Effort</td><td>Jira remaining estimate vs Tempo actual by team.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`, `.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Full name`; `20261009_Assignees_Capacity.csv.Assignee`, `.Team`.</td></tr>
+                <tr><td>Backlog Priority</td><td>Distinct Jira work items by priority.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Priority`.</td></tr>
+                <tr><td>Engineering Work Mix</td><td>Tempo logged hours split by Jira technical-debt classification.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Is this technical debt ?)`.</td></tr>
+                <tr><td>Work Item Types</td><td>Distinct Jira work items grouped by issue type.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Issue Type`.</td></tr>
+                <tr><td>Details — Accounts</td><td>Account-level Jira scope, Tempo effort, and account health.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`, `.Issue key`, `.Summary`, `.Status`, `.Priority`, `.Remaining Estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Logged Hours`, `.Account Name`.</td></tr>
+                <tr><td>Details — People</td><td>Assignee-level Jira scope, Tempo activity, capacity, team, and skill.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`, `.Issue key`, `.Status`, `.Remaining Estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`, `.Work date`, `.Logged Hours`; `20261009_Assignees_Capacity.csv.Assignee`, `.Team`, `.Skill`, `.Actual Annual Hours`; `Weekly Capacity_20261005.csv.Assignee`, `.Planned Hours`.</td></tr>
+                <tr><td>Details — Backlog</td><td>Jira parent and child demand, status, priority, and planned dates.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Parent`, `.Parent summary`, `.Summary`, `.Status`, `.Priority`, `.Custom field (Start date)`, `.Due date`, `.Remaining Estimate`, `.Assignee`.</td></tr>
+                <tr><td>Details — Delivery Progress</td><td>Jira workflow progress and Tempo actual effort for parent and child work.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Parent`, `.Status`, `.Summary`, `.Assignee`, `.Due date`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Work date`, `.Logged Hours`.</td></tr>
+              </tbody></table></div>
+            </details>
+            <details>
+              <summary>Demand Management — filters, KPIs, pivots, and detail</summary>
+              <div class="lineage-content"><table><thead><tr><th>Component</th><th>Rule / measure</th><th>Exact source fields</th></tr></thead><tbody>
+                <tr><td>Date / Team / Assignee / Skill filters</td><td>Master Date bounds. Team, Assignee, and Skill use the same governed dimensions as Portfolio; each is a searchable multi-select picker.</td><td>`Google 2026 to 2028_Master_Date.csv.Master Date`; `20261009_Assignees_Capacity.csv.Assignee`, `.Team`, `.Skill`; `Weekly Capacity_20261005.csv.Assignee`, `.Team`, `.Skill`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`.</td></tr>
+                <tr><td>Client / Business Area / Promoter filters</td><td>All are searchable multi-select pickers. Client comes from Tempo. A selected Promoter matches Jira Custom field (Promoter) OR Jira Reporter and maps to Business Area; the Promoter list is narrowed by selected Business Area values. Blank or unmatched promoter is `Other/Blank`.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Customer`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Promoter)`, `.Reporter`; `Promoters.csv.Promoter`, `.Business Area`.</td></tr>
+                <tr><td>Account / Module filters</td><td>Searchable multi-select pickers over direct Jira demand metadata.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`, `.Custom field (Product Module)`.</td></tr>
+                <tr><td>Target / Planning Release</td><td>Searchable multi-select picker sourced only from Jira Target Release.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)`.</td></tr>
+                <tr><td>Known Outstanding Demand</td><td>Sum Remaining Estimate ÷ 3,600; blank estimates are exceptions, not zero.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`.</td></tr>
+                <tr><td>Actual Effort</td><td>Sum Tempo logged hours in selected Work date range.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Work date`.</td></tr>
+                <tr><td>Remaining Period Capacity</td><td>Weekly planned hours − actual effort.</td><td>`Weekly Capacity_20261005.csv.Planned Hours`, `.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date`, `.Week Number`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`.</td></tr>
+                <tr><td>Release Predictability / Release KPI</td><td>Hardcoded `—` with `TODO`; no calculation is applied.</td><td>No source field.</td></tr>
+                <tr><td>Delivered Features (%) KPI</td><td>Count of DONE Epic, Epic Basic, Epic Release, and Epic Lab divided by count of those same types in On Hold, To Do, In Progress, PMC, In Development, Testing, Ready for Development, Prepare Development, In Review, Handoff for customer testing, In QA, or OAT - Ready for PI; multiplied by 100. It is a full-source count and does not change with Demand filters.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type`, `.Status`, `.Issue key`.</td></tr>
+                <tr><td>Delivered Features difference KPI</td><td>Count of DONE Epic, Epic Basic, Epic Release, and Epic Lab minus count of those same types in On Hold, To Do, In Progress, PMC, In Development, Testing, Ready for Development, Prepare Development, In Review, Handoff for customer testing, In QA, or OAT - Ready for PI. It is a full-source count and does not change with Demand filters.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type`, `.Status`, `.Issue key`.</td></tr>
+                <tr><td>Team × Release pivot</td><td>Remaining Estimate hours by mapped Team and planning period.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`, `.Assignee`, `.Custom field (Target Release)`, `.Due date`; `20261009_Assignees_Capacity.csv.Assignee`, `.Team`; `Release Cycle.csv.Start Date`, `.End Date`, `.Release Cycle`.</td></tr>
+                <tr><td>Capacity versus Known Assigned Demand</td><td>Selected-horizon capacity and resolved open Jira demand for six Engineering teams. Gap = Capacity − Assigned Demand; Load = Assigned Demand ÷ Capacity. Unallocated and other exceptions are separate.</td><td>Weekly Capacity `Planned Hours`, `Assignee`, `Week Number`; Assignees `Assignee`, `Team`, `Skill`; Master Date; Jira `Issue key`, parent keys, `Remaining Estimate`, `Status`, `Assignee`, `Target Release`, `Due date`; Release Cycle boundaries; source-derived reporting date. Parent estimates contribute only without estimated descendants; no Tempo inclusion requirement or logged-effort subtraction. Missing capacity renders “-”.</td></tr>
+                <tr><td>Epic Workflow — population and filters</td><td>Uses one distinct Jira key where Issue Type is `Epic`, `Epic Lab`, or `Epic Release`. It applies every Demand global filter: date/release, Team, Assignee, Skill, Client, Business Area, Promoter, Account, Module, and Target / planning release. Every workflow step and Other Disposition shows direct Tempo Logged Hours by matching Jira Issue key to Tempo Work Item Key; it is not a descendant roll-up.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Issue Type`, `.Status`, `.Assignee`, `.Custom field (Target Release)`, `.Due date`, `.Custom field (Account)`, `.Custom field (Product Module)`, `.Custom field (Promoter)`; `20261009_Assignees_Capacity.csv.Assignee`, `.Team`, `.Skill`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Customer`, `.Work Item Key`, `.Logged Hours`; `Promoters.csv.Promoter`, `.Business Area`; `Release Cycle.csv.Start Date`, `.End Date`, `.Release Cycle`.</td></tr>
+                <tr><td>Epic Workflow — stage mapping</td><td>Demand: Backlog, OAT - Idea, Placeholder. DoR: To Do, Analysis &amp; Prepare Development, OAT - Ready for PI. DoD: In Refinement, In Progress, In Development, In UAT / Beta, In Review, Testing, Waiting for Test, Reviewed, Waiting for Review, Ready for Development, Test Complete, Handoff for customer testing, In QA. Done: Done, Closed, Resolved. Discontinued: Rejected, Abandoned, Cancelled, Canceled. Blocked: Blocked, On Hold, Pending. Any other status is Unmapped.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`.</td></tr>
+                <tr><td>Epic detail</td><td>Selected stage lists direct Epic fields. Logged Hours and Variance are deliberately unavailable until Tempo worklog-to-Epic-descendant attribution is implemented and reconciled.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Summary`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Effort CAP (hrs))`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Original estimate`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`. No Tempo field is used for Logged Hours or Variance.</td></tr>
+                <tr><td>Actual vs Future Demand by Account</td><td>Tempo Actual and Jira Remaining Estimate are shown separately.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Work Item Key`, `.Account Name`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Account)`, `.Remaining Estimate`.</td></tr>
+                <tr><td>Demand Data Quality / inline ticket detail</td><td>Missing estimate, unassigned team, and unscheduled demand remain visible.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`, `.Assignee`, `.Custom field (Target Release)`, `.Due date`, `.Issue key`, `.Summary`; `20261009_Assignees_Capacity.csv.Assignee`, `.Team`; `Release Cycle.csv.Start Date`, `.End Date`.</td></tr>
+              </tbody></table></div>
+            </details>
+          </article>
+        </section>
+
+        <section class="workspace-tab-panel demand-tab" id="demandTab" role="tabpanel" aria-label="Demand management" hidden>
+          <p class="demand-intro">Current Tempo actuals, Jira known demand, and weekly capacity by planning period. This is not a forecast.</p>
+          <section id="demandKpis" class="kpi-grid demand-kpi-grid" aria-label="Demand Management KPIs"></section>
+          <section class="demand-grid">
+            <article class="panel demand-wide workflow-position-panel"><div class="panel-header"><div><h3>Epic Workflow</h3><p>Jira Issue Type = Epic, Epic Lab, or Epic Release. Each workflow step and Other Disposition shows direct Tempo hours where Jira Issue key equals Tempo Work Item Key; no descendant roll-up is applied.</p></div></div><div id="demandWorkflow" class="workflow-summary workflow-position" aria-label="Epic lifecycle"></div><div id="demandWorkflowDetails" class="inline-ticket-details workflow-ticket-details" hidden></div></article>
+            <article class="panel demand-wide"><div class="panel-header"><div><h3>Team × Release / Planning Period</h3><p>Pivot table of Jira remaining estimate hours. Backports and unscheduled demand remain visible.</p></div><label class="table-group-control">Rows <select id="demandMatrixGroup"><option value="team">Team</option><option value="period">Planning period</option></select></label></div><div class="table-wrap"><table id="demandMatrix"></table></div></article>
+            <article class="panel demand-wide capacity-coverage-panel" id="capacityCoveragePanel" aria-labelledby="coverageTitle">
+              <div class="panel-header coverage-header"><div><h3 id="coverageTitle">Capacity versus Known Assigned Demand</h3><p>Can the delivery teams absorb their known assigned demand within the selected planning horizon?</p><p id="coverageRange" class="coverage-range" aria-live="polite"></p></div>
+                <div class="coverage-controls"><label>Planning horizon<select id="coverageHorizon"><option value="release">Release</option><option value="year">Through year-end</option></select></label><label id="coverageReleaseLabel">Release<select id="coverageRelease"></select></label></div>
+              </div><div id="coverageContent" aria-live="polite"></div>
+            </article>
+            <article class="panel demand-wide"><div class="panel-header"><div><h3>Actual Effort vs Future Demand by Account</h3><p>Each account shows two separate measures: Tempo Logged Hours and Jira Remaining Estimate.</p></div></div><div id="demandAccountComparison" class="account-comparison" aria-label="Actual effort compared with future demand by account"></div></article>
+            <article class="panel demand-wide"><div class="panel-header"><div><h3>Demand Data Quality</h3><p>Select an exception to expand its affected Jira tickets directly in this panel.</p></div></div><div id="demandQuality" class="workflow-summary"></div><div id="demandQualityDetails" class="inline-ticket-details" hidden></div></article>
+          </section>
+        </section>
 
         <footer class="data-footer">
           <span id="sourceSummary"></span>
+          <span id="dataFreshness">Data freshness: loading…</span>
           <span>Range filters worklogs by work date; Backlog tab uses Tempo Work Date.</span>
         </footer>
       </main>
     </div>
 
     <script src="./data.js"></script>
+    <script src="./dashboard-core.js"></script>
     <script src="./app.js"></script>
+    <script src="./capacity-coverage.js"></script>
+    <script src="./demand.js"></script>
   </body>
 </html>

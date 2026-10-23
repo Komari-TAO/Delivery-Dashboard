@@ -1,0 +1,6 @@
+?? docs/user-guides/Authoring_Team_Capacity_Report.md
+?? report_generation/
+?? scripts/analyze_weekly_capacity.py
+?? scripts/build_authoring_team_capacity_workbook.mjs
+?? scripts/generate_authoring_team_capacity_report.py
+?? scripts/test_authoring_capacity_effort_report.py

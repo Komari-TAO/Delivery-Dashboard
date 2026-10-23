@@ -1,13 +1,19 @@
 (function () {
   "use strict";
 
+  const { clonePayload, escapeHtml, parseDataScript, clientValue } = window.DashboardCore;
+
   let raw = applyGlobalIssueExclusions(window.BI_DATA);
+  let lastUpdateContext = null;
+  // Embedded Tempo dimensions never write to the shared dashboard filters.
+  const accountDistributionSelection = { client: "", account: "" };
   const state = {
     startDate: raw.meta.dateMin,
     endDate: raw.meta.dateMax,
     teams: new Set(),
     assignees: new Set(),
     skills: new Set(),
+    clients: new Set(),
     accounts: new Set(),
     categories: new Set(),
     priorities: new Set(),
@@ -17,14 +23,15 @@
     releases: new Set(),
     detail: "accounts",
     detailSearch: "",
+    detailGroupBy: "",
     detailSort: {
       accounts: { key: null, direction: null },
       people: { key: null, direction: null },
       backlog: { key: null, direction: null },
       deliveryProgress: { key: null, direction: null },
-      bugTriage: { key: null, direction: null },
     },
     assigneeSearch: "",
+    clientSearch: "",
     accountSearch: "",
     targetReleaseSearch: "",
     programSearch: "",
@@ -50,10 +57,8 @@
     people: { key: "loggedTotal", direction: "desc" },
     backlog: { key: "lastWorklogDate", direction: "desc" },
     deliveryProgress: { key: "deliveryHealth", direction: "asc" },
-    bugTriage: { key: "bugSeverity", direction: "asc" },
   };
-  const BUG_SEVERITY_ORDER = ["Blocker", "Critical", "Major", "Medium", "Low", "Enhancement", "-"];
-  const BUG_SEVERITY_DISTRIBUTION_ORDER = ["Blocker", "Critical", "Major", "Medium", "Low", "Enhancement"];
+  const BUG_SEVERITY_DISTRIBUTION_ORDER = ["Blocker", "Critical", "Major"];
   const BUG_SEVERITY_DISTRIBUTION_COLORS = {
     Blocker: "#8f4a4d",
     Critical: "#a96567",
@@ -63,6 +68,11 @@
     Enhancement: "#e3d1d2",
   };
   const UNMAPPED_ACCOUNT_LABEL = "No Account / Missing Account";
+  // Tempo export files expose account keys and team names, but not the numeric IDs
+  // required by the Tempo UI routes. Keep only confirmed mappings here.
+  const TEMPO_ACCOUNT_IDS = Object.freeze({ Engineering: "143" });
+  const TEMPO_TEAM_IDS = Object.freeze({ Architecture: "41", Architects: "41" });
+  const TEMPO_APP_BASE = "https://oat-sa.atlassian.net/jira/apps/fa75e928-007a-4af4-9530-76503bcd4cba/ea7fda46-2015-4367-bd93-992fbf0c58ca";
   const DELIVERY_HEALTH_ORDER = {
     Overdue: 0,
     Critical: 0,
@@ -89,19 +99,6 @@
 
   const $ = (id) => document.getElementById(id);
 
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function parseDataScript(text) {
-    return JSON.parse(text.replace(/^window\.BI_DATA\s*=\s*/, "").replace(/;\s*$/, ""));
-  }
-
   function normalizeIssueKey(value) {
     return String(value || "").trim().toUpperCase();
   }
@@ -113,15 +110,16 @@
   }
 
   function applyGlobalIssueExclusions(payload) {
-    const configuredKeys = new Set(governedExcludedIssueKeys(payload));
+    const next = clonePayload(payload);
+    const configuredKeys = new Set(governedExcludedIssueKeys(next));
     ["worklogs", "backlogWorklogs", "backlog", "tempoOperationalMappings", "tempoDescriptions"].forEach((dataset) => {
-      if (!Array.isArray(payload?.[dataset])) return;
-      payload[dataset].forEach((row) => {
+      if (!Array.isArray(next?.[dataset])) return;
+      next[dataset].forEach((row) => {
         row.key = normalizeIssueKey(row.key);
       });
-      payload[dataset] = payload[dataset].filter((row) => !configuredKeys.has(row.key));
+      next[dataset] = next[dataset].filter((row) => !configuredKeys.has(row.key));
     });
-    return payload;
+    return next;
   }
 
   function groupRowsByKey(rows) {
@@ -292,6 +290,10 @@
     return state.accounts.size === 0 || state.accounts.has(accountFilterValue(value));
   }
 
+  function inSelectedClient(row) {
+    return state.clients.size === 0 || state.clients.has(clientValue(row));
+  }
+
   function inSelectedStatus(value) {
     return state.statuses.size === 0 || state.statuses.has(value || "");
   }
@@ -300,6 +302,7 @@
     const includeStatus = options.includeStatus !== false;
     return (
       state.accounts.size ||
+      state.clients.size ||
       state.categories.size ||
       state.priorities.size ||
       (includeStatus && state.statuses.size) ||
@@ -393,6 +396,7 @@
         (ignoreTeam || inSet(state.teams, row.team)) &&
         (ignoreAssignee || inSelectedAssignee(row.person)) &&
         inSet(state.skills, row.skill) &&
+        inSelectedClient(row) &&
         (ignoreAccount || inSelectedAccount(row.tempoAccount)) &&
         inSet(state.categories, row.category) &&
         inSet(state.priorities, row.priority) &&
@@ -412,6 +416,7 @@
         (ignoreTeam || inSet(state.teams, rowTeam)) &&
         (ignoreAssignee || inSelectedAssignee(row.assignee)) &&
         inSet(state.skills, rowSkill) &&
+        inSelectedClient(row) &&
         (ignoreAccount || inSelectedAccount(row.account)) &&
         inSet(state.priorities, row.priority) &&
         (ignoreStatus || inSelectedStatus(row.status)) &&
@@ -429,6 +434,7 @@
         (ignoreTeam || inSet(state.teams, row.team)) &&
         (ignoreAssignee || inSelectedAssignee(row.person)) &&
         inSet(state.skills, row.skill) &&
+        inSelectedClient(row) &&
         (ignoreAccount || inSelectedAccount(row.account)) &&
         inSet(state.categories, row.category) &&
         inSet(state.priorities, row.priority) &&
@@ -448,16 +454,7 @@
       );
     });
 
-    const bugTriage = (raw.bugTriage || []).filter((row) => {
-      return (
-        inSet(state.teams, row.team) &&
-        inSelectedAssignee(row.assigneeCanonical || row.assignee) &&
-        inSet(state.skills, row.skill) &&
-        (!isStatusFilterActive() || inSelectedStatus(row.status))
-      );
-    });
-
-    return { worklogs, backlog, backlogWorklogs, bugTriage, capacity };
+    return { worklogs, backlog, backlogWorklogs, capacity };
   }
 
   function governedLoggedWorklogRows(options = {}) {
@@ -474,6 +471,7 @@
         (ignoreTeam || inSet(state.teams, row.team)) &&
         (ignoreAssignee || inSelectedAssignee(row.person)) &&
         inSet(state.skills, row.skill) &&
+        inSelectedClient(row) &&
         (ignoreAccount || inSelectedAccount(row.account)) &&
         inSet(state.categories, row.category) &&
         inSet(state.priorities, row.priority) &&
@@ -501,16 +499,24 @@
     });
   }
 
-  function loggedEffortData() {
-    const data = filteredData({ ignoreStatus: true });
+  function buildUpdateContext() {
+    const baseFiltered = filteredData({ ignoreStatus: true });
     const scope = managedLoggedScope(governedLoggedWorklogRows());
     reportGovernedLoggedScope(scope.unmanagedWorklogs);
-    return {
+    const effortData = {
       worklogs: scope.worklogs,
-      backlog: data.backlog.filter((row) => validTeamSet.has(backlogTeam(row))),
-      capacity: data.capacity.filter((row) => validTeamSet.has(row.team)),
+      backlog: baseFiltered.backlog.filter((row) => validTeamSet.has(backlogTeam(row))),
+      capacity: baseFiltered.capacity.filter((row) => validTeamSet.has(row.team)),
       unmanagedWorklogs: scope.unmanagedWorklogs,
+      baseFiltered,
     };
+    const data = filteredData();
+    const programWorklogs = managedLoggedScope(governedLoggedWorklogRows({ ignoreProgram: true })).worklogs;
+    return { data, effortData, programWorklogs };
+  }
+
+  function loggedEffortData() {
+    return buildUpdateContext().effortData;
   }
 
   function demandBacklogData() {
@@ -523,6 +529,7 @@
         inSet(state.teams, rowTeam) &&
         inSelectedAssignee(row.assignee) &&
         inSet(state.skills, rowSkill) &&
+        inSelectedClient(row) &&
         inSelectedAccount(row.account) &&
         inSet(state.priorities, row.priority) &&
         inSelectedStatus(row.status) &&
@@ -684,6 +691,18 @@
       .filter((row) => row.label.toLowerCase().includes(state.assigneeSearch.toLowerCase()))
       .slice(0, 40);
     const skills = masterSkillRows();
+    const clientCounts = new Map();
+    (raw.worklogs || []).forEach((row) => {
+      const client = clientValue(row);
+      clientCounts.set(client, (clientCounts.get(client) || 0) + 1);
+    });
+    (raw.backlog || []).forEach((row) => {
+      const client = clientValue(row);
+      clientCounts.set(client, (clientCounts.get(client) || 0) + 1);
+    });
+    const clients = Array.from(clientCounts, ([label, count]) => ({ label, count }))
+      .sort((left, right) => left.label.localeCompare(right.label))
+      .filter((row) => row.label.toLowerCase().includes(state.clientSearch.toLowerCase()));
     const accounts = accountFacetRows()
       .filter((row) => accountTableDisplayValue(row.label).toLowerCase().includes(state.accountSearch.toLowerCase()));
     const categories = top(groupCount(raw.worklogs, "category"), "count", 20);
@@ -710,6 +729,8 @@
     updateAssigneePickerSummary(assignees.length);
     renderFacet("skillFacet", skills, state.skills, "skills");
     updateSkillPickerSummary(skills.length);
+    renderFacet("clientFacet", clients, state.clients, "clients");
+    updateClientPickerSummary(clients.length);
     renderFacet("accountFacet", accounts, state.accounts, "accounts", { labelFormatter: accountTableDisplayValue });
     updateAccountPickerSummary(accounts.length);
     renderFacet("categoryFacet", categories, state.categories, "categories");
@@ -814,6 +835,23 @@
   function setSkillPickerOpen(open) {
     $("skillPickerMenu").hidden = !open;
     $("skillPickerToggle").setAttribute("aria-expanded", String(open));
+  }
+
+  function updateClientPickerSummary(availableCount = 0) {
+    const selected = state.clients.size;
+    const summary = $("clientPickerSummary");
+    summary.textContent = selected ? `${formatNumber(selected)} selected` : "All clients";
+    summary.title = selected ? `${formatNumber(selected)} of ${formatNumber(availableCount)} clients selected` : "All clients included";
+  }
+
+  function clientOptionValues() {
+    return Array.from(document.querySelectorAll('#clientFacet input[data-state="clients"]'))
+      .map((input) => input.value);
+  }
+
+  function setClientPickerOpen(open) {
+    $("clientPickerMenu").hidden = !open;
+    $("clientPickerToggle").setAttribute("aria-expanded", String(open));
   }
 
   function updateAccountPickerSummary(availableCount = 0) {
@@ -931,32 +969,25 @@
     return Math.abs(h);
   }
 
-  function renderKpis(data) {
-    const filteredPeople = new Set(data.worklogs.map((row) => row.person).filter(Boolean));
-    const filteredTeams = new Set(data.worklogs.map((row) => row.team).filter(Boolean));
-    const annualCapacityRows = raw.assignees.filter((row) => {
-      const matchesCapacityFilters =
-        inSet(state.teams, row.team) &&
-        inSelectedAssignee(row.assignee) &&
-        inSet(state.skills, row.skill);
-      if (!matchesCapacityFilters) return false;
-      if (!hasWorklogOnlyFilters()) return true;
-      return filteredPeople.has(row.assignee) || filteredTeams.has(row.team);
-    });
-    const annualCapacity = sum(annualCapacityRows, "annualHours");
-    const actualHours = sum(data.worklogs, "logged");
+  function renderKpis() {
+    const sourceKpis = raw.meta.sourceKpis || {};
+    const legalHours = Number(sourceKpis.annualWorkforceLegalHours) || 0;
+    const annualCapacity = Number(sourceKpis.annualWorkforceCapacity) || 0;
+    const actualHours = Number(sourceKpis.actualHours) || 0;
+    const demandCapacity = Number(sourceKpis.demandCapacity) || 0;
     const remainingHours = annualCapacity - actualHours;
-    const workItems = distinctCount(data.worklogs, "key");
     const utilization = annualCapacity ? actualHours / annualCapacity : 0;
 
     const kpis = [
-      { label: "Annual Workforce Capacity", value: formatNumber(annualCapacity, 1), note: "Total governed workforce capacity for the full year.", color: colors.teal },
-      { label: "Actual Hours", value: formatNumber(actualHours, 1), note: `${formatNumber(workItems)} Tempo work items`, color: colors.blue },
-      { label: "Annual Capacity Remaining", value: formatNumber(remainingHours, 1), note: "Annual workforce capacity minus governed logged hours in the selected Date Range.", color: remainingHours < 0 ? colors.red : colors.green },
-      { label: "Annual Capacity Utilization", value: formatPercent(utilization), note: "Governed logged hours in the selected Date Range divided by annual workforce capacity.", color: utilization > 1 ? colors.amber : colors.violet },
+      { label: "Annual Workforce Legal Hours", value: formatNumber(legalHours, 1), note: "Actual Annual Hours for the six governed global-filter teams.", color: colors.slate },
+      { label: "Annual Workforce Capacity", value: formatNumber(annualCapacity, 1), note: "Sum of Weekly Capacity Planned Hours (column J).", color: colors.teal },
+      { label: "Actual Hours", value: formatNumber(actualHours, 1), note: "Sum of RAW_DATA_FULL_ANALYSIS Logged Hours.", color: colors.blue },
+      { label: "Remaining Period Capacity", value: formatNumber(remainingHours, 1), note: "Annual Workforce Capacity minus Actual Hours.", color: remainingHours < 0 ? colors.red : colors.green },
+      { label: "Annual Capacity Utilization", value: formatPercent(utilization), note: "Actual Hours divided by Annual Workforce Capacity.", color: utilization > 1 ? colors.amber : colors.violet },
+      { label: "Demand Capacity", value: formatNumber(demandCapacity, 1), note: "Sum of Jira Effort Cap.", color: colors.violet },
     ];
 
-    $("kpiGrid").innerHTML = kpis
+    $("generalKpiGrid").innerHTML = kpis
       .map((kpi) => `
         <article class="kpi-card">
           <span><i class="tone" style="background:${kpi.color}"></i>${escapeHtml(kpi.label)}</span>
@@ -973,6 +1004,7 @@
       ["teams", "Team"],
       ["assignees", "Assignee"],
       ["skills", "Skill"],
+      ["clients", "Client"],
       ["accounts", "Account"],
       ["categories", "Category"],
       ["priorities", "Priority"],
@@ -1085,12 +1117,12 @@
       .join("");
   }
 
-  function renderCharts(data, effortData) {
+  function renderCharts(data, effortData, programWorklogs = programDistributionEffortData()) {
     renderTrendChart(effortData.worklogs);
     renderPlanningChart(effortData.worklogs || []);
-    renderProgramPieChart(programDistributionEffortData());
-    renderBugSeverityDistributionChart(raw.bugTriage || []);
-    renderAccountTreemap({ ...data, worklogs: effortData.worklogs });
+    renderProgramPieChart(programWorklogs);
+    renderBugSeverityDistributionChart(data.backlog || []);
+    renderAccountTreemap(data, effortData.baseFiltered.worklogs);
     renderTeamChart(effortData.worklogs, effortData.capacity);
     renderRemainingDemandChart(effortData.worklogs, demandBacklogData());
     renderPriorityChart(data.backlog);
@@ -1124,6 +1156,16 @@
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     svg.setAttribute("role", "img");
+    const chartLabels = {
+      trendChart: "Logged and billable hours trend",
+      planningChart: "Planned versus unplanned effort",
+      programPieChart: "Logged hours by program",
+      bugSeverityChart: "Bug severity distribution",
+      teamChart: "Team capacity and utilization",
+      demandChart: "Remaining demand versus logged effort by team",
+      engineeringMixChart: "Engineering work mix",
+    };
+    svg.setAttribute("aria-label", chartLabels[containerId] || "Dashboard chart");
     svg.style.height = `${resolvedHeight}px`;
     canvas.appendChild(svg);
     return { el: canvas, svg, width, height: resolvedHeight };
@@ -1257,11 +1299,12 @@
     horizontalBars("typeChart", rows, "count", colors.violet, null);
   }
 
-  function bugSeverityDistributionRows(queueRows) {
+  function bugSeverityDistributionRows(backlogRows) {
     const counts = new Map(BUG_SEVERITY_DISTRIBUTION_ORDER.map((severity) => [severity, 0]));
     const seenKeys = new Set();
 
-    (queueRows || []).forEach((row) => {
+    (backlogRows || []).forEach((row) => {
+      if (String(row.type || "").trim().toLowerCase() !== "bug") return;
       const key = String(row.key || "").trim();
       if (!key || seenKeys.has(key)) return;
       seenKeys.add(key);
@@ -1277,10 +1320,10 @@
       .filter((row) => row.count > 0);
   }
 
-  function renderBugSeverityDistributionChart(queueRows) {
-    const rows = bugSeverityDistributionRows(queueRows);
+  function renderBugSeverityDistributionChart(backlogRows) {
+    const rows = bugSeverityDistributionRows(backlogRows);
     if (!rows.length) {
-      return emptyChart("bugSeverityChart", "No Bug Severity values in the current Bug Triage export.");
+      return emptyChart("bugSeverityChart", "No Major, Blocker, or Critical Jira bugs for the selected filters.");
     }
     horizontalBars("bugSeverityChart", rows, "count", (row) => BUG_SEVERITY_DISTRIBUTION_COLORS[row.label], null, {
       height: 220,
@@ -1299,14 +1342,16 @@
     logEngineeringWorkMixValidation(mix);
   }
 
-  function renderAccountTreemap(data) {
-    const tempoData = filteredData({ ignoreStatus: true });
-    const scope = accountDistributionScope(tempoData.worklogs);
-    const rows = accountTreemapRows(data, scope.tempoAccounts);
+  function renderAccountTreemap(data, tempoWorklogs) {
+    const worklogs = (tempoWorklogs || []).filter((row) => validTeamSet.has(row.team) && !isExcludedOperationalItem(row.key));
+    const totals = peopleTotalsRow(groupPeople(worklogs, []));
+    const customerWorklogs = worklogs.filter((row) => !isTempoWorkItem(row.key));
+    renderAccountDistributionFilters(customerWorklogs, worklogs);
+    const rows = accountDistributionRows(customerWorklogs);
     const totalLogged = rows.reduce((total, row) => total + row.logged, 0);
     if (!rows.length || totalLogged <= 0) {
-      emptyChart("accountTreemap", "No account-attributed engineering effort for the selected filters.");
-      renderAccountAttributionExceptionFooter(scope.exceptions);
+      emptyChart("accountTreemap", "No eligible customer/account effort for the selected filters.");
+      addTreemapSummary(totals, totalLogged);
       return;
     }
 
@@ -1319,7 +1364,7 @@
 
     tiles.forEach((tile) => {
       const row = tile.data;
-      const selected = state.accounts.has(row.filterValue);
+      const selected = row.dimension === "account" && accountDistributionSelection.account === row.filterValue;
       const fill = accountTreemapFill(row.filterValue);
       const stroke = selected ? colors.text : "rgba(255,255,255,0.9)";
       const percentage = totalLogged ? row.logged / totalLogged : 0;
@@ -1341,14 +1386,15 @@
       });
       addTitle(group, accountTreemapTooltip(row, percentage));
       group.addEventListener("click", (event) => {
-        if (!(event.ctrlKey || event.metaKey)) {
-          const onlySelected = state.accounts.size === 1 && state.accounts.has(row.filterValue);
-          state.accounts.clear();
-          if (!onlySelected) state.accounts.add(row.filterValue);
-          update();
-          return;
-        }
-        toggleFilter("accounts", row.filterValue);
+        if (row.dimension === "client") accountDistributionSelection.client = row.filterValue;
+        else accountDistributionSelection.account = selected ? "" : row.filterValue;
+        renderAccountTreemap(data, tempoWorklogs);
+      });
+      group.setAttribute("tabindex", "0");
+      group.setAttribute("role", "button");
+      group.setAttribute("aria-pressed", String(selected));
+      group.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); group.dispatchEvent(new MouseEvent("click")); }
       });
 
       const labelPad = 8;
@@ -1384,8 +1430,70 @@
       rect.setAttribute("aria-label", `${row.accountDisplay}: ${formatNumber(row.logged, 1)} hours, ${formatPercent(percentage)}`);
     });
 
-    addTreemapSummary(totalLogged);
-    renderAccountAttributionExceptionFooter(scope.exceptions);
+    addTreemapSummary(totals, totalLogged);
+  }
+
+  function tempoTreemapClient(row) {
+    return row.clientAttributionStatus === "Verified" ? String(row.tempoCustomerAccount || "").trim() : "";
+  }
+
+  function tempoTreemapAccount(row) {
+    // Missing keys are an explicit unknown bucket, never a name-based identity.
+    return String(row.tempoAccountKey || "").trim();
+  }
+
+  function renderAccountDistributionFilters(worklogs, contextWorklogs) {
+    const selection = accountDistributionSelection;
+    const clientId = (row) => JSON.stringify([tempoTreemapClient(row)]);
+    const accountId = (row) => JSON.stringify([tempoTreemapAccount(row)]);
+    const clients = new Map(worklogs.map((row) => [clientId(row), tempoTreemapClient(row) || "-"]));
+    // Retain Client even when a global filter temporarily removes its worklogs.
+    if (selection.client && !clients.has(selection.client)) clients.set(selection.client, JSON.parse(selection.client)[0] || "-");
+    const clientRows = worklogs.filter((row) => !selection.client || clientId(row) === selection.client);
+    const accounts = new Map(clientRows.map((row) => [accountId(row), tempoTreemapAccount(row) ? `${String(row.tempoAccount || "").trim() || "-"} (${tempoTreemapAccount(row)})` : "-"]));
+    const fill = (id, options, all, value) => {
+      const select = $(id);
+      select.replaceChildren(new Option(all, ""), ...Array.from(options).sort((a, b) => a[1].localeCompare(b[1])).map(([key, label]) => new Option(label, key)));
+      select.value = value;
+    };
+    // An account remains selected through unrelated global changes. Only a Client
+    // change clears an incompatible account, using the complete eligible source.
+    if (selection.account && !accounts.has(selection.account)) {
+      const known = raw.worklogs.find((row) => accountId(row) === selection.account);
+      accounts.set(selection.account, known ? `${known.tempoAccount || "-"} (${tempoTreemapAccount(known) || "-"})` : "-");
+    }
+    fill("accountDistributionClient", clients, "All Clients", selection.client);
+    fill("accountDistributionAccount", accounts, "All Accounts", selection.account);
+    $("accountTreemapSubtitle").textContent = selection.client || selection.account ? "Tempo logged hours by account" : "Tempo logged hours by client";
+    $("accountDistributionClient").onchange = (event) => {
+      selection.client = event.target.value;
+      if (selection.account && !raw.worklogs.some((row) => validTeamSet.has(row.team) && !isExcludedOperationalItem(row.key) && !isTempoWorkItem(row.key) && (!selection.client || clientId(row) === selection.client) && accountId(row) === selection.account)) selection.account = "";
+      renderAccountTreemap(null, contextWorklogs);
+    };
+    $("accountDistributionAccount").onchange = (event) => {
+      selection.account = event.target.value;
+      renderAccountTreemap(null, contextWorklogs);
+    };
+  }
+
+  function accountDistributionRows(worklogs) {
+    const selection = accountDistributionSelection;
+    const dimension = selection.client || selection.account ? "account" : "client";
+    const identity = (row) => JSON.stringify([dimension === "client" ? tempoTreemapClient(row) : tempoTreemapAccount(row)]);
+    const visible = worklogs.filter((row) => (
+      (!selection.client || JSON.stringify([tempoTreemapClient(row)]) === selection.client)
+      && (!selection.account || JSON.stringify([tempoTreemapAccount(row)]) === selection.account)
+    ));
+    const labels = new Map();
+    visible.forEach((row) => {
+      if (!labels.has(identity(row))) labels.set(identity(row), dimension === "client" ? tempoTreemapClient(row) || "-" : tempoTreemapAccount(row) ? `${String(row.tempoAccount || "").trim() || "-"} (${tempoTreemapAccount(row)})` : "-");
+    });
+    const map = governedTempoAccountAggregation(visible, identity);
+    return Array.from(map.values()).filter((row) => row.logged > 0).map((row) => ({
+      ...row, dimension, filterValue: row.account, accountDisplay: labels.get(row.account),
+      itemCount: row.items.size, assigneeCount: row.assignees.size,
+      teamsList: Array.from(row.teams).sort(), programsList: Array.from(row.programs).sort(),
+    })).sort((a, b) => b.logged - a.logged || a.accountDisplay.localeCompare(b.accountDisplay));
   }
 
   function renderProgramPieChart(worklogs) {
@@ -1943,14 +2051,14 @@
     };
   }
 
-  function governedTempoAccountAggregation(worklogs) {
+  function governedTempoAccountAggregation(worklogs, accountDimension = (row) => accountLabel(row.tempoAccount)) {
     const map = new Map();
     worklogs.filter((row) => (
       validTeamSet.has(row.team)
       && !isExcludedOperationalItem(row.key)
-      && Boolean(accountLabel(row.tempoAccount))
+      && Boolean(accountDimension(row))
     )).forEach((row) => {
-      const account = accountLabel(row.tempoAccount);
+      const account = accountDimension(row);
       if (!map.has(account)) {
         map.set(account, {
           account,
@@ -2062,11 +2170,21 @@
     return palette[Math.abs(hash) % palette.length];
   }
 
-  function addTreemapSummary(totalLogged) {
+  function addTreemapSummary(totals, customerEffort) {
     const el = $("accountTreemap");
     const summary = document.createElement("div");
-    summary.className = "treemap-summary";
-    summary.textContent = `Total logged hours (selected period): ${formatNumber(totalLogged, 1)} h`;
+    summary.className = "treemap-summary treemap-totals";
+    [
+      ["total", "Total logged hours", "global filters", totals.loggedTotal],
+      ["operations", "Operational Tempo hours", "global filters", totals.loggedOperations],
+      ["customer", "Customer/account effort", "global + local filters", customerEffort],
+    ].forEach(([metric, label, scope, hours]) => {
+      const value = document.createElement("div");
+      value.dataset.metric = metric;
+      value.dataset.hours = String(hours);
+      value.textContent = `${label} (${scope}): ${formatNumber(hours, 1)} h`;
+      summary.appendChild(value);
+    });
     el.appendChild(summary);
   }
 
@@ -2086,13 +2204,13 @@
 
   function accountTreemapTooltip(row, percentage) {
     const lines = [
-      `Account: ${row.accountDisplay}`,
+      `${row.dimension === "client" ? "Client" : "Account"}: ${row.accountDisplay}`,
       `Logged Hours: ${formatNumber(row.logged, 1)}`,
       `Percentage of filtered total: ${formatPercent(percentage)}`,
       `Billable Hours: ${formatNumber(row.billable, 1)}`,
-      `Original Estimate: ${formatNumber(row.estimated, 1)}`,
-      `Variance Hours: ${formatNumber(row.variance, 1)}`,
-      `Variance %: ${row.variancePercent === null ? "n/a" : formatPercent(row.variancePercent)}`,
+      "Original Estimate: -",
+      "Variance Hours: -",
+      "Variance %: -",
       `Work Items: ${formatNumber(row.itemCount)}`,
       `Number of Assignees: ${formatNumber(row.assigneeCount)}`,
       `Teams contributing hours: ${row.teamsList.length ? row.teamsList.join(", ") : "-"}`,
@@ -2338,10 +2456,10 @@
     const second = rows.slice(splitIndex);
     const firstTotal = first.reduce((sum, row) => sum + row.logged, 0);
     const ratio = firstTotal / total;
-    const gap = 2;
+    const gap = Math.min(2, Math.min(bounds.width, bounds.height) * Math.min(ratio, 1 - ratio));
 
     if (bounds.width >= bounds.height) {
-      const firstWidth = Math.max(0, Math.round(bounds.width * ratio) - gap / 2);
+      const firstWidth = Math.max(0, bounds.width * ratio - gap / 2);
       const secondWidth = Math.max(0, bounds.width - firstWidth - gap);
       return [
         ...splitTreemap(first, { x: bounds.x, y: bounds.y, width: firstWidth, height: bounds.height }, firstTotal),
@@ -2349,7 +2467,7 @@
       ];
     }
 
-    const firstHeight = Math.max(0, Math.round(bounds.height * ratio) - gap / 2);
+    const firstHeight = Math.max(0, bounds.height * ratio - gap / 2);
     const secondHeight = Math.max(0, bounds.height - firstHeight - gap);
     return [
       ...splitTreemap(first, { x: bounds.x, y: bounds.y, width: bounds.width, height: firstHeight }, firstTotal),
@@ -2600,10 +2718,10 @@
 
     if (state.detail === "accounts") {
       subtitle = "Account delivery effort";
-      rows = groupAccounts(data.backlog, filteredData({ ignoreStatus: true }).worklogs, data.backlog);
+      rows = groupAccounts(data.backlog, effortData.baseFiltered.worklogs, data.backlog);
       columns = detailColumns("accounts");
     } else if (state.detail === "people") {
-      const peopleData = peopleDetailData();
+      const peopleData = { worklogs: effortData.worklogs, capacity: effortData.capacity };
       subtitle = "Assignees and capacity";
       rows = groupPeople(peopleData.worklogs, peopleData.capacity);
       columns = detailColumns("people");
@@ -2611,10 +2729,6 @@
       subtitle = "Backlog worked on";
       rows = backlogWorkedRows(detailData.backlogWorklogs || []);
       columns = detailColumns("backlog");
-    } else if (state.detail === "bugTriage") {
-      subtitle = "Jira operational bug queue";
-      rows = bugTriageRows(data.bugTriage || []);
-      columns = detailColumns("bugTriage");
     } else {
       subtitle = "Delivery Progress";
       rows = deliveryProgressRows(filteredData({ ignoreTeam: true }).backlogWorklogs || []);
@@ -2632,38 +2746,17 @@
     if (state.detail === "accounts") footerRow = accountTotalsRow(rows);
     else if (state.detail === "people") footerRow = peopleTotalsRow(rows);
     rows = sortDetailRows(rows, state.detail, columns).slice(0, state.detail === "accounts" ? 120 : state.detail === "people" ? 80 : 120);
+    if (state.detailGroupBy) {
+      rows.sort((left, right) => String(left[state.detailGroupBy] || "").localeCompare(String(right[state.detailGroupBy] || "")));
+    }
 
     $("detailSubtitle").textContent = subtitle;
-    $("detailTable").innerHTML = tableHtml(columns, rows, state.detail, footerRow);
-    renderBugTriageSnapshotSummary();
+    renderDetailGroupControl(columns);
+    $("detailTable").innerHTML = tableHtml(columns, rows, state.detail, footerRow, state.detailGroupBy);
     const deliveryLegend = $("deliveryLegend");
     if (deliveryLegend) deliveryLegend.hidden = state.detail !== "deliveryProgress";
   }
 
-  function renderBugTriageSnapshotSummary() {
-    const container = $("bugTriageSnapshotSummary");
-    if (!container) return;
-    const comparison = raw.meta.bugTriageSnapshotComparison || {};
-    container.hidden = false;
-
-    const currentQueue = Number(comparison.currentQueue) || 0;
-    if (!comparison.hasPreviousSnapshot) {
-      container.innerHTML = `
-        <div class="bug-triage-snapshot-current">Full Bug Triage queue: <strong>${formatNumber(currentQueue)}</strong></div>
-        <div class="bug-triage-snapshot-context">No previous complete Bug Triage snapshot available.</div>
-      `;
-      return;
-    }
-
-    container.innerHTML = `
-      <div class="bug-triage-snapshot-current">Full Bug Triage queue: <strong>${formatNumber(currentQueue)}</strong></div>
-      <div class="bug-triage-snapshot-context">Compared with the previous complete snapshot</div>
-      <div class="bug-triage-snapshot-changes">
-        <span class="bug-triage-snapshot-added"><span aria-hidden="true">↑</span> ${formatNumber(comparison.addedToQueue)} Added to queue</span>
-        <span class="bug-triage-snapshot-removed"><span aria-hidden="true">↓</span> ${formatNumber(comparison.removedFromQueue)} Removed from queue</span>
-      </div>
-    `;
-  }
   function detailColumns(mode) {
     if (mode === "accounts") {
       return [
@@ -2703,17 +2796,6 @@
         { key: "lastWorklogDate", label: "Last Worklog Date" },
         { key: "daysToDue", label: "Days to Due" },
         { key: "deliveryHealth", label: "Delivery Health", health: true },
-      ];
-    }
-    if (mode === "bugTriage") {
-      return [
-        { key: "key", label: "Key", emphasize: true },
-        { key: "summary", label: "Summary" },
-        { key: "bugSeverity", label: "Bug Severity" },
-        { key: "status", label: "Status" },
-        { key: "updated", label: "Updated" },
-        { key: "assignee", label: "Assignee" },
-        { key: "team", label: "Team" },
       ];
     }
     return [
@@ -2799,19 +2881,6 @@
     const parentKey = detailPlanningValue(row.parentKey, row.key);
     if (parentKey === "-" || parentKey === row.key) return "-";
     return parentKey;
-  }
-
-  function bugTriageRows(queueRows) {
-    return (queueRows || [])
-      .map((row) => ({
-        key: detailDisplayValue(row.key),
-        summary: detailDisplayValue(row.summary),
-        bugSeverity: detailDisplayValue(row.bugSeverity),
-        status: detailDisplayValue(row.status),
-        updated: detailDisplayValue(row.updated),
-        assignee: detailDisplayValue(row.assignee),
-        team: detailDisplayValue(row.team),
-      }));
   }
 
   function backlogWorkedRows(worklogs) {
@@ -3053,25 +3122,11 @@
     return [...rows].sort((a, b) => {
       const deliveryCompare = mode === "deliveryProgress" ? compareDeliveryProgressRows(a, b, sort.key, direction) : null;
       if (deliveryCompare !== null) return deliveryCompare;
-      const bugTriageCompare = mode === "bugTriage" ? compareBugTriageRows(a, b, sort.key, direction) : null;
-      if (bugTriageCompare !== null) return bugTriageCompare;
       if (column.numeric) {
         return ((Number(a[sort.key]) || 0) - (Number(b[sort.key]) || 0)) * direction;
       }
       return String(a[sort.key] || "").localeCompare(String(b[sort.key] || "")) * direction;
     });
-  }
-
-  function bugTriageOrder(value, order) {
-    const normalized = detailDisplayValue(value);
-    const index = order.indexOf(normalized);
-    return index === -1 ? order.length : index;
-  }
-
-  function compareBugTriageRows(a, b, key, direction) {
-    if (key !== "bugSeverity") return null;
-    const severityCompare = (bugTriageOrder(a.bugSeverity, BUG_SEVERITY_ORDER) - bugTriageOrder(b.bugSeverity, BUG_SEVERITY_ORDER)) * direction;
-    return severityCompare || a.key.localeCompare(b.key);
   }
 
   function compareDeliveryProgressRows(a, b, key, direction) {
@@ -3163,6 +3218,7 @@
       loggedOperations: 0,
       billable: 0,
       capacity: 0,
+      personId: "",
       items: new Set(),
     });
 
@@ -3173,6 +3229,7 @@
       const key = row.person || "(blank)";
       if (!map.has(key)) map.set(key, emptyPerson(key, row.team));
       const item = map.get(key);
+      if (!item.personId && row.assigneeId) item.personId = row.assigneeId;
       const logged = Number(row.logged) || 0;
       if (isTempoWorkItem(rowKey)) {
         item.loggedOperations += logged;
@@ -3240,8 +3297,14 @@
         </button>
       </th>`;
     }).join("")}</tr></thead>`;
+    let previousGroup = null;
     const body = rows.map((row) => {
-      return `<tr>${columns.map((column) => `<td class="${detailCellClass(column)}">${formatDetailCell(row, column)}</td>`).join("")}</tr>`;
+      const groupValue = state.detailGroupBy ? detailDisplayValue(row[state.detailGroupBy]) : null;
+      const group = state.detailGroupBy && groupValue !== previousGroup
+        ? `<tr class="group-row"><td colspan="${columns.length}">${escapeHtml(columns.find((column) => column.key === state.detailGroupBy)?.label || "Group")}: ${escapeHtml(groupValue)}</td></tr>`
+        : "";
+      previousGroup = groupValue;
+      return `${group}<tr>${columns.map((column) => `<td class="${detailCellClass(column)}">${formatDetailCell(row, column)}</td>`).join("")}</tr>`;
     }).join("");
     const foot = footerRow
       ? `<tfoot><tr class="totals-row">${columns.map((column) => `<td class="${detailCellClass(column)}">${formatDetailCell(footerRow, column)}</td>`).join("")}</tr></tfoot>`
@@ -3262,6 +3325,10 @@
     const value = row[column.key];
     if (column.healthKey) return formatHealthSubjectKey(value, row);
     if (column.health) return formatDeliveryHealth(value, row);
+    if (["key", "parentKey", "childKey"].includes(column.key)) return formatJiraIssueLink(value, column.emphasize);
+    if (column.key === "account") return formatTempoEntityLink(value, TEMPO_ACCOUNT_IDS, "accounts/account");
+    if (column.key === "team") return formatTempoEntityLink(value, TEMPO_TEAM_IDS, "teams/team");
+    if (column.key === "person") return formatJiraPersonLink(value, row.personId);
     if (column.emphasize) return `<strong class="table-emphasis">${escapeHtml(value)}</strong>`;
     if (column.formatter) return escapeHtml(column.formatter(value, row));
     if (column.percent) return formatPercent(Number(value) || 0);
@@ -3269,10 +3336,40 @@
     return escapeHtml(value);
   }
 
+  function formatJiraIssueLink(value, emphasize = false) {
+    const key = String(value || "").trim();
+    if (!key || key === "-") return "-";
+    const label = emphasize ? `<strong class="table-emphasis">${escapeHtml(key)}</strong>` : escapeHtml(key);
+    return `<a class="jira-link" href="https://oat-sa.atlassian.net/browse/${encodeURIComponent(key)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  }
+
+  function formatTempoEntityLink(value, ids, route) {
+    const label = detailDisplayValue(value);
+    const id = ids[label];
+    if (!id) return escapeHtml(label);
+    return `<a class="tempo-link" href="${TEMPO_APP_BASE}/${route}/${encodeURIComponent(id)}/" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+  }
+
+  function formatJiraPersonLink(value, accountId) {
+    const label = detailDisplayValue(value);
+    if (!accountId || label === "-") return escapeHtml(label);
+    return `<a class="jira-link" href="https://oat-sa.atlassian.net/people/${encodeURIComponent(accountId)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+  }
+
+  function renderDetailGroupControl(columns) {
+    const select = $("detailGroupBy");
+    if (!select) return;
+    const allowed = columns.filter((column) => !column.numeric && !column.percent && !column.health).map((column) => column.key);
+    if (!allowed.includes(state.detailGroupBy)) state.detailGroupBy = "";
+    select.innerHTML = `<option value="">No grouping</option>${columns.filter((column) => allowed.includes(column.key)).map((column) => `<option value="${escapeHtml(column.key)}">${escapeHtml(column.label)}</option>`).join("")}`;
+    select.value = state.detailGroupBy;
+  }
+
   function formatHealthSubjectKey(value, row) {
     const label = detailDisplayValue(value);
     const title = `Health based on ${row.healthSubjectLabel || `Child Key: ${label}`}`;
-    return `<span class="health-key ${deliveryHealthClass(row.deliveryHealth)}" title="${escapeHtml(title)}">${escapeHtml(label)}</span>`;
+    const issue = label === "-" ? "-" : `<a class="jira-link" href="https://oat-sa.atlassian.net/browse/${encodeURIComponent(label)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+    return `<span class="health-key ${deliveryHealthClass(row.deliveryHealth)}" title="${escapeHtml(title)}">${issue}</span>`;
   }
 
   function formatDeliveryHealth(value, row) {
@@ -3290,7 +3387,50 @@
   }
 
   function renderFooter() {
-    $("sourceSummary").textContent = raw.meta.sources.map((source) => `${source.name}: ${formatNumber(source.rows)} rows`).join(" | ");
+    const sources = raw.meta.sources || [];
+    $("sourceSummary").textContent = sources.map((source) => `${source.name}: ${formatNumber(source.rows)} rows`).join(" | ");
+    const manifest = raw.meta.buildManifest || {};
+    const generated = raw.meta.generatedOn || "unknown date";
+    $("dataFreshness").textContent = `Data freshness: built ${generated} · ${sources.length} sources`;
+    renderDataQuality(manifest);
+  }
+
+  function renderDataQuality(manifest) {
+    const sources = raw.meta.sources || [];
+    const zeroSources = sources.filter((source) => Number(source.rows) === 0);
+    const excluded = raw.meta.excludedTempoWorkItems || [];
+    const summary = $("dataQualitySummary");
+    const sourceList = $("dataQualitySources");
+    if (!summary || !sourceList) return;
+    const warningCount = zeroSources.length;
+    summary.innerHTML = `<div class="quality-status ${warningCount ? "warning" : "ok"}">${warningCount ? `${warningCount} source warning${warningCount === 1 ? "" : "s"}` : "No empty source datasets detected"}</div><div class="quality-facts"><span>Last synchronized: ${escapeHtml(raw.meta.generatedOn || "not available")}</span><span>Excluded governed items: ${formatNumber(excluded.length)}</span><span>Payload hash: ${escapeHtml(manifest.payloadSha256 || "not available")}</span></div>`;
+    sourceList.innerHTML = sources.map((source) => { const hasRows = Number(source.rows) > 0; const status = hasRows ? "Synchronized" : "Empty"; return `<div class="quality-source ${hasRows ? "ok" : "warning"}"><strong>${escapeHtml(source.name)}</strong><span>${escapeHtml(status)} · ${formatNumber(source.rows)} rows · ${escapeHtml(source.file)}</span></div>`; }).join("");
+  }
+
+  function setWorkspaceTab(tabId) {
+    document.querySelector(".app-shell").dataset.activeTab = tabId;
+    document.querySelector(".workspace").dataset.activeTab = tabId;
+    document.querySelectorAll(".workspace-tab").forEach((tab) => {
+      const active = tab.dataset.workspaceTab === tabId;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", String(active));
+    });
+    document.querySelectorAll(".workspace-tab-panel").forEach((panel) => {
+      panel.hidden = panel.id !== tabId;
+      panel.classList.toggle("active", panel.id === tabId);
+    });
+    document.querySelectorAll("[data-workspace-surface]").forEach((surface) => {
+      surface.hidden = surface.dataset.workspaceSurface !== tabId;
+    });
+    const tabTitles = {
+      portfolioTab: ["PowerBI-style workspace", "Delivery Portfolio Overview"],
+      qualityTab: ["Source governance", "Datasources and sync status"],
+      demandTab: ["Governed demand visibility", "Demand Management"],
+    };
+    const [eyebrow, title] = tabTitles[tabId] || tabTitles.portfolioTab;
+    $("workspaceEyebrow").textContent = eyebrow;
+    $("workspaceTitle").textContent = title;
+    if (tabId === "portfolioTab" && lastUpdateContext) renderKpis();
   }
 
   function updateRangeBadge() {
@@ -3303,13 +3443,19 @@
     $("trendGrain").value = state.trendGrain;
     updateRangeBadge();
     renderFacets();
-    const data = filteredData();
-    const effortData = loggedEffortData();
-    renderKpis(effortData);
+    lastUpdateContext = buildUpdateContext();
+    const { data, effortData, programWorklogs } = lastUpdateContext;
+    renderKpis();
     renderActiveFilters();
-    renderCharts(data, effortData);
+    renderCharts(data, effortData, programWorklogs);
     renderDetails(data, effortData);
     renderFooter();
+  }
+
+  function relayoutCharts() {
+    if (!lastUpdateContext) return;
+    const { data, effortData, programWorklogs } = lastUpdateContext;
+    renderCharts(data, effortData, programWorklogs);
   }
 
   function toggleFilter(key, value) {
@@ -3334,9 +3480,14 @@
       start.setDate(start.getDate() - 59);
       state.startDate = clampDate(start.toISOString().slice(0, 10));
       state.endDate = raw.meta.dateMax;
-    } else if (preset === "q1") {
-      state.startDate = "2026-01-01";
-      state.endDate = "2026-03-31";
+    } else if (preset === "qtd") {
+      const reference = parseDate(raw.meta.currentDate || raw.meta.dateMax);
+      const year = reference.getFullYear();
+      const quarterIndex = Math.floor(reference.getMonth() / 3);
+      const quarterStart = new Date(year, quarterIndex * 3, 1);
+      const quarterEnd = new Date(year, quarterIndex * 3 + 3, 0);
+      state.startDate = clampDate(quarterStart.toISOString().slice(0, 10));
+      state.endDate = clampDate(quarterEnd.toISOString().slice(0, 10));
     }
     document.querySelectorAll(".segmented button").forEach((button) => {
       button.classList.toggle("active", button.dataset.preset === preset);
@@ -3345,9 +3496,10 @@
   }
 
   function downloadSnapshot() {
-    const data = filteredData();
+    const ctx = lastUpdateContext || buildUpdateContext();
+    const { data, effortData } = ctx;
     const columns = detailColumns("accounts");
-    const rows = sortDetailRows(groupAccounts(data.backlog, filteredData({ ignoreStatus: true }).worklogs, data.backlog), "accounts", columns);
+    const rows = sortDetailRows(groupAccounts(data.backlog, effortData.baseFiltered.worklogs, data.backlog), "accounts", columns);
     const csvRows = [
       columns.map((column) => column.label),
       ...rows.map((row) => columns.map((column) => {
@@ -3370,6 +3522,23 @@
   function csvCell(value) {
     const str = String(value ?? "");
     return /[",\n]/.test(str) ? `"${str.replaceAll('"', '""')}"` : str;
+  }
+
+  function bindFacetPicker(prefix, stateKey, setOpen, optionValues) {
+    $(`${prefix}PickerToggle`).addEventListener("click", () => {
+      setOpen($(`${prefix}PickerMenu`).hidden);
+    });
+    $(`${prefix}SelectAll`).addEventListener("click", () => {
+      state[stateKey].clear();
+      optionValues().forEach((value) => state[stateKey].add(value));
+      update();
+      setOpen(true);
+    });
+    $(`${prefix}ClearAll`).addEventListener("click", () => {
+      state[stateKey].clear();
+      update();
+      setOpen(true);
+    });
   }
 
   function bindEvents() {
@@ -3396,6 +3565,10 @@
       state.assigneeSearch = event.target.value;
       renderFacets();
     });
+    $("clientSearch").addEventListener("input", (event) => {
+      state.clientSearch = event.target.value;
+      renderFacets();
+    });
     $("accountSearch").addEventListener("input", (event) => {
       state.accountSearch = event.target.value;
       renderFacets();
@@ -3412,6 +3585,10 @@
       state.detailSearch = event.target.value;
       renderDetails(filteredData());
     });
+    $("detailGroupBy").addEventListener("change", (event) => {
+      state.detailGroupBy = event.target.value;
+      renderDetails(filteredData());
+    });
     $("detailTable").addEventListener("click", (event) => {
       const button = event.target.closest("button[data-sort-key]");
       if (!button) return;
@@ -3425,6 +3602,7 @@
         "teams",
         "assignees",
         "skills",
+        "clients",
         "accounts",
         "categories",
         "priorities",
@@ -3435,11 +3613,13 @@
       resetStatusDefaults();
       state.detailSearch = "";
       state.assigneeSearch = "";
+      state.clientSearch = "";
       state.accountSearch = "";
       state.targetReleaseSearch = "";
       state.programSearch = "";
       $("detailSearch").value = "";
       $("assigneeSearch").value = "";
+      $("clientSearch").value = "";
       $("accountSearch").value = "";
       $("targetReleaseSearch").value = "";
       $("programSearch").value = "";
@@ -3448,151 +3628,17 @@
     });
     $("downloadSnapshot").addEventListener("click", downloadSnapshot);
 
-    $("teamPickerToggle").addEventListener("click", () => {
-      setTeamPickerOpen($("teamPickerMenu").hidden);
-    });
-    $("teamSelectAll").addEventListener("click", () => {
-      state.teams.clear();
-      teamOptionValues().forEach((team) => state.teams.add(team));
-      update();
-      setTeamPickerOpen(true);
-    });
-    $("teamClearAll").addEventListener("click", () => {
-      state.teams.clear();
-      update();
-      setTeamPickerOpen(true);
-    });
-    $("assigneePickerToggle").addEventListener("click", () => {
-      setAssigneePickerOpen($("assigneePickerMenu").hidden);
-    });
-    $("assigneeSelectAll").addEventListener("click", () => {
-      state.assignees.clear();
-      assigneeOptionValues().forEach((assignee) => state.assignees.add(assignee));
-      update();
-      setAssigneePickerOpen(true);
-    });
-    $("assigneeClearAll").addEventListener("click", () => {
-      state.assignees.clear();
-      update();
-      setAssigneePickerOpen(true);
-    });
-    $("skillPickerToggle").addEventListener("click", () => {
-      setSkillPickerOpen($("skillPickerMenu").hidden);
-    });
-    $("skillSelectAll").addEventListener("click", () => {
-      state.skills.clear();
-      skillOptionValues().forEach((skill) => state.skills.add(skill));
-      update();
-      setSkillPickerOpen(true);
-    });
-    $("skillClearAll").addEventListener("click", () => {
-      state.skills.clear();
-      update();
-      setSkillPickerOpen(true);
-    });
-    $("accountPickerToggle").addEventListener("click", () => {
-      setAccountPickerOpen($("accountPickerMenu").hidden);
-    });
-    $("accountSelectAll").addEventListener("click", () => {
-      state.accounts.clear();
-      accountOptionValues().forEach((account) => state.accounts.add(account));
-      update();
-      setAccountPickerOpen(true);
-    });
-    $("accountClearAll").addEventListener("click", () => {
-      state.accounts.clear();
-      update();
-      setAccountPickerOpen(true);
-    });
-    $("categoryPickerToggle").addEventListener("click", () => {
-      setCategoryPickerOpen($("categoryPickerMenu").hidden);
-    });
-    $("categorySelectAll").addEventListener("click", () => {
-      state.categories.clear();
-      categoryOptionValues().forEach((category) => state.categories.add(category));
-      update();
-      setCategoryPickerOpen(true);
-    });
-    $("categoryClearAll").addEventListener("click", () => {
-      state.categories.clear();
-      update();
-      setCategoryPickerOpen(true);
-    });
-    $("priorityPickerToggle").addEventListener("click", () => {
-      setPriorityPickerOpen($("priorityPickerMenu").hidden);
-    });
-    $("prioritySelectAll").addEventListener("click", () => {
-      state.priorities.clear();
-      priorityOptionValues().forEach((priority) => state.priorities.add(priority));
-      update();
-      setPriorityPickerOpen(true);
-    });
-    $("priorityClearAll").addEventListener("click", () => {
-      state.priorities.clear();
-      update();
-      setPriorityPickerOpen(true);
-    });
-    $("statusPickerToggle").addEventListener("click", () => {
-      setStatusPickerOpen($("statusPickerMenu").hidden);
-    });
-    $("statusSelectAll").addEventListener("click", () => {
-      state.statuses.clear();
-      statusOptionValues().forEach((status) => state.statuses.add(status));
-      update();
-      setStatusPickerOpen(true);
-    });
-    $("statusClearAll").addEventListener("click", () => {
-      state.statuses.clear();
-      update();
-      setStatusPickerOpen(true);
-    });
-    $("targetReleasePickerToggle").addEventListener("click", () => {
-      setTargetReleasePickerOpen($("targetReleasePickerMenu").hidden);
-    });
-    $("targetReleaseSelectAll").addEventListener("click", () => {
-      state.targetReleases.clear();
-      targetReleaseOptionValues().forEach((targetRelease) => state.targetReleases.add(targetRelease));
-      update();
-      setTargetReleasePickerOpen(true);
-    });
-    $("targetReleaseClearAll").addEventListener("click", () => {
-      state.targetReleases.clear();
-      update();
-      setTargetReleasePickerOpen(true);
-    });
-    $("programPickerToggle").addEventListener("click", () => {
-      setProgramPickerOpen($("programPickerMenu").hidden);
-    });
-    $("programSelectAll").addEventListener("click", () => {
-      state.programs.clear();
-      programOptionValues().forEach((program) => state.programs.add(program));
-      update();
-      setProgramPickerOpen(true);
-    });
-    $("programClearAll").addEventListener("click", () => {
-      state.programs.clear();
-      update();
-      setProgramPickerOpen(true);
-    });
-    $("releasePickerToggle").addEventListener("click", () => {
-      setReleasePickerOpen($("releasePickerMenu").hidden);
-    });
-    $("releaseSelectAll").addEventListener("click", () => {
-      state.releases.clear();
-      releaseOptionValues().forEach((release) => state.releases.add(release));
-      update();
-      setReleasePickerOpen(true);
-    });
-    $("releaseClearAll").addEventListener("click", () => {
-      state.releases.clear();
-      update();
-      setReleasePickerOpen(true);
-    });
-
-    document.querySelector(".segmented").addEventListener("click", (event) => {
-      const button = event.target.closest("button[data-preset]");
-      if (button) setPreset(button.dataset.preset);
-    });
+    bindFacetPicker("team", "teams", setTeamPickerOpen, teamOptionValues);
+    bindFacetPicker("assignee", "assignees", setAssigneePickerOpen, assigneeOptionValues);
+    bindFacetPicker("skill", "skills", setSkillPickerOpen, skillOptionValues);
+    bindFacetPicker("client", "clients", setClientPickerOpen, clientOptionValues);
+    bindFacetPicker("account", "accounts", setAccountPickerOpen, accountOptionValues);
+    bindFacetPicker("category", "categories", setCategoryPickerOpen, categoryOptionValues);
+    bindFacetPicker("priority", "priorities", setPriorityPickerOpen, priorityOptionValues);
+    bindFacetPicker("status", "statuses", setStatusPickerOpen, statusOptionValues);
+    bindFacetPicker("targetRelease", "targetReleases", setTargetReleasePickerOpen, targetReleaseOptionValues);
+    bindFacetPicker("program", "programs", setProgramPickerOpen, programOptionValues);
+    bindFacetPicker("release", "releases", setReleasePickerOpen, releaseOptionValues);
 
     document.body.addEventListener("change", (event) => {
       const input = event.target.closest("input[data-state]");
@@ -3619,16 +3665,22 @@
       update();
     });
 
-    document.querySelector(".tabs").addEventListener("click", (event) => {
+    document.querySelector(".detail-tabs").addEventListener("click", (event) => {
       const tab = event.target.closest(".tab");
       if (!tab) return;
       state.detail = tab.dataset.detail;
+      state.detailGroupBy = "";
       document.querySelectorAll(".tab").forEach((button) => button.classList.toggle("active", button === tab));
       renderFacets();
       renderDetails(filteredData());
     });
 
-    window.addEventListener("resize", debounce(update, 150));
+    document.querySelector(".workspace-tabs").addEventListener("click", (event) => {
+      const tab = event.target.closest(".workspace-tab");
+      if (tab) setWorkspaceTab(tab.dataset.workspaceTab);
+    });
+
+    window.addEventListener("resize", debounce(relayoutCharts, 150));
   }
 
   function debounce(fn, wait) {
@@ -3641,7 +3693,7 @@
 
   resetStatusDefaults();
   bindEvents();
-  document.querySelector('.segmented button[data-preset="full"]').classList.add("active");
+  setWorkspaceTab("portfolioTab");
   update();
   refreshDataIfChanged();
   window.setInterval(refreshDataIfChanged, 5 * 60 * 1000);

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import unicodedata
@@ -20,6 +21,11 @@ from governed_exclusions import (
 ROOT = Path(__file__).resolve().parents[1]
 WEB_DIR = ROOT / "web"
 RAW_DIR = ROOT / "data" / "raw"
+# Accept the checked-in/exported CSV layout as well as the synchronized
+# data/raw layout. This keeps local builds usable when exports are placed
+# directly in data/.
+if not RAW_DIR.is_dir():
+    RAW_DIR = ROOT / "data"
 MAPPINGS_DIR = ROOT / "data" / "mappings"
 
 WORKLOGS_PATTERN = "RAW_DATA_FULL_ANALYSIS_*.csv"
@@ -28,7 +34,7 @@ CAPACITY_PATTERN = "Weekly Capacity_*.csv"
 ASSIGNEES_PATTERN = "*Assignees*Capacit*.csv"
 MASTER_DATE_PATTERN = "*Master*Date*.csv"
 RELEASES_PATTERN = "Release Cycle*.csv"
-BUG_TRIAGE_PATTERN = "Bug Triage_*"
+PROMOTERS_PATH = RAW_DIR / "Promoters.csv"
 TEMPO_OPERATIONAL_MAPPING = MAPPINGS_DIR / "tempo_operational_mapping.csv"
 
 PROGRAM_LABELS = {
@@ -37,6 +43,14 @@ PROGRAM_LABELS = {
     "PD": "PD - Product Development",
     "S-GTM": "S-GTM - Sales & Go To Market",
 }
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest().upper()
 
 
 def parse_export_date(path: Path) -> datetime:
@@ -61,72 +75,6 @@ def latest_csv(pattern: str) -> Path:
     if not matches:
         raise FileNotFoundError(f"No CSV files match pattern in {RAW_DIR}: {pattern}")
     return max(matches, key=lambda path: (parse_export_date(path), path.stat().st_mtime))
-
-
-def latest_two_csvs(pattern: str) -> tuple[Path, Path | None]:
-    matches = sorted(
-        (path for path in RAW_DIR.glob(pattern) if path.is_file()),
-        key=lambda path: (parse_export_date(path), path.stat().st_mtime),
-        reverse=True,
-    )
-    if not matches:
-        raise FileNotFoundError(f"No CSV files match pattern in {RAW_DIR}: {pattern}")
-    return matches[0], matches[1] if len(matches) > 1 else None
-
-
-def jira_key_set(frame: pd.DataFrame) -> tuple[set[str], int]:
-    keys = text(frame, "Key").str.strip().str.upper()
-    keys = keys[keys.ne("")]
-    return set(keys), int(len(keys) - keys.nunique())
-
-
-def compare_jira_key_sets(current_keys: set[str], previous_keys: set[str]) -> dict[str, int | bool]:
-    added_keys = current_keys - previous_keys
-    removed_keys = previous_keys - current_keys
-    current_queue = len(current_keys)
-    previous_queue = len(previous_keys)
-    added_to_queue = len(added_keys)
-    removed_from_queue = len(removed_keys)
-    return {
-        "currentQueue": current_queue,
-        "previousQueue": previous_queue,
-        "addedToQueue": added_to_queue,
-        "removedFromQueue": removed_from_queue,
-        "reconciles": current_queue == previous_queue + added_to_queue - removed_from_queue,
-    }
-
-
-def bug_triage_snapshot_comparison(
-    current_path: Path,
-    current_frame: pd.DataFrame,
-    previous_path: Path | None,
-) -> dict[str, Any]:
-    current_keys, current_duplicate_keys = jira_key_set(current_frame)
-    comparison: dict[str, Any] = {
-        "currentFile": current_path.name,
-        "previousFile": previous_path.name if previous_path else "",
-        "hasPreviousSnapshot": previous_path is not None,
-        "currentQueue": len(current_keys),
-        "previousQueue": None,
-        "addedToQueue": None,
-        "removedFromQueue": None,
-        "currentDuplicateKeys": current_duplicate_keys,
-        "previousDuplicateKeys": None,
-        "reconciles": None,
-    }
-    if previous_path is None:
-        return comparison
-
-    previous_frame = pd.read_csv(previous_path, low_memory=False)
-    previous_keys, previous_duplicate_keys = jira_key_set(previous_frame)
-    set_comparison = compare_jira_key_sets(current_keys, previous_keys)
-    comparison.update(
-        {
-            **set_comparison,
-            "previousDuplicateKeys": previous_duplicate_keys,
-        }
-    )
-    return comparison
 
 
 def clean(value: Any) -> Any:
@@ -446,6 +394,75 @@ def apply_master_date_week(worklogs: pd.DataFrame, master_date: pd.DataFrame) ->
     worklogs["isWorkday"] = worklog_dates.map(is_workday_by_date).fillna(worklogs["date"].dt.dayofweek < 5)
 
 
+CLIENT_NA = "N/A"
+
+
+def resolve_tempo_customers(worklogs: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, dict[str, str]], dict[str, Any]]:
+    """Validate account/customer pairs, then resolve direct issue attribution without joins.
+
+    The export is the available evidence, not a complete Tempo account registry.
+    Never use Account Name, Jira Account, legacy Client, or parent metadata as a customer.
+    """
+    required = {"Work Item Key", "Account Key", "Account Name", "Account Customer"}
+    missing = required.difference(worklogs.columns)
+    if missing:
+        raise ValueError(f"Tempo Customer Account attribution requires columns: {', '.join(sorted(missing))}")
+    evidence = pd.DataFrame({
+        "key": normalize_issue_key_series(text(worklogs, "Work Item Key")),
+        "accountKey": text(worklogs, "Account Key").str.strip(),
+        "accountName": text(worklogs, "Account Name").str.strip(),
+        "customer": text(worklogs, "Account Customer").str.strip(),
+    })
+    mapping: dict[str, str] = {}
+    conflicts: set[str] = set()
+    accounts = []
+    for account_key, rows in evidence[evidence["accountKey"].ne("")].groupby("accountKey", sort=True):
+        customers = sorted(set(rows["customer"]) - {""})
+        status = "Verified" if len(customers) == 1 else "Conflicting account customers" if customers else "Missing account customer"
+        if len(customers) == 1:
+            mapping[account_key] = customers[0]
+        elif customers:
+            conflicts.add(account_key)
+        accounts.append({"accountKey": account_key, "accountNames": sorted(set(rows["accountName"]) - {""}),
+                         "customers": customers, "status": status})
+    resolved = pd.DataFrame(index=worklogs.index)
+    resolved["tempoCustomerAccount"] = evidence["accountKey"].map(mapping).fillna(CLIENT_NA)
+    resolved["clientAttributionStatus"] = evidence["accountKey"].map(
+        lambda key: "Verified" if key in mapping else "Conflicting account customers" if key in conflicts
+        else "Missing account customer" if key else "Missing Tempo account key"
+    )
+    # A missing row customer may use a unique validated Account Key mapping.
+    # Conflicting keys are quarantined even when a particular row has a customer.
+    issues: dict[str, dict[str, str]] = {}
+    issue_exceptions = []
+    for key, rows in evidence[evidence["key"].ne("")].groupby("key", sort=True):
+        attribution = resolved.loc[rows.index]
+        customers = sorted(set(attribution.loc[attribution["clientAttributionStatus"].eq("Verified"), "tempoCustomerAccount"]))
+        complete = attribution["clientAttributionStatus"].eq("Verified").all()
+        status = "Verified" if complete and len(customers) == 1 else "Multiple customers" if len(customers) > 1 else "Incomplete Tempo customer mapping"
+        issues[key] = {"tempoCustomerAccount": customers[0] if status == "Verified" else CLIENT_NA,
+                       "clientAttributionStatus": status}
+        if status != "Verified":
+            issue_exceptions.append({"key": key, "status": status, "customers": customers,
+                                     "accountKeys": sorted(set(rows["accountKey"]) - {""})})
+    audit = {
+        "sourceField": "Account Customer", "accountIdentityField": "Account Key",
+        "join": "normalized Tempo Work Item Key = normalized Jira Issue key (direct only)",
+        "rule": "Worklog: unique nonblank customer per Account Key; Jira item: all direct worklogs verified and exactly one customer; otherwise N/A. No parent or Jira Client fallback.",
+        "accountMappings": accounts, "issueExceptions": issue_exceptions,
+        "worklogRows": int(len(resolved)),
+        "unattributedWorklogRows": int(resolved["clientAttributionStatus"].ne("Verified").sum()),
+    }
+    return resolved, issues, audit
+
+
+def jira_customer_attribution(keys: pd.Series, issues: dict[str, dict[str, str]]) -> pd.DataFrame:
+    return pd.DataFrame([
+        issues.get(key, {"tempoCustomerAccount": CLIENT_NA, "clientAttributionStatus": "No direct Tempo worklogs"})
+        for key in normalize_issue_key_series(keys)
+    ], index=keys.index)
+
+
 def main() -> None:
     WEB_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -455,7 +472,7 @@ def main() -> None:
     assignees_path = latest_csv(ASSIGNEES_PATTERN)
     master_date_path = latest_csv(MASTER_DATE_PATTERN)
     releases_path = latest_csv(RELEASES_PATTERN)
-    bug_triage_path, previous_bug_triage_path = latest_two_csvs(BUG_TRIAGE_PATTERN)
+    promoters_path = PROMOTERS_PATH
     tempo_operational_mapping_path = TEMPO_OPERATIONAL_MAPPING
 
     master_date = pd.read_csv(master_date_path)
@@ -486,7 +503,21 @@ def main() -> None:
     role_by_assignee = dict(zip(text(assignees, "Assignee"), text(assignees, "Role")))
     availability_by_assignee = dict(zip(text(assignees, "Assignee"), text(assignees, "Availability")))
 
+    promoters = pd.read_csv(promoters_path, low_memory=False)
+    promoters_out = pd.DataFrame({
+        "promoter": text(promoters, "Promoter").map(normalize_assignee_name),
+        "businessArea": text(promoters, "Business Area").str.strip(),
+    })
+    promoters_out = promoters_out[promoters_out["promoter"].str.strip().ne("")].drop_duplicates().sort_values(["businessArea", "promoter"])
+    promoter_to_business_area = dict(
+        zip(
+            text(promoters, "Promoter").map(normalize_assignee_name).str.casefold(),
+            text(promoters, "Business Area").str.strip(),
+        )
+    )
+
     worklogs = pd.read_csv(worklogs_path, low_memory=False)
+    source_actual_hours = float(num(worklogs, "Logged Hours").sum())
     worklogs, excluded_worklogs = partition_governed_issue_rows(worklogs, "Work Item Key")
     excluded_tempo_summary = [
         {
@@ -510,6 +541,7 @@ def main() -> None:
     worklog_date_min = worklogs["date"].min().strftime("%Y-%m-%d")
     worklog_date_max = worklogs["date"].max().strftime("%Y-%m-%d")
     apply_master_date_week(worklogs, master_date)
+    customer_rows, customer_by_issue, customer_audit = resolve_tempo_customers(worklogs)
     worklogs["month"] = worklogs["date"].dt.to_period("M").astype(str)
     worklogs["releaseCycle"] = worklogs["date"].apply(lambda d: release_for_date(d, releases))
     worklog_person = canonicalize_assignee_series(text(worklogs, "Full name"), assignee_name_lookup)
@@ -528,8 +560,11 @@ def main() -> None:
             "assigneeId": text(worklogs, "Assignee ID"),
             "account": "",
             "tempoAccount": text(worklogs, "Account Name"),
+            "tempoAccountKey": text(worklogs, "Account Key").str.strip(),
             "category": text(worklogs, "Account Category"),
-            "delivery": text(worklogs, "Client"),
+            "delivery": "",
+            "tempoCustomerAccount": customer_rows["tempoCustomerAccount"],
+            "clientAttributionStatus": customer_rows["clientAttributionStatus"],
             "program": "",
             "itemType": "",
             "tempoItemType": text(worklogs, "Work Item Type"),
@@ -551,6 +586,7 @@ def main() -> None:
     backlog_worklogs_out = worklogs_out.copy()
 
     backlog = pd.read_csv(backlog_path, low_memory=False)
+    source_demand_capacity = float(num(backlog, "Custom field (Effort CAP (hrs))").sum())
     backlog, excluded_backlog = partition_governed_issue_rows(backlog, "Issue key")
     excluded_summary_by_key = {row["key"]: row for row in excluded_tempo_summary}
     for key in sorted(GLOBAL_EXCLUDED_ISSUE_KEYS):
@@ -597,6 +633,15 @@ def main() -> None:
     backlog_team = backlog_assignee.map(team_by_assignee).fillna("")
     backlog_skill = backlog_assignee.map(skill_by_assignee).fillna("")
     backlog_program = text(backlog, "Custom field (Program)").map(normalize_program)
+    backlog_promoter = text(backlog, "Custom field (Promoter)").map(normalize_assignee_name)
+    backlog_business_area = backlog_promoter.str.casefold().map(promoter_to_business_area).fillna("")
+    backlog_business_area = backlog_business_area.mask(backlog_promoter.str.strip().eq(""), "Other/Blank")
+    backlog_business_area = backlog_business_area.mask(backlog_business_area.str.strip().eq(""), "Other/Blank")
+    backlog_reporter = text(backlog, "Reporter").map(normalize_assignee_name)
+    backlog_reporter_business_area = backlog_reporter.str.casefold().map(promoter_to_business_area).fillna("")
+    backlog_reporter_business_area = backlog_reporter_business_area.mask(backlog_reporter.str.strip().eq(""), "Other/Blank")
+    backlog_reporter_business_area = backlog_reporter_business_area.mask(backlog_reporter_business_area.str.strip().eq(""), "Other/Blank")
+    jira_customers = jira_customer_attribution(text(backlog, "Issue key"), customer_by_issue)
     backlog_out = pd.DataFrame(
         {
             "key": text(backlog, "Issue key"),
@@ -619,21 +664,66 @@ def main() -> None:
             "team": backlog_team,
             "skill": backlog_skill,
             "assignee": backlog_assignee.replace("", "(unassigned)"),
-            "reporter": text(backlog, "Reporter"),
+            "reporter": backlog_reporter,
+            "reporterBusinessArea": backlog_reporter_business_area,
             "release": backlog["release"],
             "labels": backlog["labels"],
             "technicalDebt": text(backlog, "Custom field (Is this technical debt ?)"),
             "delivery": text(backlog, "Custom field (Delivery)"),
+            "tempoCustomerAccount": jira_customers["tempoCustomerAccount"],
+            "clientAttributionStatus": jira_customers["clientAttributionStatus"],
             "targetRelease": text(backlog, "Custom field (Target Release)"),
             "program": backlog_program,
+            "promoter": backlog_promoter,
+            "businessArea": backlog_business_area,
             "account": text(backlog, "Custom field (Account)"),
+            "effortCapHours": num(backlog, "Custom field (Effort CAP (hrs))"),
+            "hasEffortCap": text(backlog, "Custom field (Effort CAP (hrs))").str.strip().ne(""),
             "originalEstimateHours": num(backlog, "Original estimate") / 3600,
+            "hasOriginalEstimate": text(backlog, "Original estimate").str.strip().ne(""),
             "remainingEstimateHours": num(backlog, "Remaining Estimate") / 3600,
+            "hasRemainingEstimate": text(backlog, "Remaining Estimate").str.strip().ne(""),
         }
     )
     summary_by_key = dict(zip(backlog_out["key"], backlog_out["summary"]))
     missing_parent_summary = backlog_out["parentSummary"].fillna("").astype(str).str.strip().eq("") & backlog_out["parentKey"].fillna("").astype(str).str.strip().ne("")
     backlog_out.loc[missing_parent_summary, "parentSummary"] = backlog_out.loc[missing_parent_summary, "parentKey"].map(summary_by_key).fillna("")
+
+    # Governed Demand layer. It is deliberately separate from the MVP's
+    # historical Tempo calculations and provides one demand record per Jira item.
+    release_end_by_cycle = dict(zip(text(releases, "Release Cycle"), releases["End"]))
+    demand_out = backlog_out.copy()
+    demand_out["demandHours"] = demand_out["remainingEstimateHours"].where(demand_out["hasRemainingEstimate"], None)
+    demand_out["demandTeam"] = demand_out["team"].where(demand_out["team"].str.strip().ne(""), "Unassigned / To Be Assigned")
+    demand_out["planningPeriod"] = demand_out["targetRelease"].fillna("").astype(str).str.strip()
+    demand_out["allocationType"] = "Target Release"
+    demand_out.loc[demand_out["planningPeriod"].eq(""), "allocationType"] = "Unscheduled / N/A"
+    due_dates = pd.to_datetime(demand_out["dueDate"], errors="coerce")
+    for index, due_date in due_dates.items():
+        target_release = demand_out.at[index, "planningPeriod"]
+        target_end = release_end_by_cycle.get(target_release)
+        if target_release and target_end is not None and pd.notna(due_date) and due_date > current_date and target_end < current_date:
+            demand_out.at[index, "planningPeriod"] = release_for_date(due_date, releases) or "Unscheduled / N/A"
+            demand_out.at[index, "allocationType"] = "Backport"
+        elif not target_release and pd.notna(due_date):
+            inferred_period = release_for_date(due_date, releases)
+            if inferred_period:
+                demand_out.at[index, "planningPeriod"] = inferred_period
+                demand_out.at[index, "allocationType"] = "Due Date fallback"
+    demand_out.loc[demand_out["planningPeriod"].eq(""), "planningPeriod"] = "Unscheduled / N/A"
+    status_key = demand_out["status"].fillna("").astype(str).str.strip().str.casefold()
+    demand_out["reportingStage"] = "Other / Unmapped"
+    demand_out.loc[status_key.str.contains("backlog|to do", regex=True), "reportingStage"] = "STEP 1 - Demand"
+    demand_out.loc[status_key.str.contains("analysis", regex=True), "reportingStage"] = "STEP 2 - DoR"
+    demand_out.loc[status_key.str.contains("ready for development|in development|testing|test complete", regex=True), "reportingStage"] = "STEP 3 - DoD"
+    demand_out.loc[status_key.str.contains("done|rejected|cancelled", regex=True), "reportingStage"] = "STEP 4 - Done / Cancelled"
+    demand_out["dorDod"] = "Other / Unmapped"
+    demand_out.loc[demand_out["reportingStage"].isin(["STEP 1 - Demand", "STEP 2 - DoR"]), "dorDod"] = "DoR"
+    demand_out.loc[demand_out["reportingStage"].isin(["STEP 3 - DoD", "STEP 4 - Done / Cancelled"]), "dorDod"] = "DoD"
+    demand_out["dataQuality"] = ""
+    demand_out.loc[~demand_out["hasRemainingEstimate"], "dataQuality"] = "Missing Remaining Estimate"
+    demand_out.loc[demand_out["demandTeam"].eq("Unassigned / To Be Assigned"), "dataQuality"] = demand_out["dataQuality"].mask(demand_out["dataQuality"].eq(""), "Unassigned Team")
+    demand_out.loc[demand_out["planningPeriod"].eq("Unscheduled / N/A"), "dataQuality"] = demand_out["dataQuality"].mask(demand_out["dataQuality"].eq(""), "Unscheduled")
     jira_by_key = backlog_out.set_index("key")
     jira_records = {
         str(row["key"]).strip().upper(): {
@@ -647,6 +737,11 @@ def main() -> None:
     for worklog_frame in (worklogs_out, backlog_worklogs_out):
         worklog_frame["account"] = worklog_frame["key"].map(jira_by_key["account"].to_dict()).fillna("")
         worklog_frame["program"] = worklog_frame["key"].map(jira_by_key["program"].to_dict()).fillna("")
+        worklog_frame["promoter"] = worklog_frame["key"].map(jira_by_key["promoter"].to_dict()).fillna("")
+        worklog_frame["reporter"] = worklog_frame["key"].map(jira_by_key["reporter"].to_dict()).fillna("")
+        worklog_frame["businessArea"] = worklog_frame["key"].map(jira_by_key["businessArea"].to_dict()).fillna("Other/Blank")
+        worklog_frame["reporterBusinessArea"] = worklog_frame["key"].map(jira_by_key["reporterBusinessArea"].to_dict()).fillna("Other/Blank")
+        worklog_frame["targetRelease"] = worklog_frame["key"].map(jira_by_key["targetRelease"].to_dict()).fillna("")
         worklog_frame["itemType"] = worklog_frame["key"].map(jira_by_key["type"].to_dict()).fillna("")
         worklog_frame["productModule"] = worklog_frame["key"].map(jira_by_key["productModule"].to_dict()).fillna("")
         worklog_frame["technicalDebt"] = worklog_frame["key"].map(jira_by_key["technicalDebt"].to_dict()).fillna("")
@@ -734,6 +829,18 @@ def main() -> None:
     backlog_worklogs_out["tempoDescriptionFound"] = mapped_tempo_mask
 
     capacity = pd.read_csv(capacity_path, low_memory=False)
+    source_annual_capacity = float(num(capacity, "Planned Hours").sum())
+    legal_hours_teams = {
+        "Authoring",
+        "Delivery Express",
+        "Integration",
+        "Nexus",
+        "Portal",
+        "Scoring",
+    }
+    source_legal_hours = float(
+        num(assignees.loc[text(assignees, "Team").isin(legal_hours_teams)], "Actual Annual Hours").sum()
+    )
     capacity = capacity[capacity["Assignee"].notna()].copy()
     capacity["week"] = pd.to_numeric(capacity["Week Number"], errors="coerce")
     capacity = capacity[capacity["week"].notna()].copy()
@@ -750,6 +857,22 @@ def main() -> None:
         }
     )
     capacity_out = capacity_out[capacity_out["team"].str.strip().ne("")].copy()
+
+    # This panel must retain source missingness and contributing-team mappings.
+    # The established payloads below keep their existing calculation semantics.
+    coverage_capacity = capacity_out.copy()
+    coverage_capacity["planned"] = pd.to_numeric(
+        text(capacity, "Planned Hours").str.replace(",", "", regex=False).str.strip(), errors="coerce"
+    ).reindex(coverage_capacity.index)
+    coverage_demand = demand_out.copy()
+    coverage_demand["remainingEstimateHours"] = pd.to_numeric(
+        text(backlog, "Remaining Estimate").str.replace(",", "", regex=False).str.strip(), errors="coerce"
+    ) / 3600
+    coverage_people = pd.DataFrame({
+        "assignee": text(assignees, "Assignee"),
+        "team": text(assignees, "Team"),
+        "skill": text(assignees, "Skill"),
+    })
 
     assignees_out = pd.DataFrame(
         {
@@ -779,55 +902,6 @@ def main() -> None:
             }
         )
     teams_out = pd.DataFrame(team_dimension_rows)
-    bug_triage = pd.read_csv(bug_triage_path, low_memory=False)
-    bug_triage_snapshot_summary = bug_triage_snapshot_comparison(
-        bug_triage_path,
-        bug_triage,
-        previous_bug_triage_path,
-    )
-    bug_triage["normalizedKey"] = text(bug_triage, "Key").str.strip().str.upper()
-    bug_triage_valid = bug_triage[
-        text(bug_triage, "Issue Type").str.strip().str.casefold().eq("bug")
-        & bug_triage["normalizedKey"].ne("")
-    ].copy()
-    bug_triage_source_rows = int(len(bug_triage_valid))
-    bug_triage_distinct_keys = int(bug_triage_valid["normalizedKey"].nunique())
-    bug_triage_duplicate_keys = int(bug_triage_source_rows - bug_triage_distinct_keys)
-    bug_triage_valid = bug_triage_valid.drop_duplicates(subset=["normalizedKey"], keep="first").copy()
-    bug_triage_assignee = text(bug_triage_valid, "Assignee").map(normalize_assignee_name)
-    bug_triage_assignee_canonical = canonicalize_assignee_series(bug_triage_assignee, assignee_name_lookup)
-    bug_triage_out = pd.DataFrame(
-        {
-            "key": text(bug_triage_valid, "Key").str.strip(),
-            "normalizedKey": bug_triage_valid["normalizedKey"],
-            "summary": text(bug_triage_valid, "Summary"),
-            "bugSeverity": text(bug_triage_valid, "Bug Severity"),
-            "status": text(bug_triage_valid, "Status"),
-            "updated": text(bug_triage_valid, "Updated"),
-            "assignee": bug_triage_assignee,
-            "assigneeCanonical": bug_triage_assignee_canonical,
-            "team": bug_triage_assignee_canonical.map(team_by_assignee).fillna(""),
-            "skill": bug_triage_assignee_canonical.map(skill_by_assignee).fillna(""),
-        }
-    )
-    bug_triage_assigned = bug_triage_out["assignee"].fillna("").astype(str).str.strip().ne("")
-    bug_triage_mapping_exceptions = bug_triage_out.loc[
-        bug_triage_assigned & bug_triage_out["team"].fillna("").astype(str).str.strip().eq(""),
-        ["key", "assignee"],
-    ].to_dict(orient="records")
-    bug_severity_counts = bug_triage_out["bugSeverity"].fillna("").astype(str).str.strip().replace("", "-")
-    bug_triage_summary = {
-        "sourceFile": bug_triage_path.name,
-        "sourceRows": int(len(bug_triage)),
-        "validBugRows": bug_triage_source_rows,
-        "distinctKeys": bug_triage_distinct_keys,
-        "duplicateKeys": bug_triage_duplicate_keys,
-        "availableColumns": list(bug_triage.columns.drop("normalizedKey")),
-        "severityDistribution": {value: int((bug_severity_counts == value).sum()) for value in sorted(bug_severity_counts.unique())},
-        "assignedKeys": int(bug_triage_assigned.sum()),
-        "unassignedKeys": int((~bug_triage_assigned).sum()),
-        "assigneeTeamMappingExceptions": bug_triage_mapping_exceptions,
-    }
     program_counts = backlog_out["program"].fillna("").astype(str).str.strip()
     programs_out = pd.DataFrame(
         [
@@ -918,6 +992,19 @@ def main() -> None:
         }
     )
 
+    builder_path = Path(__file__).resolve()
+    app_js_path = WEB_DIR / "app.js"
+    source_manifest = [
+        {"role": "Tempo worklogs", "file": worklogs_path.name, "path": str(worklogs_path.relative_to(ROOT)), "sha256": file_sha256(worklogs_path), "rows": int(len(worklogs_out))},
+        {"role": "Jira PI backlog", "file": backlog_path.name, "path": str(backlog_path.relative_to(ROOT)), "sha256": file_sha256(backlog_path), "rows": int(len(backlog_out))},
+        {"role": "Business Area promoters", "file": promoters_path.name, "path": str(promoters_path.relative_to(ROOT)), "sha256": file_sha256(promoters_path), "rows": int(len(promoters))},
+        {"role": "Weekly capacity", "file": capacity_path.name, "path": str(capacity_path.relative_to(ROOT)), "sha256": file_sha256(capacity_path), "rows": int(len(capacity_out))},
+        {"role": "Assignees master", "file": assignees_path.name, "path": str(assignees_path.relative_to(ROOT)), "sha256": file_sha256(assignees_path), "rows": int(len(assignees_out))},
+        {"role": "Master date", "file": master_date_path.name, "path": str(master_date_path.relative_to(ROOT)), "sha256": file_sha256(master_date_path), "rows": int(len(master_date))},
+        {"role": "Release cycles", "file": releases_path.name, "path": str(releases_path.relative_to(ROOT)), "sha256": file_sha256(releases_path), "rows": int(len(release_out))},
+        {"role": "Tempo operational mapping", "file": tempo_operational_mapping_path.name, "path": str(tempo_operational_mapping_path.relative_to(ROOT)), "sha256": file_sha256(tempo_operational_mapping_path), "rows": int(len(tempo_operational_mapping))},
+    ]
+
     payload = {
         "meta": {
             "generatedOn": current_date.strftime("%Y-%m-%d"),
@@ -925,15 +1012,18 @@ def main() -> None:
             "dateMax": worklog_date_max,
             "currentDate": current_date.strftime("%Y-%m-%d"),
             "sources": [
-                {"name": "Tempo worklogs", "file": worklogs_path.name, "rows": int(len(worklogs_out))},
-                {"name": "Jira PI backlog", "file": backlog_path.name, "rows": int(len(backlog_out))},
-                {"name": "Jira Bug Triage queue", "file": bug_triage_path.name, "rows": int(len(bug_triage_out))},
-                {"name": "Weekly capacity", "file": capacity_path.name, "rows": int(len(capacity_out))},
-                {"name": "Assignees master", "file": assignees_path.name, "rows": int(len(assignees_out))},
-                {"name": "Master date", "file": master_date_path.name, "rows": int(len(master_date))},
-                {"name": "Release cycles", "file": releases_path.name, "rows": int(len(release_out))},
-                {"name": "Tempo operational mapping", "file": tempo_operational_mapping_path.name, "rows": int(len(tempo_operational_mapping))},
+                {"name": item["role"], "file": item["file"], "rows": item["rows"]}
+                for item in source_manifest
             ],
+            "buildManifest": {
+                "builderScript": str(builder_path.relative_to(ROOT)),
+                "builderSha256": file_sha256(builder_path),
+                "frontendScript": str(app_js_path.relative_to(ROOT)),
+                "frontendSha256": file_sha256(app_js_path) if app_js_path.is_file() else "",
+                "governedExclusionsScript": "scripts/governed_exclusions.py",
+                "governedExclusionsSha256": file_sha256(ROOT / "scripts" / "governed_exclusions.py"),
+                "sourceFiles": source_manifest,
+            },
             "notes": [
                 "The local .gdoc files are Google Drive shortcuts; their document body was not exposed by the mounted filesystem.",
                 "Date range filters Tempo worklogs by work date; the Backlog detail table uses Tempo Work Date, Jira metadata for Jira-linked items, and tempo_operational_mapping.csv metadata for mapped Tempo operational items.",
@@ -942,20 +1032,30 @@ def main() -> None:
                 "Team dimension is sourced from Assignees master and constrained to teams with weekly capacity records.",
                 "Skill dimension is sourced from Assignees master and filters worklogs, Jira demand, and capacity through assignee mapping.",
                 "Account dimension is sourced from Jira Custom field (Account) and joined to Tempo worklogs by work item key.",
+                "Client = Tempo Account Customer, validated through Tempo Account Key. Jira items require one complete, unambiguous direct customer mapping; missing or ambiguous attribution is N/A. Client is separate from Tempo Account, Jira Account, and Jira Delivery.",
                 "Program dimension is sourced from Jira Custom field (Program) and joined to Tempo worklogs by work item key.",
                 "Backlog and Delivery Progress metadata inherits Account, Delivery, Target Release, and Fix Version from the Jira parent only when a child Tempo work item is absent from the Jira export and the parent exists; the child key is preserved.",
                 "Work Item Types dimension is sourced from Jira Issue Type and joined to Tempo worklogs by work item key; the chart metric is Tempo worklog row count.",
                 "Status dimension is sourced from Jira Status and joined to Tempo worklogs by work item key; selecting a status filters both Jira demand rows and matched Tempo worklogs.",
-                "Bug Triage is an inventory-based Jira queue from the dedicated Bug Triage export. Jira Updated is displayed exactly as exported; Tempo does not participate in this table.",
             ],
+            "clientAttribution": {
+                **customer_audit,
+                "jiraItems": int(len(backlog_out)),
+                "jiraAttributionStatuses": {str(key): int(count) for key, count in backlog_out["clientAttributionStatus"].value_counts().items()},
+                "jiraExceptions": as_records(backlog_out.loc[backlog_out["clientAttributionStatus"].ne("Verified"), ["key", "tempoCustomerAccount", "clientAttributionStatus"]]),
+            },
             "programSummary": program_summary,
             "statusSummary": status_summary,
             "skillSummary": skill_summary,
             "issueTypeSummary": issue_type_summary,
-            "bugTriageSummary": bug_triage_summary,
-            "bugTriageSnapshotComparison": bug_triage_snapshot_summary,
             "excludedIssueKeys": sorted(GLOBAL_EXCLUDED_ISSUE_KEYS),
             "excludedTempoWorkItems": excluded_tempo_summary,
+            "sourceKpis": {
+                "annualWorkforceLegalHours": source_legal_hours,
+                "annualWorkforceCapacity": source_annual_capacity,
+                "actualHours": source_actual_hours,
+                "demandCapacity": source_demand_capacity,
+            },
         },
         "teams": as_records(teams_out),
         "skills": as_records(skills_out),
@@ -967,7 +1067,17 @@ def main() -> None:
         "tempoOperationalMappings": as_records(tempo_operational_mapping),
         "tempoDescriptions": as_records(tempo_operational_mapping),
         "backlog": as_records(backlog_out),
-        "bugTriage": as_records(bug_triage_out),
+        "demand": as_records(demand_out),
+        "capacityCoverage": {
+            "reportingDate": current_date.strftime("%Y-%m-%d"),
+            "capacityYear": parse_export_date(capacity_path).year,
+            "capacityYearBasis": "Weekly Capacity has no year field; only the export snapshot year is supported. Other years are unavailable.",
+            "capacity": as_records(coverage_capacity),
+            "demand": as_records(coverage_demand),
+            "assignees": as_records(coverage_people),
+            "hierarchyRule": "Child-first, parent-fallback: eligible open descendant Remaining Estimates (including confirmed zero) replace the parent estimate; otherwise use the parent's own Remaining Estimate. Preserve source estimates and flag overlaps for non-additive governance review. Scoped to this panel, approved 2026-10-22.",
+        },
+        "promoters": as_records(promoters_out),
         "capacity": as_records(capacity_out),
         "assignees": as_records(assignees_out),
         "masterDates": as_records(master_dates_out),
@@ -975,11 +1085,18 @@ def main() -> None:
     }
 
     data_path = WEB_DIR / "data.js"
-    data_path.write_text(
-        "window.BI_DATA = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n",
+    unsigned_body = "window.BI_DATA = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n"
+    payload["meta"]["buildManifest"]["payloadSha256"] = hashlib.sha256(unsigned_body.encode("utf-8")).hexdigest().upper()
+    data_js_body = "window.BI_DATA = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n"
+    data_path.write_text(data_js_body, encoding="utf-8")
+
+    manifest_path = WEB_DIR / "build-manifest.json"
+    manifest_path.write_text(
+        json.dumps(payload["meta"]["buildManifest"], ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     print(data_path)
+    print(manifest_path)
 
 
 if __name__ == "__main__":

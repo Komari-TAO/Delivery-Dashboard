@@ -1,0 +1,34 @@
+CLIENT DELIVERY STATUS AND DEMAND — 22 OCTOBER 2026
+
+Primary deliverable: outputs/client_delivery_20261022/Client_Delivery_Status_and_Demand_2026-10-22.xlsx
+The workbook is standalone. It contains no macros, external workbook links or live source connections.
+Use the yellow Release cell on Demand and capacity. Supporting input sheets are hidden and can be unhidden in Excel.
+Use the Epic row outline controls to collapse/expand workflow detail. Filters on Epic register and Demand detail retain all records.
+
+REGENERATION
+Keep this folder at <repository>/report_generation/client_delivery_20261022/.
+Requires the supplied repository data/raw CSV exports, current governance/code files, bundled Python with pandas,
+bundled Node with @oai/artifact-tool, and installed desktop Excel for native recalculation and feature verification.
+Run in PowerShell:
+  & '<repository>/report_generation/client_delivery_20261022/generate.ps1'
+Optionally pass -Runtime '<bundled dependencies folder>'. Close the report in Excel before regenerating.
+The scripts read source files and governed helper functions. They write only their separate report workspace/output directory.
+The reporting date is fixed at 2026-10-22 for reproducibility; latest matching local CSVs are selected by governed export-date logic.
+
+SCRIPTS
+build_data.py: read-only source adapter; authoritative own Remaining Estimates; explicit unresolved overlap quarantine.
+build_workbook.mjs: Artifact Tool authoring of six report tabs and two supporting formula inputs.
+finalize.ps1: hidden independent Excel process; native input-change tests, cached values, chart/print settings, outlines and links.
+validate.py: independent reconciliation of three releases, zero-capacity and overload cases; OOXML checks and SHA-256 preservation.
+initial_files.json: original source/dashboard/governance/pre-existing-change hashes used for preservation checks.
+validation.json and native_excel_tests.json in the output folder contain executed verification evidence.
+
+MATERIAL LIMITATIONS
+Only a restricted PI Backlog Jira export was available. Unexported work and children cannot be enumerated.
+The current implementation/specification has no approved child-first Remaining Estimate contributor rule.
+Nineteen mixed-level records are retained but withheld from demand pending that rule. Aggregate Jira estimates are never added.
+Client is Tempo Account Customer, resolved by direct issue-key links. No Jira Account or Tempo Client substitution.
+165 Epics have no verified Customer Account; 346 Jira records have missing Remaining Estimate; 2064 have missing delivery allocation.
+Capacity covers 38 of 60 managed people across 6 of 10 workforce teams and is applicable only to complete 2026 release windows.
+Due-date demand remains a dated bucket and is excluded from named-release comparisons.
+This is partial known-demand visibility, not a validated assertion that the organization can absorb all demand.
