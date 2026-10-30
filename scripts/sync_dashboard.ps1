@@ -11,10 +11,11 @@ $statePath = Join-Path $workspaceRoot 'data\.dashboard_sync_state.json'
 $python = 'C:\Users\User\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
 
 $sourceDefinitions = @(
-  @{ Name = 'Tempo worklogs'; Pattern = 'RAW_DATA_FULL_ANALYSIS_*.csv' },
-  @{ Name = 'Jira PI backlog'; Pattern = 'All Jira Work Items marked PI Backlog (JIRA)_*.csv' },
-  @{ Name = 'Weekly capacity'; Pattern = 'Weekly Capacity_*.csv' },
-  @{ Name = 'Assignees master'; Pattern = '*Assignees*Capacit*.csv' },
+  @{ Name = 'Tempo worklogs'; Pattern = 'RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv' },
+  @{ Name = 'Jira PI backlog'; Pattern = 'All Jira Work Items marked PI Backlog (JIRA)_20261030.csv' },
+  @{ Name = 'Weekly capacity'; Pattern = 'Weekly Capacity_20261028.csv' },
+  @{ Name = 'Assignees master'; Pattern = '20261028_Assignees_Capacity.csv' },
+  @{ Name = 'Support reservations'; Pattern = 'Support hours 2026.csv' },
   @{ Name = 'Master date'; Pattern = '*Master*Date*.csv' },
   @{ Name = 'Release cycles'; Pattern = 'Release Cycle*.csv' }
 )

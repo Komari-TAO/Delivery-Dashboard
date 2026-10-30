@@ -25,7 +25,7 @@ Browser-based delivery-management dashboard for governed Tempo effort, Jira deli
 
 4. Open `http://127.0.0.1:8000/`.
 
-The build chooses the latest matching export in `data/raw/`. See the Chart and Visual Specification for current file patterns and exact field names.
+The active roster, Development, Support, Tempo and Jira exports are selected explicitly in `scripts/capacity_sources.py` and `scripts/sync_dashboard.ps1`. The roster comes from the six delivery teams in `20261028_Assignees_Capacity.csv`, unique by Assignee ID; Engineering rows remain separate reconciliation metadata. Weekly Development uses `Weekly Capacity_20261028.csv` directly. `Support hours 2026.csv` is used only for the local reconciliation, not dashboard capacity formulas or actuals. Active Tempo/Jira snapshots remain dated October 30. The old `rollback-single-team.csv` is retained for recovery and optional comparison only; builds do not require it. Run `python scripts/capacity_sources.py` for the local CSV/JSON reconciliation under `outputs/capacity_reconciliation_20261030/`. Source checksums are recorded in that report and the generated manifest. Other source fields and existing chart rules are in the Chart and Visual Specification.
 
 ## Repository layout
 

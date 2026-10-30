@@ -1,5 +1,17 @@
 # MVP Business Rules
 
+## Annual workforce allocation scope (2026-10-30)
+
+Annual Portfolio reporting uses the 38 canonical Assignee IDs in Authoring, Delivery Express, Integration, Nexus, Portal and Scoring. Preserve 0% membership. Engineering is a separate annual allocation category for those same people; it does not replace delivery membership, add headcount, or change attribution of actual work. Ionut, QA, Business Analysis and UX are outside this roster.
+
+The Portfolio Actual Hours card, gross annual balance and gross consumption ratio share the same governed, filtered actual effort for the compatible reporting year and roster. The raw full-source actual-hour aggregate remains audit metadata; it is not the Portfolio numerator. Existing effort Status handling and all other chart/Demand rules remain unchanged.
+
+Supplied annual Development and Engineering amounts are gross allocations before absence deductions. Retain supplied joiner/leaver adjustments without further proration. Team/person/skill scope follows the canonical roster; partial date or effort filters do not prorate annual amounts. Show unavailable for missing years, mixed-year selections or incompatible scope. The KPI formula contract is in the Chart and Visual Specification.
+
+Weekly Capacity blanks mean zero planned hours for the annual Development sum. Existing Demand Capacity Coverage missingness and chart behavior remain unchanged. Support is already deducted from Weekly Development and remains a separate planned reservation, never actual logged Support. Gross annual Engineering must not be added to net weekly capacity or distributed across weeks.
+
+A full active week has a 40-hour baseline. Differences from 40 Development hours do not establish vacation: reservations, employment dates and partial weeks also matter. No net Engineering or missing absence data is inferred. Gross balances and consumption ratios must not imply net availability, overtime or net utilization. Preserve the existing Tempo exclusions and single counting of actual work.
+
 ## 1. Purpose
 
 This document defines the canonical business and operational governance rules for the AI-Assisted Delivery Management MVP platform.

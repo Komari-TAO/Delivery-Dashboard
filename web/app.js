@@ -971,19 +971,21 @@
 
   function renderKpis() {
     const sourceKpis = raw.meta.sourceKpis || {};
-    const legalHours = Number(sourceKpis.annualWorkforceLegalHours) || 0;
     const annualCapacity = Number(sourceKpis.annualWorkforceCapacity) || 0;
-    const actualHours = Number(sourceKpis.actualHours) || 0;
     const demandCapacity = Number(sourceKpis.demandCapacity) || 0;
-    const remainingHours = annualCapacity - actualHours;
-    const utilization = annualCapacity ? actualHours / annualCapacity : 0;
+    const annual = window.AnnualWorkforceKpis.calculate(raw.meta.annualWorkforce, state, (lastUpdateContext || buildUpdateContext()).effortData.worklogs);
+    const value = (n) => n === null ? "Unavailable" : formatNumber(n, 1);
+    const available = annual.gross !== null;
+    const sourceYear = raw.meta.annualWorkforce?.year;
+    const annualNote = available ? `${annual.year} full-year · ${annual.people} people · before vacation/absence deductions; supplied joiner/leaver adjustments retained.` : annual.reason;
+    const governedNote = available ? `Governed actuals: ${formatNumber(annual.actual, 1)} h · ${state.startDate} to ${state.endDate}.` : annual.reason;
 
     const kpis = [
-      { label: "Annual Workforce Legal Hours", value: formatNumber(legalHours, 1), note: "Actual Annual Hours for the six governed global-filter teams.", color: colors.slate },
-      { label: "Annual Workforce Capacity", value: formatNumber(annualCapacity, 1), note: "Sum of Weekly Capacity Planned Hours (column J).", color: colors.teal },
-      { label: "Actual Hours", value: formatNumber(actualHours, 1), note: "Sum of RAW_DATA_FULL_ANALYSIS Logged Hours.", color: colors.blue },
-      { label: "Remaining Period Capacity", value: formatNumber(remainingHours, 1), note: "Annual Workforce Capacity minus Actual Hours.", color: remainingHours < 0 ? colors.red : colors.green },
-      { label: "Annual Capacity Utilization", value: formatPercent(utilization), note: "Actual Hours divided by Annual Workforce Capacity.", color: utilization > 1 ? colors.amber : colors.violet },
+      { label: "Annual Gross Workforce Hours", value: value(annual.gross), secondary: available ? `Development ${value(annual.development)} h + Engineering ${value(annual.engineering)} h` : "", note: annualNote, color: colors.slate },
+      { label: "Annual Development Capacity", value: available ? formatNumber(annualCapacity, 1) : "Unavailable", secondary: available ? `Planned Support: ${formatNumber((raw.meta.annualWorkforce.people || []).reduce((total, person) => total + person.support, 0), 1)} h · ${raw.meta.annualWorkforce.supportSource}` : "", note: available ? `${sourceYear} full-source Weekly Capacity Planned Hours; independent of filters. Support already deducted. Neither value is complete net workforce capacity.` : annual.reason, color: colors.teal },
+      { label: "Actual Hours", value: value(annual.actual), note: available ? `Governed six-team effort · ${state.startDate} to ${state.endDate}; active roster and effort filters apply. Source coverage: ${raw.meta.dateMin} to ${raw.meta.dateMax}.` : annual.reason, color: colors.blue },
+      { label: "Gross Annual Hours Balance", value: value(annual.balance), secondary: governedNote, note: available ? `${annual.year} gross annual budget less governed actuals; before absence deductions. Not future available capacity, net headroom or overtime.` : annual.reason, color: colors.slate },
+      { label: "Logged Hours / Gross Annual Hours", value: annual.ratio === null ? "Unavailable" : formatPercent(annual.ratio), secondary: governedNote, note: available ? `${annual.reason} Gross annual budget consumption; not net utilization or utilization for selected weeks.`.trim() : annual.reason, color: colors.slate },
       { label: "Demand Capacity", value: formatNumber(demandCapacity, 1), note: "Sum of Jira Effort Cap.", color: colors.violet },
     ];
 
@@ -992,10 +994,16 @@
         <article class="kpi-card">
           <span><i class="tone" style="background:${kpi.color}"></i>${escapeHtml(kpi.label)}</span>
           <strong>${kpi.value}</strong>
+          ${kpi.secondary ? `<small class="kpi-secondary">${escapeHtml(kpi.secondary)}</small>` : ""}
           <small>${escapeHtml(kpi.note)}</small>
         </article>
       `)
       .join("");
+    const effortFilters = ["clients", "accounts", "categories", "priorities", "targetReleases", "programs", "releases"].some((key) => state[key].size);
+    const scopeNote = available
+      ? `Annual reporting year ${annual.year}. Team, person and skill narrow gross allocations; annual amounts are never prorated. Actuals cover selected dates ${state.startDate} to ${state.endDate} (source coverage ${raw.meta.dateMin} to ${raw.meta.dateMax}). ${effortFilters ? "Effort-only filters narrow governed actuals, not the annual baseline. " : ""}Date and release selections do not prorate the annual baseline. Actual Hours, gross balance and consumption ratio use the same governed effort (Status ignored).`
+      : annual.reason;
+    $("generalKpiGrid").insertAdjacentHTML("beforeend", `<p class="annual-kpi-scope">${escapeHtml(scopeNote)}</p>`);
   }
 
   function renderActiveFilters() {
@@ -1118,7 +1126,7 @@
   }
 
   function renderCharts(data, effortData, programWorklogs = programDistributionEffortData()) {
-    renderTrendChart(effortData.worklogs);
+    renderTrendChart(effortData.worklogs, effortData.capacity);
     renderPlanningChart(effortData.worklogs || []);
     renderProgramPieChart(programWorklogs);
     renderBugSeverityDistributionChart(data.backlog || []);
@@ -1157,7 +1165,7 @@
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     svg.setAttribute("role", "img");
     const chartLabels = {
-      trendChart: "Logged and billable hours trend",
+      trendChart: "Logged Engineering and Logged Operations compared with available capacity",
       planningChart: "Planned versus unplanned effort",
       programPieChart: "Logged hours by program",
       bugSeverityChart: "Bug severity distribution",
@@ -1191,41 +1199,231 @@
     return node;
   }
 
-  function renderTrendChart(worklogs) {
-    const grain = state.trendGrain;
-    const rows = Array.from(
-      worklogs.reduce((map, row) => {
-        const key = grain === "week" ? `W${String(row.week).padStart(2, "0")}` : row.month;
-        if (!map.has(key)) map.set(key, { label: key, logged: 0, billable: 0 });
-        map.get(key).logged += Number(row.logged) || 0;
-        map.get(key).billable += Number(row.billable) || 0;
-        return map;
-      }, new Map()).values(),
-    ).sort((a, b) => a.label.localeCompare(b.label));
+  function trendScopeWeeks(start, end) {
+    return new Set((raw.masterDates || [])
+      .filter((row) => row.date >= start && row.date <= end)
+      .map((row) => Number(row.week))
+      .filter(Number.isFinite));
+  }
 
-    if (!rows.length) return emptyChart("trendChart", "No worklog data for the selected filters.");
+  function capacityWeekRanges(capacityWeeks, start, end) {
+    const ranges = new Map();
+    const years = new Set((raw.masterDates || [])
+      .filter((row) => row.date >= start && row.date <= end)
+      .map((row) => row.date.slice(0, 4)));
+    (raw.masterDates || []).forEach((row) => {
+      const week = Number(row.week);
+      if (!capacityWeeks.has(week) || !years.has(row.date.slice(0, 4))) return;
+      const range = ranges.get(week) || { week, start: row.date, end: row.date };
+      if (row.date < range.start) range.start = row.date;
+      if (row.date > range.end) range.end = row.date;
+      ranges.set(week, range);
+    });
+    return Array.from(ranges.values()).sort((a, b) => a.week - b.week);
+  }
+
+  function formatCapacityWeeks(ranges) {
+    return ranges.map((range) => `W${range.week}`).join(", ");
+  }
+
+  function capacityBoundaryWeeks(ranges, start, end) {
+    return ranges.filter((range) => range.start < start || range.end > end);
+  }
+
+  function trendPeriodValues(worklogs, capacity, label, start, end, capacityWeeks, details = {}) {
+    const periodWorklogs = worklogs.filter((row) => row.date >= start && row.date <= end);
+    const periodCapacity = capacity.filter((row) => capacityWeeks.has(Number(row.week)));
+    const loggedEngineering = sum(periodWorklogs.filter((row) => !isTempoWorkItem(row.key)), "logged");
+    const loggedOperations = sum(periodWorklogs.filter((row) => isTempoWorkItem(row.key)), "logged");
+    const capacityAvailable = periodCapacity.length > 0;
+    const availableCapacity = capacityAvailable ? sum(periodCapacity, "planned") : null;
+    return {
+      label,
+      start,
+      end,
+      loggedEngineering,
+      loggedOperations,
+      totalLogged: loggedEngineering + loggedOperations,
+      availableCapacity,
+      remaining: capacityAvailable ? availableCapacity - loggedEngineering - loggedOperations : null,
+      capacityWeeks: Array.from(capacityWeeks).sort((a, b) => a - b),
+      capacityWeekRanges: capacityWeekRanges(capacityWeeks, start, end),
+      ...details,
+    };
+  }
+
+  function weeklyTrendRows(worklogs, capacity) {
+    const periods = new Map();
+    (raw.masterDates || []).filter((row) => inDateRange(row.date)).forEach((row) => {
+      const week = Number(row.week);
+      if (!Number.isFinite(week)) return;
+      if (!periods.has(week)) periods.set(week, { start: row.date, end: row.date });
+      const period = periods.get(week);
+      if (row.date < period.start) period.start = row.date;
+      if (row.date > period.end) period.end = row.date;
+    });
+    return Array.from(periods, ([week, period]) => trendPeriodValues(
+      worklogs,
+      capacity,
+      `Week ${week}`,
+      period.start,
+      period.end,
+      new Set([week]),
+      { week },
+    )).sort((a, b) => a.start.localeCompare(b.start));
+  }
+
+  function iterationTrendRows(worklogs, capacity) {
+    return (raw.releases || [])
+      .filter((cycle) => cycle.start <= state.endDate && cycle.end >= state.startDate)
+      .filter((cycle) => inSet(state.releases, cycle.cycle))
+      .map((cycle) => {
+        const start = cycle.start < state.startDate ? state.startDate : cycle.start;
+        const end = cycle.end > state.endDate ? state.endDate : cycle.end;
+        return trendPeriodValues(
+          worklogs,
+          capacity,
+          cycle.cycle,
+          start,
+          end,
+          trendScopeWeeks(start, end),
+          { releaseCycleStart: cycle.start, releaseCycleEnd: cycle.end },
+        );
+      })
+      .sort((a, b) => a.releaseCycleStart.localeCompare(b.releaseCycleStart));
+  }
+
+  function trendTooltip(row, grain) {
+    const extendedWeeks = capacityBoundaryWeeks(row.capacityWeekRanges || [], row.start, row.end);
+    const period = grain === "iteration"
+      ? [
+        `Full release cycle dates: ${row.releaseCycleStart} to ${row.releaseCycleEnd}`,
+        `Effective selected release cycle dates: ${row.start} to ${row.end}`,
+        `Master Date weeks in capacity: ${formatCapacityWeeks(row.capacityWeekRanges || []) || "None"}`,
+        ...(extendedWeeks.length ? [`Full boundary-week capacity extends beyond the effective selected release cycle dates: ${extendedWeeks.map((week) => `W${week.week} (${week.start} to ${week.end})`).join(", ")}`] : []),
+      ].join("\n")
+      : `Master Date week ${row.week}: ${row.start} to ${row.end}`;
+    return [
+      `${row.label}`,
+      period,
+      `Logged Engineering: ${formatNumber(row.loggedEngineering, 1)} h`,
+      `Logged Operations: ${formatNumber(row.loggedOperations, 1)} h`,
+      `Total Logged: ${formatNumber(row.totalLogged, 1)} h`,
+      `Available Capacity: ${row.availableCapacity === null ? "Unavailable" : `${formatNumber(row.availableCapacity, 1)} h`}`,
+      `Remaining: ${row.remaining === null ? "Unavailable" : `${formatNumber(row.remaining, 1)} h`}`,
+    ].join("\n");
+  }
+
+  function activeEffortOnlyFilters() {
+    return [
+      ["Client", state.clients],
+      ["Account", state.accounts],
+      ["Account Category", state.categories],
+      ["Priority", state.priorities],
+      ["Target Release", state.targetReleases],
+      ["Program", state.programs],
+    ].filter(([, selected]) => selected.size).map(([label]) => label);
+  }
+
+  function addTrendEffortOnlyNote(target, filters) {
+    if (!filters.length) return;
+    const note = document.createElement("p");
+    note.className = "trend-note trend-scope-note";
+    note.textContent = "Capacity reflects the selected Team, Assignee, Skill and date scope. Other active filters narrow logged effort only, so Remaining is not a like-for-like capacity balance for those filters.";
+    const filtersText = document.createElement("span");
+    filtersText.className = "trend-note-filters";
+    filtersText.textContent = ` Active effort-only filters: ${filters.join(", ")}.`;
+    note.appendChild(filtersText);
+    target.appendChild(note);
+  }
+
+  function addTrendDetails(rows, grain, gapWorklogs, effortOnlyFilters) {
+    const target = chartContentTarget("trendChart");
+    const details = document.createElement("details");
+    details.className = "trend-details";
+    const header = grain === "iteration" ? "Full release cycle dates" : "Master Date week";
+    details.innerHTML = `
+      <summary>Accessible period details</summary>
+      <div class="trend-detail-table-wrap"><table>
+        <thead><tr><th>Period</th><th>${header}</th>${grain === "iteration" ? "<th>Effective selected release cycle dates</th><th>Master Date weeks in capacity</th><th>Boundary-week capacity</th>" : ""}<th class="num">Engineering</th><th class="num">Operations</th><th class="num">Total logged</th><th class="num">Available capacity</th><th class="num">Remaining</th></tr></thead>
+        <tbody>${rows.map((row) => `<tr>
+          <td>${escapeHtml(row.label)}</td>
+          <td>${escapeHtml(grain === "iteration" ? `${row.releaseCycleStart} to ${row.releaseCycleEnd}` : `${row.start} to ${row.end}`)}</td>
+          ${grain === "iteration" ? `<td>${escapeHtml(`${row.start} to ${row.end}`)}</td>
+          <td>${escapeHtml(formatCapacityWeeks(row.capacityWeekRanges || []) || "None")}</td>
+          <td>${escapeHtml((() => { const extended = capacityBoundaryWeeks(row.capacityWeekRanges || [], row.start, row.end); return extended.length ? `Full capacity extends beyond effective selected release cycle dates: ${extended.map((week) => `W${week.week} (${week.start} to ${week.end})`).join(", ")}` : "Within effective selected release cycle dates"; })())}</td>` : ""}
+          <td class="num">${formatNumber(row.loggedEngineering, 1)} h</td>
+          <td class="num">${formatNumber(row.loggedOperations, 1)} h</td>
+          <td class="num">${formatNumber(row.totalLogged, 1)} h</td>
+          <td class="num">${row.availableCapacity === null ? "Unavailable" : `${formatNumber(row.availableCapacity, 1)} h`}</td>
+          <td class="num">${row.remaining === null ? "Unavailable" : `${formatNumber(row.remaining, 1)} h`}</td>
+        </tr>`).join("")}</tbody>
+      </table></div>`;
+    target.appendChild(details);
+    if (grain === "iteration") {
+      const note = document.createElement("p");
+      note.className = "trend-note";
+      const gapHours = sum(gapWorklogs, "logged");
+      note.textContent = gapWorklogs.length
+        ? `${formatNumber(gapHours, 1)} h logged outside defined release cycle dates is not assigned to an iteration.`
+        : "No logged effort in the selected scope falls outside defined release cycle dates.";
+      target.appendChild(note);
+    }
+    addTrendEffortOnlyNote(target, effortOnlyFilters);
+  }
+
+  function renderTrendChart(worklogs, capacity) {
+    const grain = state.trendGrain;
+    const effortOnlyFilters = activeEffortOnlyFilters();
+    const rows = grain === "iteration" ? iterationTrendRows(worklogs, capacity) : weeklyTrendRows(worklogs, capacity);
+    if (!rows.length) {
+      emptyChart("trendChart", "No reporting periods match the selected filters.");
+      addTrendEffortOnlyNote(chartParts("trendChart").canvas, effortOnlyFilters);
+      return;
+    }
 
     const { svg, width, height } = chartSvg("trendChart", 290);
     const margin = { top: 18, right: 24, bottom: 54, left: 62 };
     const innerW = width - margin.left - margin.right;
     const innerH = height - margin.top - margin.bottom;
-    const maxY = Math.max(...rows.map((row) => Math.max(row.logged, row.billable))) * 1.12 || 1;
-    const x = (i) => margin.left + (rows.length === 1 ? innerW / 2 : (i / (rows.length - 1)) * innerW);
-    const y = (v) => margin.top + innerH - (v / maxY) * innerH;
+    const maxY = Math.max(...rows.map((row) => Math.max(row.totalLogged, row.availableCapacity || 0))) * 1.12 || 1;
+    const band = innerW / rows.length;
+    const barW = Math.max(8, Math.min(48, band * 0.58));
+    const x = (index) => margin.left + index * band + band / 2;
+    const y = (value) => margin.top + innerH - (value / maxY) * innerH;
+    const engineeringColor = "#a9cfe5";
+    const operationsColor = "#d8c3e7";
+    const capacityColor = "#397b75";
 
     drawGrid(svg, margin, innerW, innerH, maxY);
-    drawLine(svg, rows, "logged", x, y, colors.blue);
-    drawLine(svg, rows, "billable", x, y, colors.amber);
-
-    rows.forEach((row, i) => {
-      if (i % Math.ceil(rows.length / 8) === 0 || rows.length <= 8) {
-        addSvg(svg, "text", { x: x(i), y: height - 20, "text-anchor": "middle", fill: colors.muted, "font-size": 11 }, row.label);
+    rows.forEach((row, index) => {
+      const baseX = x(index) - barW / 2;
+      const engineeringHeight = (row.loggedEngineering / maxY) * innerH;
+      const operationsHeight = (row.loggedOperations / maxY) * innerH;
+      const tooltip = trendTooltip(row, grain);
+      const engineering = addSvg(svg, "rect", { x: baseX, y: y(row.loggedEngineering), width: barW, height: Math.max(0, engineeringHeight), rx: 2, fill: engineeringColor, tabindex: 0, role: "img", "aria-label": tooltip });
+      const operations = addSvg(svg, "rect", { x: baseX, y: y(row.totalLogged), width: barW, height: Math.max(0, operationsHeight), rx: 2, fill: operationsColor, tabindex: 0, role: "img", "aria-label": tooltip });
+      addTitle(engineering, tooltip);
+      addTitle(operations, tooltip);
+      if (index % Math.ceil(rows.length / 7) === 0 || rows.length <= 7) {
+        addSvg(svg, "text", { x: x(index), y: height - 20, "text-anchor": "middle", fill: colors.muted, "font-size": 10 }, truncate(row.label, 18));
       }
     });
+    const capacityRows = rows.filter((row) => row.availableCapacity !== null);
+    if (capacityRows.length) {
+      const points = capacityRows.map((row) => `${x(rows.indexOf(row))},${y(row.availableCapacity)}`).join(" ");
+      addSvg(svg, "polyline", { points, fill: "none", stroke: capacityColor, "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" });
+      capacityRows.forEach((row) => {
+        const point = addSvg(svg, "circle", { cx: x(rows.indexOf(row)), cy: y(row.availableCapacity), r: 4, fill: capacityColor, tabindex: 0, role: "img", "aria-label": trendTooltip(row, grain) });
+        addTitle(point, trendTooltip(row, grain));
+      });
+    }
     addLegend("trendChart", [
-      ["Logged", colors.blue],
-      ["Billable", colors.amber],
+      ["Logged Engineering", engineeringColor],
+      ["Logged Operations", operationsColor],
+      ["Available Capacity", capacityColor],
     ]);
+    addTrendDetails(rows, grain, grain === "iteration" ? worklogs.filter((row) => !row.releaseCycle) : [], effortOnlyFilters);
   }
 
   function drawGrid(svg, margin, innerW, innerH, maxY) {

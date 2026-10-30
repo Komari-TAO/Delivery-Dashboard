@@ -476,6 +476,10 @@ button:focus-visible {
   background: var(--blue);
 }
 
+.kpi-secondary { display: block; margin: 8px 0; font-weight: 600; }
+#generalKpiGrid .kpi-card > span { display: block; min-height: 36px; }
+.annual-kpi-scope { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
@@ -839,6 +843,47 @@ button:focus-visible {
   width: 10px;
   height: 10px;
   border-radius: 2px;
+}
+
+.trend-details {
+  margin-top: 8px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.trend-details summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.trend-detail-table-wrap {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  max-height: 150px;
+  overflow: auto;
+  margin-top: 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.trend-detail-table-wrap table {
+  min-width: 760px;
+  font-size: 11px;
+}
+
+.trend-detail-table-wrap th,
+.trend-detail-table-wrap td {
+  padding: 5px 7px;
+}
+
+.trend-note {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .detail-panel {

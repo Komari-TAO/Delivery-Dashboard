@@ -282,18 +282,18 @@
             <div class="panel-header">
               <div>
                 <h3>Hours Trend</h3>
-                <p>Logged and billable hours by month</p>
+                <p>Logged effort compared with available capacity</p>
               </div>
               <select id="trendGrain" aria-label="Trend granularity">
-                <option value="month">Monthly</option>
                 <option value="week">Weekly</option>
+                <option value="iteration">Iteration</option>
               </select>
             </div>
             <div class="chart-frame executive-chart-frame" id="trendChart">
               <div class="chart-canvas"></div>
               <div class="chart-meta"></div>
             </div>
-            <p class="chart-business-hint">Business hint: Shows how logged and billable effort evolve over time, helping identify delivery spikes, seasonality, and billable versus non-billable drift.</p>
+            <p class="chart-business-hint">Business hint: Weekly view compares logged effort with weekly capacity. Iteration view shows effort logged during the release cycle dates against the full capacity of each week touched by those dates. A boundary week may appear in more than one iteration, so iteration capacity values should not be added together.</p>
             </article>
 
             <article class="panel panel-planning-effort executive-chart-panel">
@@ -481,7 +481,7 @@
               <div class="lineage-content"><table><thead><tr><th>Relationship</th><th>Join rule</th><th>Coverage, fallback, and dashboard use</th></tr></thead><tbody>
                 <tr><td>Tempo worklogs → Jira work items</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`.</td><td>One direct key match enriches Tempo rows with Jira `Status`, `Priority`, `Custom field (Account)`, `Custom field (Product Module)`, `Custom field (Program)`, and `Custom field (Target Release)`. No Jira match remains Tempo-only.</td></tr>
                 <tr><td>Tempo, Jira, and Weekly Capacity → Assignees master</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`, `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`, and `Weekly Capacity_20261005.csv.Assignee` are normalized and matched to `20261009_Assignees_Capacity.csv.Assignee`.</td><td>Returns governed `20261009_Assignees_Capacity.csv.Team` and `.Skill` for filters and aggregation. No master match is treated as unmapped and is visible in data-quality exceptions where applicable.</td></tr>
-                <tr><td>General KPI cards</td><td>`20261009_Assignees_Capacity.csv.Actual Annual Hours` (column H) supplies Annual Workforce Legal Hours only for Team = Authoring, Delivery Express, Integration, Nexus, Portal, or Scoring. `Weekly Capacity_20261005.csv.Planned Hours` (column J) supplies Annual Workforce Capacity. `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` supplies Actual Hours. `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Effort CAP (hrs))` supplies Demand Capacity.</td><td>All six cards remain unchanged when tabs or filters change. Remaining Period Capacity = Annual Workforce Capacity − Actual Hours. Annual Capacity Utilization = Actual Hours ÷ Annual Workforce Capacity.</td></tr>
+                <tr><td>Portfolio annual KPI cards</td><td>Annual Gross Workforce Hours sums supplied Development + Engineering allocations once per canonical Assignee ID (Team/person/skill scope, full reporting year). Annual Development Capacity retains the full-source Weekly Capacity sum; planned Support is shown separately from Support hours 2026.csv. Actual Hours uses the same governed, filtered effort as the annual balance and ratio. Demand Capacity retains its existing source calculation.</td><td>Gross Annual Hours Balance and Logged Hours / Gross Annual Hours use compatible governed actuals for the selected year, roster and effort scope. Annual values are never prorated. Scope differences, unsupported years and zero denominators are disclosed. These are gross budget measures before absences, not net utilization or future availability.</td></tr>
                 <tr><td>Master Date → Weekly Capacity</td><td>Weekly Capacity `Week Number` = Master Date `Week Number`; selected dates supply eligible reporting weeks.</td><td>Feeds Team Utilization and Capacity versus Known Assigned Demand. The new panel uses its embedded future horizon, preserves missing capacity, and supports only the capacity snapshot year. The Portfolio annual KPI intentionally sums the full-year Weekly Capacity source.</td></tr>
                 <tr><td>Tempo work date → Release Cycle</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` falls between `Release Cycle.csv.Start Date` and `Release Cycle.csv.End Date`.</td><td>Returns `Release Cycle.csv.Release Cycle` for the Portfolio Release Cycle filter and Demand actual-effort planning period.</td></tr>
                 <tr><td>Jira Promoter or Reporter → Business Area</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Promoter)` <strong>OR</strong> `.Reporter` = `Promoters.csv.Promoter`.</td><td>Returns `Promoters.csv.Business Area`. The selected Promoter filter accepts either Jira field; blank or unmatched values become `Other/Blank`.</td></tr>
@@ -497,13 +497,13 @@
                 <tr><td>Client filter</td><td>Same Client dimension and searchable multi-select behavior as Demand Management. Tempo Customer Account is applied directly to worklogs and is carried to Jira rows through the Jira-to-Tempo key relationship; unverified values are `N/A`.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Customer`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`.</td></tr>
                 <tr><td>Account / Category filters</td><td>Tempo account display plus Jira governed account.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name`, `.Account Category`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Account)`.</td></tr>
                 <tr><td>Priority / Status / Target Release / Program filters</td><td>Jira metadata joined to Tempo by key.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Priority`, `.Status`, `.Custom field (Target Release)`, `.Custom field (Program)`.</td></tr>
-                <tr><td>General KPI cards</td><td>Always visible outside the tabs. Legal Hours is fixed to the six governed Team values: Authoring, Delivery Express, Integration, Nexus, Portal, and Scoring. The other cards are fixed source totals. None change with tab or filter selection.</td><td>`20261009_Assignees_Capacity.csv.Team`, `.Actual Annual Hours` (column H); `Weekly Capacity_20261005.csv.Planned Hours` (column J); `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Effort CAP (hrs))`.</td></tr>
+                <tr><td>Portfolio annual KPI cards</td><td>Annual Gross Workforce Hours sums supplied Development + Engineering allocations once per canonical Assignee ID (Team/person/skill scope, full reporting year). Annual Development Capacity retains the full-source Weekly Capacity sum; planned Support is shown separately from Support hours 2026.csv. Actual Hours uses the same governed, filtered effort as the annual balance and ratio. Demand Capacity retains its existing source calculation.</td><td>Gross Annual Hours Balance and Logged Hours / Gross Annual Hours use compatible governed actuals for the selected year, roster and effort scope. Annual values are never prorated. Scope differences, unsupported years and zero denominators are disclosed. These are gross budget measures before absences, not net utilization or future availability.</td></tr>
               </tbody></table></div>
             </details>
             <details>
               <summary>Portfolio — charts and tables</summary>
               <div class="lineage-content"><table><thead><tr><th>Chart / table</th><th>Rule / measure</th><th>Exact source fields</th></tr></thead><tbody>
-                <tr><td>Hours Trend</td><td>Logged and Billable hours by month or Master Date week.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Billable Hours`, `.Work date`; `Google 2026 to 2028_Master_Date.csv.Master Date`, `.Week Number`.</td></tr>
+                <tr><td>Hours Trend</td><td>Logged Engineering and Logged Operations against available capacity by Master Date week or release cycle dates. Iteration capacity includes each touched Master Date week once; adjacent iterations can repeat a boundary week.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_22_Oct_26.csv.Logged Hours`, `.Work date`, `.Work Item Key`; `Weekly Capacity_20261028.csv.Planned Hours`, `.Week Number`; `20261028_Assignees_Capacity.csv.Team`, `.Skill`; `Google 2026 to 2028_Master_Date.csv.Master Date`, `.Week Number`; `Release Cycle.csv.Release Cycle`, `.Start Date`, `.End Date`.</td></tr>
                 <tr><td>Planned vs Unplanned</td><td>Distinct work items classified from Jira labels; hours are Tempo logged hours.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Labels`.</td></tr>
                 <tr><td>Program Distribution</td><td>Tempo logged hours by joined Jira program.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Program)`.</td></tr>
                 <tr><td>Bug Severity Distribution</td><td>Distinct Jira PI Backlog Issue keys where Issue Type is Bug, grouped only as Major, Blocker, or Critical.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Issue Type`, `.Custom field (Bug Severity)`.</td></tr>
@@ -528,7 +528,7 @@
                 <tr><td>Target / Planning Release</td><td>Searchable multi-select picker sourced only from Jira Target Release.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Target Release)`.</td></tr>
                 <tr><td>Known Outstanding Demand</td><td>Sum Remaining Estimate ÷ 3,600; blank estimates are exceptions, not zero.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`.</td></tr>
                 <tr><td>Actual Effort</td><td>Sum Tempo logged hours in selected Work date range.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Work date`.</td></tr>
-                <tr><td>Remaining Period Capacity</td><td>Weekly planned hours − actual effort.</td><td>`Weekly Capacity_20261005.csv.Planned Hours`, `.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date`, `.Week Number`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`.</td></tr>
+                <tr><td>Gross Annual Hours Balance</td><td>Full-year supplied gross Development + Engineering allocations minus compatible governed actuals. Neutral gross budget balance before absence deductions.</td><td>Selected Assignees_Capacity annual amounts by canonical ID; existing governed Tempo effort and date/filter scope. See current Portfolio KPI contract.</td></tr>
                 <tr><td>Release Predictability / Release KPI</td><td>Hardcoded `—` with `TODO`; no calculation is applied.</td><td>No source field.</td></tr>
                 <tr><td>Delivered Features (%) KPI</td><td>Count of DONE Epic, Epic Basic, Epic Release, and Epic Lab divided by count of those same types in On Hold, To Do, In Progress, PMC, In Development, Testing, Ready for Development, Prepare Development, In Review, Handoff for customer testing, In QA, or OAT - Ready for PI; multiplied by 100. It is a full-source count and does not change with Demand filters.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type`, `.Status`, `.Issue key`.</td></tr>
                 <tr><td>Delivered Features difference KPI</td><td>Count of DONE Epic, Epic Basic, Epic Release, and Epic Lab minus count of those same types in On Hold, To Do, In Progress, PMC, In Development, Testing, Ready for Development, Prepare Development, In Review, Handoff for customer testing, In QA, or OAT - Ready for PI. It is a full-source count and does not change with Demand filters.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type`, `.Status`, `.Issue key`.</td></tr>
@@ -570,7 +570,8 @@
 
     <script src="./data.js"></script>
     <script src="./dashboard-core.js"></script>
-    <script src="./app.js"></script>
+    <script src="./annual-kpis.js"></script>
+    <script src="./app.js?v=annual-governed-20261030"></script>
     <script src="./capacity-coverage.js"></script>
     <script src="./demand.js"></script>
   </body>

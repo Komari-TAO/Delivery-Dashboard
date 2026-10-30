@@ -35,30 +35,32 @@ Business-facing specification for every KPI, chart, and diagram in the Delivery 
 
 ---
 
-## KPI cards (`#kpiGrid`)
+## Portfolio KPI cards (`#generalKpiGrid`)
 
-### Business explanation
+The annual workforce measures describe a gross annual budget, before vacation and absence deductions. They do not describe future available capacity, net headroom, overtime, or net utilization.
 
-Executive snapshot of **annual workforce capacity** versus **governed Tempo logged hours** in the selected date range. Answers: “How much capacity do we have for the year, how much have we logged in this period, what is left, and what utilization does that imply?”
+| KPI | Calculation and source |
+| --- | --- |
+| Annual Gross Workforce Hours | Supplied Development + Engineering `Actual Annual Hours` from the selected Assignees_Capacity source, joined once per canonical Assignee ID. Components appear beneath the total. |
+| Annual Development Capacity | Existing full-source Weekly Capacity Planned Hours sum, with blanks contributing zero. Planned Support from Support hours 2026.csv appears separately; Support is already deducted from Development. Neither represents complete net workforce capacity. |
+| Actual Hours | Governed six-team Tempo effort for the same selected roster, year, dates and effort filters as the annual balance and ratio. The three cards share one calculated numerator; source coverage is shown. |
+| Gross Annual Hours Balance | Full-year gross allocation for the selected roster minus governed actuals for that same roster, year, selected dates and existing effort filters. Neutral styling; a gross budget balance before absences. |
+| Logged Hours / Gross Annual Hours | Governed actuals divided by the compatible gross annual allocation; gross budget consumption, not selected-week or net utilization. A zero denominator is unavailable, not 0%. |
+| Demand Capacity | Existing fixed full-source Jira Effort CAP sum, unchanged. |
 
-### Metrics
+### Scope, year and missingness
 
-| KPI | Calculation | Primary fields |
-| --- | --- | --- |
-| Annual Workforce Legal Hours | Sum annual legal hours only where Team is Authoring, Delivery Express, Integration, Nexus, Portal, or Scoring | `20261009_Assignees_Capacity.csv.Team`; `20261009_Assignees_Capacity.csv.Actual Annual Hours` (column H) |
-| Annual Workforce Capacity | Sum of annual planned capacity across the full Weekly Capacity source | `Weekly Capacity_20261005.csv.Planned Hours` (column J) |
-| Actual Hours | Sum of the full Tempo source Logged Hours dataset | `RAW_DATA_FULL_ANALYSIS_*.csv.Logged Hours` |
-| Remaining Period Capacity | Annual Workforce Capacity minus Actual Hours | `Weekly Capacity_20261005.csv.Planned Hours`, `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` |
-| Annual Capacity Utilization | Actual Hours ÷ Annual Workforce Capacity | `Weekly Capacity_20261005.csv.Planned Hours`, `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` |
-| Demand Capacity | Sum of the full Jira Effort Cap source dataset | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Effort CAP (hrs))` |
+The canonical roster is restricted to Authoring, Delivery Express, Integration, Nexus, Portal and Scoring, unique by Assignee ID. Keep valid 0% membership. Exclude Ionut, QA, BA and UX. Engineering is an annual allocation category, never another selectable workforce team or a second person record.
 
-### Filters
+Team, Assignee and Skill narrow annual allocations through that roster. Date, release and effort-only selections narrow Actual Hours and the balance/ratio numerator without prorating the full-year annual baseline; the cards explain this difference. Existing governed effort ignores Status, as before. Development Capacity and Demand Capacity retain their original full-source filter behavior and are labeled accordingly.
 
-Date range; Team; Assignee; Skill; plus worklog-only filters (Account, Category, Priority, Status, Target Release, Program, Release Cycle) which also narrow which assignees/teams count toward capacity when any worklog-only filter is active.
+Reporting year is derived from the selected date range. Annual allocations exist only for the declared 2026 source scope. Another year or a multi-year selection makes annual gross, balance and ratio unavailable. Never reuse 2026 allocations for another year. Missing/invalid annual values or ambiguous identities are unavailable; a confirmed zero gross allocation remains zero, with an unavailable ratio.
 
-### Rules
+Supplied joiner/leaver annual adjustments are authoritative and are not prorated again. Never spread gross Engineering hours across weeks or infer net Engineering capacity/absence deductions. Support is planned reservation capacity, never additional actual effort. A full active week has a 40-hour baseline; 40 minus Development is not a vacation estimate because Support, Engineering, employment dates and partial weeks also matter.
 
-Uses **governed logged worklogs** (`backlogWorklogs` enrichment path): assignee/team from assignees master; excludes global TEMPO keys; excludes rows whose team is not in the managed team set.
+The governed numerator uses the existing canonical contributor effort path and exact Tempo exclusions once. Actual Hours, gross balance and consumption ratio use this same numerator, as confirmed by the user. The raw full-source sourceKpis.actualHours field is retained for audit compatibility but no longer supplies the Portfolio Actual Hours card. Weekly/Iteration Hours Trend, its boundary-week and filter warnings, Team Utilization, account attribution, Delivery Progress, Backlog Worked On and Demand Management calculations are unchanged.
+
+This section is the controlling current Portfolio card contract; older dated mappings below are historical lineage and do not override it.
 
 ---
 
@@ -66,26 +68,34 @@ Uses **governed logged worklogs** (`backlogWorklogs` enrichment path): assignee/
 
 ### Business explanation
 
-Shows how **logged** and **billable** effort evolve over time for the filtered portfolio. Used to spot seasonality, delivery spikes, and billable vs non-billable drift.
+Compares governed logged effort with available capacity for the filtered portfolio. Weekly view uses Master Date weeks. Iteration view uses the governed Release Cycle dates: effort is dated within each release cycle window, while capacity includes the full Weekly Capacity for each Master Date week touched by the selected release cycle dates.
 
 ### Chart type
 
-Line chart (two series).
+Stacked bar chart for logged effort and line chart for available capacity.
 
 ### Fields
 
 | Series | Aggregation | Fields |
 | --- | --- | --- |
-| Logged | Sum by month or ISO week | `RAW_DATA_FULL_ANALYSIS_*.csv.Logged Hours`, `RAW_DATA_FULL_ANALYSIS_*.csv.Work date` → payload `month` or `week` (`*Master*Date*.csv.Week Number` for weeks) |
-| Billable | Sum by month or week | `RAW_DATA_FULL_ANALYSIS_*.csv.Billable Hours`, same date grain |
+| Logged Engineering | Sum valid non-`TEMPO-*` worklog hours by period | `RAW_DATA_FULL_ANALYSIS_*.csv.Logged Hours`, `.Work date`, `.Work Item Key` |
+| Logged Operations | Sum valid `TEMPO-*` worklog hours by period | same Tempo fields; global exclusions apply first |
+| Available Capacity | Sum Weekly Capacity planned hours once per selected Master Date week | `Weekly Capacity_*.csv.Planned Hours`, `.Week Number`; Master Date `Week Number` |
+| Remaining | Available Capacity − (Logged Engineering + Logged Operations) | Derived in the chart; negative values remain negative |
 
 ### Filters
 
-Team, Assignee, Skill, Account, Account Category, Priority, Target Release, Program, and Release Cycle filters apply to governed logged worklogs. The Status filter does not apply to this chart. Grain: user selects Monthly or Weekly (`#trendGrain`).
+Team, Assignee, Skill, Account, Account Category, Priority, Target Release, Program, and Release Cycle filters apply to governed logged worklogs. Capacity uses the applicable Team, Assignee, Skill, and Master Date scope. The Status filter does not apply to this chart. Grain: user selects Weekly or Iteration (`#trendGrain`). Date Range and release cycle selection intersect. When Client, Account, Account Category, Priority, Target Release, or Program is active, the chart identifies those effort-only filters and states that Remaining is not a like-for-like capacity balance under them.
 
 ### Rules
 
-Managed-team governed worklogs only; global exclusions applied.
+Managed-team governed worklogs only; global exclusions apply before aggregation. Weekly view preserves the selected partial-week treatment: any selected Master Date date includes the full Weekly Capacity for that week. Iteration view uses `Release Cycle.csv.Start Date` through `.End Date` inclusively and includes each touched Master Date week once without proration. Adjacent iterations may repeat a boundary week, so their capacity and Remaining values are not additive. A combined-period total must deduplicate weeks independently. Worklogs outside all defined release cycle dates are not assigned to an iteration and are disclosed by the chart. Iteration tooltip and accessible details expose the full release cycle dates, effective selected release cycle dates after Date Range intersection, Master Date weeks included in capacity, and any included full boundary week extending outside the effective selected dates.
+
+### Release-cycle attribution correction
+
+`Remaining` remains unchanged as a formula: `Available Capacity − (Logged Engineering + Logged Operations)`. The 2026-10-28 Code Freeze boundary correction normalizes Tempo worklog timestamps to calendar dates before the existing inclusive release-cycle date comparison; it does not change that formula, capacity allocation, Tempo exclusions, or unfiltered logged totals.
+
+On the tested source snapshot, 1,397 governed worklogs totaling 2,172.899 h were newly assigned from blank release-cycle attribution. They were not reassigned between cycles. Consequently, unfiltered totals remain unchanged, while release-scoped effort and derived Remaining values can change when an affected release cycle is selected or displayed.
 
 ---
 
@@ -481,8 +491,9 @@ This section is the field-level contract for the dashboard. It records the **exa
 | Remaining Period Capacity | **Derived:** full-source `Weekly Capacity_20261005.csv.Planned Hours` sum minus full-source `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` sum. |
 | Annual Capacity Utilization | **Derived:** full-source `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` sum ÷ full-source `Weekly Capacity_20261005.csv.Planned Hours` sum. |
 | Demand Capacity | Sum of all `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Effort CAP (hrs))` source rows. |
-| Hours Trend — Logged | Sum of `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` by `Work date`; weekly grouping uses `Google 2026 to 2028_Master_Date.csv.Week Number`. |
-| Hours Trend — Billable | Sum of `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Billable Hours` by the same `Work date` grain. |
+| Hours Trend — Logged Engineering | Sum valid non-`TEMPO-*` `Logged Hours` by Master Date week or release cycle dates. |
+| Hours Trend — Logged Operations | Sum valid `TEMPO-*` `Logged Hours` by Master Date week or release cycle dates. |
+| Hours Trend — Available Capacity | Sum `Weekly Capacity.Planned Hours` once per selected Master Date week; Iteration uses every Master Date week touched by its release cycle dates. |
 | Planned vs Unplanned — work item count | Distinct `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; classification from Jira `Labels`. |
 | Planned vs Unplanned — hours | Sum of Tempo `Logged Hours` for the same classified keys. |
 | Program Distribution | Sum of Tempo `Logged Hours`; program from Jira `Custom field (Program)`. |
@@ -590,9 +601,9 @@ This is the authoritative, literal reference list. Every source reference below 
 
 | Chart and value | Exact `file.column` input | Derived calculation / use |
 | --- | --- | --- |
-| Hours Trend — Logged series | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` | Sum Logged Hours by month or week. |
-| Hours Trend — Billable series | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Billable Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` | Sum Billable Hours by month or week. |
-| Hours Trend — weekly bucket | `Google 2026 to 2028_Master_Date.csv.Master Date`; `Google 2026 to 2028_Master_Date.csv.Week Number` | Work date is matched to Master Date and grouped by Week Number. |
+| Hours Trend — Logged Engineering | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_22_Oct_26.csv.Logged Hours`, `.Work date`, `.Work Item Key` | Valid non-`TEMPO-*` Tempo effort, grouped by Master Date week or release cycle dates. |
+| Hours Trend — Logged Operations | Same Tempo fields | Valid `TEMPO-*` effort after global exclusions, grouped by Master Date week or release cycle dates. |
+| Hours Trend — Available Capacity | `Weekly Capacity_20261028.csv.Planned Hours`, `.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date`, `.Week Number`; `Release Cycle.csv.Start Date`, `.End Date` | Weekly: full capacity for each selected Master Date week. Iteration: full capacity once for every Master Date week touched by the release cycle dates. |
 | Planned vs Unplanned — key count | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Labels`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` | Distinct Work Item Key; Labels determine PLANNED, UNPLANNED, Operations, or Unclassified. |
 | Planned vs Unplanned — hours | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Labels` | Sum Logged Hours within the label-derived class. |
 | Program Distribution — slice | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Program)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` | Sum Logged Hours by joined Program. |

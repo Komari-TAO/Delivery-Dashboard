@@ -86,7 +86,12 @@ test('workforce and demand-only filters, aggregate weighted load',()=>{
  const d=fixture();d.capacityCoverage.capacity.filter(r=>r.team==='Nexus').forEach(r=>r.planned=20);d.capacityCoverage.demand=[issue('A',{client:'One'}),issue('B',{assignee:'Nexus person',remainingEstimateHours:60,client:'Two'})];const base=calculate(d);const filtered=calculate(d,{},'release','current',r=>r.client==='One');assert.equal(filtered.capacity,base.capacity);assert.equal(filtered.demand,20);assert.equal(base.load,80/440*100);assert.notEqual(base.load,base.teams.reduce((s,r)=>s+r.load,0)/6);
  assert.equal(calculate(d,{assignees:new Set(['Nexus person']),skills:new Set(['Backend'])}).demand,60);assert.equal(calculate(d,{teams:new Set(['Nexus'])}).capacity,40);
 });
-const data=JSON.parse(fs.readFileSync(path.join(root,'web/data.js'),'utf8').replace(/^window\.BI_DATA\s*=\s*/,'').replace(/;\s*$/,''));
+const data=JSON.parse(fs.readFileSync(process.env.CAPACITY_HISTORICAL_PAYLOAD || path.join(root,'web/data.js'),'utf8').replace(/^window\.BI_DATA\s*=\s*/,'').replace(/;\s*$/,''));
+const savedBaseline=JSON.parse(fs.readFileSync(path.join(root,'outputs/capacity_assigned_demand/baseline.json'),'utf8'));
+const sourceIdentity = manifest => manifest.sourceFiles.map(r=>[r.role,r.sha256]).sort();
+const historicalMatch=JSON.stringify(sourceIdentity(data.meta.buildManifest))===JSON.stringify(sourceIdentity(savedBaseline.sourceManifest));
+if (process.env.CAPACITY_HISTORICAL_PAYLOAD) assert(historicalMatch, 'Historical payload must match every saved fixture source checksum');
+if (historicalMatch) {
 test('source baseline conserved, actual six-team reconciliation, no repeated contribution key',()=>{
  const baseline=JSON.parse(fs.readFileSync(path.join(root,'outputs/capacity_assigned_demand/baseline.json'),'utf8'));
  assert.equal(data.capacity.length,baseline.baseline.capacityRows);assert.equal(data.worklogs.length,baseline.baseline.worklogRows);assert.equal(data.demand.length,baseline.baseline.demandRows);
@@ -98,5 +103,24 @@ test('source baseline conserved, actual six-team reconciliation, no repeated con
  const keys=Object.values(m.exceptions).flat().map(r=>r.key);assert.equal(new Set(keys).size,keys.length);
  const out={testsPassed:tests+1,reportingDate:m.window.reportingDate,yearEnd:{...m,contributions:m.contributions.map(r=>({key:r.key,team:r.team,estimate:r.estimate,bucket:r.bucket,planningDate:r.planningDate})),trace:m.trace.map(r=>({key:r.key,outcome:r.outcome,estimate:r.estimate})),exceptions:Object.fromEntries(Object.entries(m.exceptions).map(([k,rows])=>[k,rows.map(r=>({key:r.key,team:r.team,estimate:r.estimate,bucket:r.bucket,outcome:r.outcome,allocationState:r.allocationState,exceptionFlags:r.exceptionFlags}))]))}};
  fs.writeFileSync(path.join(root,'outputs/capacity_assigned_demand/reconciliation.json'),JSON.stringify(out,null,2));
+});
+} else console.log('SKIP historical snapshot: requires Weekly Capacity_20261016.csv and all other saved source hashes; supply CAPACITY_HISTORICAL_PAYLOAD. Expected 52654.4 h is preserved.');
+test('current capacity independently reconciles to manifest-selected raw CSV',()=>{
+ const current=JSON.parse(fs.readFileSync(path.join(root,'web/data.js'),'utf8').replace(/^window\.BI_DATA\s*=\s*/,'').replace(/;\s*$/,''));
+ const source=current.meta.buildManifest.sourceFiles.find(r=>r.role==='Weekly capacity');
+ const body=fs.readFileSync(path.join(root,source.path.replaceAll('\\','/')),'utf8');
+ assert.equal(require('node:crypto').createHash('sha256').update(body).digest('hex').toUpperCase(),source.sha256);
+ // Parse quoted CSV fields, including embedded commas and line breaks.
+ const records=[];let record=[],field='',quoted=false;
+ for(let i=0;i<body.length;i++){const c=body[i];if(c==='"'){if(quoted&&body[i+1]==='"'){field+='"';i++;}else quoted=!quoted;}else if(!quoted&&(c===','||c==='\n')){record.push(field.replace(/\r$/,''));field='';if(c==='\n'){records.push(record);record=[];}}else field+=c;}
+ if(field||record.length){record.push(field.replace(/\r$/,''));records.push(record);}
+ const headers=records.shift().map(s=>s.replace(/^\uFEFF/,''));const col=headers.indexOf('Planned Hours');assert(col>=0);
+ const rawTotal=records.reduce((s,r)=>s+(Number((r[col]||'').replaceAll(',',''))||0),0);
+ assert(Math.abs(current.capacity.reduce((s,r)=>s+r.planned,0)-rawTotal)<1e-7);
+ assert(Math.abs(current.meta.sourceKpis.annualWorkforceCapacity-rawTotal)<1e-7);
+ assert.equal(new Set(current.capacity.map(r=>`${r.assignee}|${r.week}`)).size,current.capacity.length);
+ const m=calculate(current,{},'year');assert.equal(m.teams.length,6);assert.equal(m.demand,m.teams.reduce((s,r)=>s+r.demand,0));
+ assert.equal(new Set(m.contributions.map(r=>r.key)).size,m.contributions.length);
+ console.log(`Independently verified current raw capacity: ${rawTotal.toFixed(1)} h`);
 });
 console.log(`${tests} capacity coverage checks passed`);

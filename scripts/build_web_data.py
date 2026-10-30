@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from capacity_sources import FILES as CAPACITY_FILES, load as load_capacity_sources, write_reports
 
 from governed_exclusions import (
     GLOBAL_EXCLUDED_ISSUE_KEYS,
@@ -31,7 +32,7 @@ MAPPINGS_DIR = ROOT / "data" / "mappings"
 WORKLOGS_PATTERN = "RAW_DATA_FULL_ANALYSIS_*.csv"
 BACKLOG_PATTERN = "All Jira Work Items marked PI Backlog (JIRA)_*.csv"
 CAPACITY_PATTERN = "Weekly Capacity_*.csv"
-ASSIGNEES_PATTERN = "*Assignees*Capacit*.csv"
+ASSIGNEES_PATTERN = CAPACITY_FILES['Assignees master']
 MASTER_DATE_PATTERN = "*Master*Date*.csv"
 RELEASES_PATTERN = "Release Cycle*.csv"
 PROMOTERS_PATH = RAW_DIR / "Promoters.csv"
@@ -466,10 +467,10 @@ def jira_customer_attribution(keys: pd.Series, issues: dict[str, dict[str, str]]
 def main() -> None:
     WEB_DIR.mkdir(parents=True, exist_ok=True)
 
-    worklogs_path = latest_csv(WORKLOGS_PATTERN)
-    backlog_path = latest_csv(BACKLOG_PATTERN)
-    capacity_path = latest_csv(CAPACITY_PATTERN)
-    assignees_path = latest_csv(ASSIGNEES_PATTERN)
+    worklogs_path = RAW_DIR / CAPACITY_FILES['Tempo worklogs']
+    backlog_path = RAW_DIR / CAPACITY_FILES['Jira PI backlog']
+    capacity_path = RAW_DIR / CAPACITY_FILES['Weekly capacity']
+    assignees_path = RAW_DIR / CAPACITY_FILES['Assignees master']
     master_date_path = latest_csv(MASTER_DATE_PATTERN)
     releases_path = latest_csv(RELEASES_PATTERN)
     promoters_path = PROMOTERS_PATH
@@ -496,7 +497,11 @@ def main() -> None:
         )
     )
 
-    assignees = pd.read_csv(assignees_path, low_memory=False)
+    assignees, imported_capacity, capacity_audit = load_capacity_sources(ROOT)
+    write_reports(ROOT, capacity_audit)
+    invalid_rows = [r for r in capacity_audit['quarantine'] if not r['reason'].startswith('Missing planned hours')]
+    if invalid_rows:
+        raise ValueError('Malformed capacity rows quarantined; review reconciliation.json before rebuilding.')
     assignee_name_lookup = build_assignee_name_lookup(assignees)
     team_by_assignee = dict(zip(text(assignees, "Assignee"), text(assignees, "Team")))
     skill_by_assignee = dict(zip(text(assignees, "Assignee"), text(assignees, "Skill")))
@@ -536,7 +541,10 @@ def main() -> None:
         }
         for key in sorted(GLOBAL_EXCLUDED_ISSUE_KEYS)
     ]
-    worklogs["date"] = parse_worklog_date(worklogs["Work date"])
+    # Release Cycle boundaries are calendar dates. Normalize Tempo timestamps
+    # before applying the existing inclusive Start/End comparison so Code Freeze
+    # day worklogs remain in their governed release cycle.
+    worklogs["date"] = parse_worklog_date(worklogs["Work date"]).dt.normalize()
     worklogs = worklogs[worklogs["date"].notna()].copy()
     worklog_date_min = worklogs["date"].min().strftime("%Y-%m-%d")
     worklog_date_max = worklogs["date"].max().strftime("%Y-%m-%d")
@@ -828,7 +836,7 @@ def main() -> None:
     backlog_worklogs_out.loc[mapped_tempo_mask, "metadataSource"] = "Tempo operational mapping"
     backlog_worklogs_out["tempoDescriptionFound"] = mapped_tempo_mask
 
-    capacity = pd.read_csv(capacity_path, low_memory=False)
+    capacity = imported_capacity.replace('', pd.NA)
     source_annual_capacity = float(num(capacity, "Planned Hours").sum())
     legal_hours_teams = {
         "Authoring",
@@ -878,6 +886,9 @@ def main() -> None:
         {
             "team": text(assignees, "Team"),
             "assignee": text(assignees, "Assignee"),
+            "assigneeId": text(assignees, "Assignee ID"),
+            "capacityStart": text(assignees, "Capacity Start Date"),
+            "capacityEnd": text(assignees, "Capacity End Date"),
             "role": text(assignees, "Role"),
             "skill": text(assignees, "Skill"),
             "availability": text(assignees, "Availability"),
@@ -995,6 +1006,7 @@ def main() -> None:
     builder_path = Path(__file__).resolve()
     app_js_path = WEB_DIR / "app.js"
     source_manifest = [
+        {"role": "Support reservations (reconciliation only)", "file": CAPACITY_FILES['Support reservations'], "path": str((RAW_DIR / CAPACITY_FILES['Support reservations']).relative_to(ROOT)), "sha256": file_sha256(RAW_DIR / CAPACITY_FILES['Support reservations']), "rows": capacity_audit['supportPeople']},
         {"role": "Tempo worklogs", "file": worklogs_path.name, "path": str(worklogs_path.relative_to(ROOT)), "sha256": file_sha256(worklogs_path), "rows": int(len(worklogs_out))},
         {"role": "Jira PI backlog", "file": backlog_path.name, "path": str(backlog_path.relative_to(ROOT)), "sha256": file_sha256(backlog_path), "rows": int(len(backlog_out))},
         {"role": "Business Area promoters", "file": promoters_path.name, "path": str(promoters_path.relative_to(ROOT)), "sha256": file_sha256(promoters_path), "rows": int(len(promoters))},
@@ -1055,6 +1067,23 @@ def main() -> None:
                 "annualWorkforceCapacity": source_annual_capacity,
                 "actualHours": source_actual_hours,
                 "demandCapacity": source_demand_capacity,
+            },
+            "annualWorkforce": {
+                "year": capacity_audit['year'],
+                "allocationSource": assignees_path.name,
+                "supportSource": CAPACITY_FILES['Support reservations'],
+                "people": [
+                    {
+                        "assigneeId": row['assigneeId'], "person": row['person'],
+                        "team": row['team'], "skill": skill_by_assignee[row['person']],
+                        "development": row['grossDevelopment'],
+                        # No Engineering allocation row is a confirmed absent
+                        # gross allocation, not an estimate of net Engineering.
+                        "engineering": row['grossEngineering'] if row['grossEngineering'] is not None else 0,
+                        "support": row['weeklySupport'],
+                    }
+                    for row in capacity_audit['people']
+                ],
             },
         },
         "teams": as_records(teams_out),
