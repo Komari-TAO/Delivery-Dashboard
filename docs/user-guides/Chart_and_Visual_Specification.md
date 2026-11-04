@@ -1,4 +1,13 @@
-# Chart and Visual Specification
+# Chart and Visual Specification — CH-005A v1
+
+> **Canonical CH-005A governance; publication revision 1, 2026-11-04.** Local promotion and subsequent reference-only publication edits are authorized; GitHub publication is pending.
+
+## Publication provenance
+
+Historical governance reference: [pinned GitHub record](https://github.com/Komari-TAO/Delivery-Dashboard/tree/3ca6ef0393f119582792bf5b4f2aec4c3873bf4a). CH-004 G1 approval is limited to Account Distribution. CH-005A D1–D3 and D5–D8 cover the approved Portfolio consolidation; D4 defers Demand Management consolidation. Approval is conditional on the documented current-source scope. The accepted unresolved exceptions remain in force.
+
+The [publication evidence summary](../audit/CH005A_PUBLICATION_SUMMARY_v1.md) records approval scope, retained exceptions and the private-evidence boundary. This publication revision changes metadata and references only, preserving approved business content. The approved source proposal and complete historical audit trail remain preserved locally.
+
 
 Business-facing specification for every KPI, chart, and diagram in the Delivery Management BI workspace. Source file names use the **latest matching export** under `data/raw/` (patterns from `scripts/build_web_data.py`). Field names use **`[filename].[column]`** notation.
 
@@ -13,17 +22,17 @@ Business-facing specification for every KPI, chart, and diagram in the Delivery 
 | Release cycle filter | Worklog `releaseCycle` is derived from `RAW_DATA_FULL_ANALYSIS_*.csv.Work date` joined to `Release Cycle*.csv` (Start Date / End Date). |
 | Capacity weeks | Weekly capacity rows are included only for `Week Number` values that appear on `*Master*Date*.csv` dates inside the selected range. |
 
-### Sidebar filters (when non-empty, they restrict rows)
+### Sidebar filters (consumer-specific applicability; Account activation is explicit)
 
-**Client source contract (2026-10-22): Client = Tempo Customer Account**, the CSV field `Account Customer` (column S), validated using `Account Key`. Tempo Account Name, Jira Account, Jira Delivery, and legacy Jira/Tempo Client are separate concepts. Worklogs use the unique verified customer for their account key. Jira items require complete direct worklog evidence for exactly one customer; otherwise Client is `N/A`. Mapping is computed from the complete governed valid-date export before date or other UI filters, with no parent/customer inheritance. See [Calculation Governance](../governance/Calculation_Governance.md#client-attribution-2026-10-22) for conflict, incomplete-evidence and grain rules, and [validation results](../audit/CLIENT_CUSTOMER_ATTRIBUTION_VALIDATION.md) for current gaps. Both pickers and the Portfolio snapshot export use the same canonical `tempoCustomerAccount` field. Capacity and fixed source KPI scope are unchanged.
+**Client source contract (2026-10-22): Client = Tempo Customer Account**, the CSV field `Account Customer` (column S), validated using `Account Key`. Tempo Account Name, Jira Account, Jira Delivery, and legacy Jira/Tempo Client are separate concepts. Worklogs use the unique verified customer for their account key. Jira items require complete direct worklog evidence for exactly one customer; otherwise Client is `N/A`. Mapping is computed from the complete governed valid-date export before date or other UI filters, with no parent/customer inheritance. See [Calculation Governance](../governance/Calculation_Governance.md#client-attribution-2026-10-22) for conflict, incomplete-evidence and grain rules, and [validation results](../audit/CLIENT_CUSTOMER_ATTRIBUTION_VALIDATION.md) for current gaps. Both pickers and the Portfolio snapshot export use the same canonical `tempoCustomerAccount` field. Capacity is not customer allocated; current annual Portfolio KPI applicability is governed by the Portfolio KPI section below. Client = verified Tempo `Account Customer`. Portfolio Account = trimmed, case-preserved Tempo `Account Key` identity with `Account Name` for display. Account Category = Tempo `Account Category`. Jira Account = Jira `Custom field (Account)` metadata and retained planning/diagnostic use. Legacy Reporting Account labels exist only in v1 export compatibility controls; no modern Portfolio selection state or predicate uses that dimension. Matching names do not establish a Jira/Tempo relationship. The consolidated Key control scopes approved Portfolio effort directly and applicable Jira issue populations by observed membership; legacy labels are retained only in v1 export controls.
 
 | Filter | Tempo worklogs | Jira PI backlog | Weekly capacity |
 | --- | --- | --- | --- |
 | Team | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` is normalized and matched to `20261009_Assignees_Capacity.csv.Assignee`; the filter value is `20261009_Assignees_Capacity.csv.Team`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee` is normalized and matched to `20261009_Assignees_Capacity.csv.Assignee`; the filter value is `20261009_Assignees_Capacity.csv.Team`. | `Weekly Capacity_20261005.csv.Assignee` is matched to `20261009_Assignees_Capacity.csv.Assignee`; the filter value is `20261009_Assignees_Capacity.csv.Team`. |
 | Assignee | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`, normalized against `20261009_Assignees_Capacity.csv.Assignee`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`, normalized against `20261009_Assignees_Capacity.csv.Assignee`. | `Weekly Capacity_20261005.csv.Assignee`, normalized against `20261009_Assignees_Capacity.csv.Assignee`. |
 | Skill | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` → `20261009_Assignees_Capacity.csv.Assignee` → `20261009_Assignees_Capacity.csv.Skill`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee` → `20261009_Assignees_Capacity.csv.Assignee` → `20261009_Assignees_Capacity.csv.Skill`. | `Weekly Capacity_20261005.csv.Assignee` → `20261009_Assignees_Capacity.csv.Assignee` → `20261009_Assignees_Capacity.csv.Skill`. |
-| Client | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Customer`; blank Client is `N/A`. | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, carrying Tempo Customer Account to the Jira row; no matched Client is `N/A`. | Not applied; `Weekly Capacity_20261005.csv` has no Client column. |
-| Account | Native Tempo account facet: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name`. Governed account enrichment: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`. | Not applied; `Weekly Capacity_20261005.csv` has no Account column. |
+| Client | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Customer`, verified with `.Account Key` -> `tempoCustomerAccount`; unresolved `N/A`. | Same Tempo `.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Issue key`; only complete verified direct evidence for one customer attributes a Jira row, otherwise `N/A`. | Not customer allocated. |
+| Account | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key` identity; `.Account Name` display. Direct Key predicate for approved effort consumers. | Normalized direct Issue key = Work Item Key evidence from complete governed eligible valid-date snapshot before UI filters; observed selected-key membership, no ownership bridge. | Not applied; no Account allocation. |
 | Account Category | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Category`. | Not applied; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv` has no Account Category column. | Not applied; `Weekly Capacity_20261005.csv` has no Account Category column. |
 | Priority | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Priority`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Priority`. | Not applied; `Weekly Capacity_20261005.csv` has no Priority column. |
 | Status | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`. | Not applied; `Weekly Capacity_20261005.csv` has no Status column. |
@@ -31,7 +40,9 @@ Business-facing specification for every KPI, chart, and diagram in the Delivery 
 | Program | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, returning `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Program)`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Program)`. | Not applied; `Weekly Capacity_20261005.csv` has no Program column. |
 | Release Cycle | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` is placed between `Release Cycle.csv.Start Date` and `Release Cycle.csv.End Date`; the filter value is `Release Cycle.csv.Release Cycle`. | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Fix versions` is the Jira release value used by the backlog path. | `Weekly Capacity_20261005.csv.Week Number` is matched to `Google 2026 to 2028_Master_Date.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date` is placed between `Release Cycle.csv.Start Date` and `Release Cycle.csv.End Date`, returning `Release Cycle.csv.Release Cycle`. |
 
-**Status default:** On load, a governed default status set is applied (open / in-progress style statuses from the Jira export). Clearing or changing status affects both backlog rows and Tempo rows joined to Jira status.
+**Status default:** On load, the existing governed default status set is applied. Status affects supported Jira/backlog and Status-aware joined-row consumers. Governed logged effort, the annual actual-effort numerator and Account Distribution retain their Status-independent behavior; not every Tempo consumer responds identically.
+
+Explicit **Select All** stores the currently rendered Account options and activates Account grouping. It differs from inactive **All accounts**. Search or other applicable scope can limit those options; it is not a wildcard for future Accounts. Explicit All Clients also activates Account grouping when options exist. Clear All Accounts deactivates Account selection; Client grouping returns only when Client is also cleared. Client and Account selections intersect; a selection outside the current scope does not widen it.
 
 ---
 
@@ -179,7 +190,7 @@ Horizontal bar chart.
 
 ### Filters
 
-Team; Assignee; Skill; Status (when status filter differs from default). **Date range does not apply** (queue is current export, not time-series).
+Team; Assignee; Skill; applicable Status and observed Account membership. **Unresolved pre-existing date conflict:** retained governance says Date Range does not apply (current-export queue), but the current caller supplies filteredData().backlog, which applies Created-date range. CH-005A neither authorizes a new date rule nor changes that implementation. This exception must not be treated as resolved.
 
 ### Rules
 
@@ -191,7 +202,9 @@ Severity order: Blocker, Critical, Major, Medium, Low, Enhancement; empty severi
 
 ### Business explanation
 
-**Treemap of nonoperational Tempo logged hours by client**, with embedded Client and Account dropdowns. Selecting a Client shows its Tempo Accounts; selecting an Account narrows to its authoritative key. Tile size = customer/account logged hours. Tile clicks use these local selections and retain the selected-tile styling without changing the global Account filter. Operational Tempo effort remains visible as a separate footer metric and stays in governed Logged Total.
+Treemap of governed nonoperational Tempo logged hours by Client by default. Active Client or Tempo Account selections switch it to Account distribution. Sidebar selections govern scope and grouping; Client/Account selections intersect. Legacy Reporting Account labels are export-only; modern Portfolio has no such predicate. Tile size is customer/account logged effort; tile percentage uses visible customer/account effort.
+
+**Approval boundary:** Delivery Management G1 approval supersedes Jira Account-restricted treemap eligibility and exception-only footer rules for Account Distribution only. It does not approve unrelated historical changes or alter KPI formulas, Jira demand, exclusions, Team, Status, hierarchy, capacity, or other visualizations.
 
 ### Chart type
 
@@ -199,30 +212,40 @@ Treemap (SVG).
 
 ### Fields
 
-| Concept | Fields |
+| Concept | Exact source / payload fields |
 | --- | --- |
-| Client | `RAW_DATA_FULL_ANALYSIS_*.csv.Account Customer`, validated through `Account Key` by the existing `tempoCustomerAccount` mapping; unverified attribution displays `-` locally |
-| Account on Tempo row | `RAW_DATA_FULL_ANALYSIS_*.csv.Account Name` (display) |
-| Tempo Account identity | `RAW_DATA_FULL_ANALYSIS_*.csv.Account Key`; names alone never merge distinct keys |
-| Logged / billable | `RAW_DATA_FULL_ANALYSIS_*.csv.Logged Hours`, `RAW_DATA_FULL_ANALYSIS_*.csv.Billable Hours` |
-| Operational classification | Existing `isTempoWorkItem` classification of normalized Tempo `Work Item Key` (`TEMPO-*`), after the shared five-key exclusions; never inferred from Client or Account names |
-| Original estimate / variance tooltip | `-`; Jira estimates cannot be assigned to Tempo Client/Account Key by matching display names |
+| Client | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Customer`, verified using `.Account Key` -> `tempoCustomerAccount` and `clientAttributionStatus`; unverified picker `N/A`, tile `-` |
+| Account identity / display | Same Tempo file `.Account Key` -> `tempoAccountKey` (trimmed identity), `.Account Name` -> `tempoAccount` (display `Name (Key)`); missing key -> explicit `-` |
+| Effort / date | Tempo `.Logged Hours` -> `logged`; `.Billable Hours` -> `billable`; `.Work date` -> `date` |
+| Operational classification | Tempo `.Work Item Key`, normalized by shared `isTempoWorkItem` after the exact five-key exclusions; never Client/Account names |
+| Workforce / calendar | `20261028_Assignees_Capacity.csv` mapping; `Google 2026 to 2028_Master_Date.csv` for reporting calendar; no changed Team rules |
+| Jira estimates / variance tooltip | `-`; unavailable for Tempo Client/Account identity without an authoritative bridge |
 
 ### Filters
 
-Tempo rows retain the existing date range and sidebar filters with **Status ignored** on the Tempo stream used for treemap sizing. Embedded filters intersect that population locally and never affect KPI cards, other charts, detail tables, or snapshot exports. Client selection persists across global changes; changing Client clears an incompatible Account. Account options depend on Client and eligible worklogs; a selected Account persists through temporary empty global scopes.
+| Sidebar state | Account Distribution |
+| --- | --- |
+| No active Client or Tempo Account selection | Distribution by Client |
+| Client selected | Associated Account distribution |
+| Tempo Account selected | Selected Account distribution |
+| Explicit All Accounts | All eligible Account distribution |
+| Client and Account active | Intersected Account distribution |
+| Both reset | Default Client distribution |
+
+Explicit **Select All** stores the currently rendered Account options and activates Account grouping. It differs from inactive **All accounts**. Search or other applicable scope can limit those options; it is not a wildcard for future Accounts. Explicit All Clients also activates Account grouping when options exist. Clear All Accounts deactivates Account selection; Client grouping returns only when Client is also cleared. Client and Account selections intersect; a selection outside the current scope does not widen it.
+
+The common source is `filteredData({ ignoreAccount: true, ignoreStatus: true }).worklogs`: ignoreAccount temporarily bypasses the consolidated Portfolio Account Key predicate; the treemap renderer reapplies the selected keys after its existing eligibility checks. Existing applicable date, workforce, Client, category, priority, target-release, program and Release Cycle predicates remain. `renderAccountTreemap()` reapplies managed-team/exclusion checks and active Tempo Account keys. Selected keys remain available to clear across temporary empty scopes; changing Client does not silently replace Account selection. An active empty Account set matches no worklogs, unlike inactive All.
 
 ### Rules
 
-- Reuses `governedTempoAccountAggregation` with the local dimension selector for nonoperational worklogs. Valid nonoperational Tempo-only worklogs remain eligible. Valid operational worklogs remain in the source and governed total but do not populate customer tiles or default picker options. No Jira joins or independent effort calculation are introduced.
-- Missing Client or Account attribution remains in an explicit `-` bucket. Missing Account Keys are unknown identity; no name-based identity is invented. Existing global `N/A` Client semantics and Jira Account semantics are unchanged.
-- Tiles require **logged > 0** in period.
-- Tile percentage = tile hours / visible customer/account effort. Positive fractional partitions preserve tiny tiles without dropping their hours.
-- The footer reuses `peopleTotalsRow(groupPeople(worklogs, []))` for Total logged hours and Operational Tempo hours in the existing global-filtered, Status-independent managed Tempo scope. Both keep that scope under embedded selections. Customer/account effort is the tile total after global and local filters. All three values remain visible in empty states.
-- With All Clients / All Accounts: Total logged hours = Operational Tempo hours + Customer/account effort. With local selections, the difference also contains unselected nonoperational effort; scope labels explicitly distinguish the global context from the local subtotal.
-- `TEMPO TICKETS` is a source Client name, not a classification: its nonoperational worklogs remain visible. The investigation and reconciliation are recorded in [Operational effort validation](../audit/ACCOUNT_DISTRIBUTION_OPERATIONAL_EFFORT_VALIDATION.md).
-- No chart-specific export exists. Snapshot exports keep their existing global Accounts-table scope.
-- Historical Jira Account attribution governance remains unchanged. The scoped CH-004 Tempo dimensions and tile-click conflict are documented in [Account Distribution validation](../audit/ACCOUNT_DISTRIBUTION_VALIDATION.md).
+Tiles contain governed managed, nonexcluded, nonoperational Tempo worklogs, including explicit missing-attribution buckets. Operational `TEMPO-*` effort is excluded from tiles by the existing issue-key classifier, never by Client/Account names. All three footer values use one applicable Client/Account-filtered Tempo scope: Total logged hours, Operational Tempo hours, and Customer/account effort. Jira Status does not filter this visual; the Reporting Account sidebar control has been removed. Date Range, Team, Assignee, Skill, Client, Account Category, Priority, Target Release, Program and existing Release Cycle state apply where implemented; active Tempo Account keys are then applied. The UI footer phrase `global filters` refers to this consumer-specific scope. Changing grouping alone preserves eligible worklogs; applying Client or Account filters can change populations and totals. Missing Client displays `-` in tiles (`N/A` in the Client picker); missing Account Key remains a `-` bucket. Only positive aggregate-hour buckets render (`logged > 0`); negative-adjustment conservation remains unapproved/unvalidated (G6).
+
+- `accountDistributionRows()` uses encoded Client or trimmed Account Key identity with `governedTempoAccountAggregation()`. Equal Account Names with different keys remain separate; no Jira join or independent effort formula is introduced.
+- All three footer measures remain visible in empty states. They reuse `peopleTotalsRow(groupPeople(W, []))` for Total/Operations; customer effort is the visible nonoperational bucket sum. Operational worklogs can also be narrowed by Client/Account selections.
+- For the validated positive-hour snapshot, Total Logged 51,806.039 h = Operational Tempo 8,263.271 h + Customer/Account effort 43,542.768 h. Grouping alone conserves this unfiltered nonoperational population. These are snapshot results, not permanent formulas or historical replay evidence.
+- Client tile click sets the sidebar Client filter; Account tile click selects its key, or clears Account selection when clicked again while selected. Enter/Space trigger the same action. Client can therefore affect its other existing consumers; Account Key also scopes the other approved Portfolio consumers, each under its own eligibility contract.
+- No embedded selectors or independent grouping toggle remain. No chart-specific export exists. Snapshot v2 follows Account Key/Client scope with separate issue-grain records; planning v2 uses current demand snapshot scope. Explicit legacy v1 alone retains original label scope and ignores modern Account Key selection.
+- Jira Account diagnostic partitions remain separate. Historical audit narratives describe earlier controls; current evidence is in [publication evidence summary](../audit/CH005A_PUBLICATION_SUMMARY_v1.md) and [publication evidence summary](../audit/CH005A_PUBLICATION_SUMMARY_v1.md). G4–G10 remain qualified there.
 
 ---
 
@@ -354,7 +377,7 @@ Horizontal bar chart (top 7 types by row count).
 | Concept | Fields |
 | --- | --- |
 | Issue type | `All Jira Work Items marked PI Backlog (JIRA)_*.csv.Issue Type` joined to worklogs |
-| Metric | Count of worklog rows | `RAW_DATA_FULL_ANALYSIS_*.csv.Work Item Key` |
+| Metric | Count of worklog rows using `RAW_DATA_FULL_ANALYSIS_*.csv.Work Item Key`. |
 
 ### Filters
 
@@ -370,11 +393,15 @@ Rows with empty issue type excluded.
 
 ### Accounts tab
 
-**Business:** Account-level logged vs estimated hours and variance for delivery reporting.
+**Business:** actual effort by Tempo Account Key with observed linked-issue Original and Remaining Estimates, not contractual Account budgets.
 
-**Fields:** `All Jira Work Items marked PI Backlog (JIRA)_*.csv.Custom field (Account)`, `Original estimate`, Tempo `Logged Hours` via enriched worklogs.
+**Fields:** Tempo Account Key / Name / Logged Hours / Worklog ID; Jira Issue key / Original estimate / Remaining Estimate / Custom field (Account) as metadata.
 
-**Filters:** Backlog columns use `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`. Logged columns use `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` and do not apply the Jira Status filter.
+**Filters:** direct Key for actuals (Work date, governed Status-independent path), observed full-snapshot membership for Jira estimates (existing Created-date and Status scope). Preserve workforce and other consumer-specific predicates. Account Category does not allocate Jira estimates.
+
+**Totals and availability:** issue estimates occur once per row's distinct linked issue set, can overlap across rows, and deduplicate in the visible union footer. No-worklog issues are outside Account-row estimates and disclosed separately in issue/population evidence. Variance/ratio require the qualified complete one-Key comparison described below; otherwise Unavailable, including all union comparisons.
+
+**Evidence / exports:** Account details expose complete eligible Jira issue evidence and selected/unlinked/other subtotals beneath the table. Snapshot v2 ignores detail text search and displayed-row limits. Legacy v1 label controls are export-only. The separate planning reconciliation uses Remaining Demand snapshot scope; it is not a Created-date or future-horizon population.
 
 ### People tab
 
@@ -418,11 +445,11 @@ Each data build writes `web/build-manifest.json` with SHA-256 hashes for source 
 
 ---
 
-## Exact source and field lineage (current build)
+## Exact source and field lineage (dated evidence and current overrides)
 
-This section is the field-level contract for the dashboard. It records the **exact file name** selected by the current build and the **exact CSV header** used for every displayed value. A value marked **Derived** is calculated by `scripts/build_web_data.py` or by the browser from the stated source fields; it is not a CSV column.
+This section preserves dated field-level lineage. October 7/9/22 filenames are historical examples, not current source selection. Current October 30 Account lineage and the current Portfolio KPI contract control where stated; the builder manifest records current selected files. A value marked **Derived** is calculated by `scripts/build_web_data.py` or by the browser from the stated source fields; it is not a CSV column.
 
-### Source files selected by the current build
+### Historical source-file selection retained from CH-004
 
 | Source role | Exact file | Exact fields used by the dashboard |
 | --- | --- | --- |
@@ -466,14 +493,16 @@ This section is the field-level contract for the dashboard. It records the **exa
 
 ### Portfolio filters: exact fields
 
+Dated October 7/9 entries below and the earlier source-file tables are retained historical lineage, not a claim that those exports supply the current build. Current CH-005A Tempo/Jira sources are the October 30 exports, workforce/weekly sources are October 28, and exact column names retain their existing meanings. Account-related current rows are qualified below; unchanged historical KPI rows do not override the controlling Portfolio KPI contract.
+
 | Control | Exact file and field used |
 | --- | --- |
 | From / To | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date` filters Tempo activity. The selectable bounds are governed by `Google 2026 to 2028_Master_Date.csv.Master Date`. |
 | Team | `20261009_Assignees_Capacity.csv.Team`, applied through the derived `team` mapping. |
 | Assignee | `20261009_Assignees_Capacity.csv.Assignee`; Tempo activity matches normalized `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`. |
 | Skill | `20261009_Assignees_Capacity.csv.Skill`, applied through the assignee-to-skill mapping. |
-| Client | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Customer`; for Jira rows, `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` = `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` carries the Tempo Customer Account value. Blank, unmatched, incomplete, or ambiguous Client is `N/A`. This is the same value list and multi-select behavior as the Demand Management Client filter. |
-| Account | Tempo display facet: `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name`; Jira-governed backlog account: `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`. |
+| Client | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Customer`, validated with `.Account Key`. Jira `.Issue key` in `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv` matches Tempo `.Work Item Key`; complete verified direct worklogs for exactly one customer are required. Missing/incomplete/ambiguous evidence is `N/A`; no name or parent inference. |
+| Account (Tempo) | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key` -> `tempoAccountKey`; `.Account Name` -> `tempoAccount` display; active keys directly scope approved Portfolio effort and observed Jira membership. |
 | Account Category | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Category`. |
 | Priority | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Priority`, joined by work item key for Tempo rows. |
 | Status | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`, joined by work item key for Tempo rows. |
@@ -498,7 +527,7 @@ This section is the field-level contract for the dashboard. It records the **exa
 | Planned vs Unplanned — hours | Sum of Tempo `Logged Hours` for the same classified keys. |
 | Program Distribution | Sum of Tempo `Logged Hours`; program from Jira `Custom field (Program)`. |
 | Bug Severity Distribution | Distinct `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` where `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type` = `Bug`, grouped only by `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Bug Severity)` = `Blocker`, `Critical`, or `Major`. |
-| Account Distribution | Sum governed nonoperational Tempo `Logged Hours` by validated `Account Customer`, or `Account Key` after local selection; `Account Name` is display only. Footer retains global Total/Operations context and locally selected customer effort. |
+| Account Distribution | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Logged Hours` by verified `.Account Customer` or `.Account Key` after active sidebar selections; `.Account Name` is display only. All footer totals share applicable Client/Account scope; Status ignored; no legacy label predicate. |
 | Team Utilization — capacity | Sum of `Weekly Capacity_20261005.csv.Planned Hours` by mapped `Team` and `Week Number`; week inclusion comes from `Google 2026 to 2028_Master_Date.csv.Week Number` and `Master Date`. |
 | Team Utilization — actual | Sum of Tempo `Logged Hours` by derived team. |
 | Remaining Demand vs Logged Effort — demand | Sum of Jira `Remaining Estimate ÷ 3,600` by derived team. |
@@ -513,12 +542,13 @@ This section is the field-level contract for the dashboard. It records the **exa
 
 | Tab and column | Exact file and field(s) used |
 | --- | --- |
-| Accounts — Account | Jira `Custom field (Account)`; Tempo native display/fallback is `Account Name`. |
-| Accounts — Original Estimate Hours | Jira `Original estimate ÷ 3,600`. |
-| Accounts — Logged Hours | Tempo `Logged Hours`. |
-| Accounts — Variance Hours | **Derived:** Logged Hours minus Original Estimate Hours. |
-| Accounts — Logged vs Estimate % | **Derived:** Logged Hours ÷ Original Estimate Hours. |
-| Accounts — Work Items | Distinct Jira `Issue key` after the active scope. |
+| Accounts — Account | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Name`; Trimmed case-preserved Key identity / Name display. Jira `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Custom field (Account)` is separate issue metadata. |
+| Accounts — Original Estimate Hours | `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Original estimate`; `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Work Item Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key`; Seconds / 3,600 once per distinct observed linked issue; row estimates overlap, union deduplicated. |
+| Accounts — Remaining Estimate Hours | `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Remaining Estimate`; `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Work Item Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key`; Seconds / 3,600 once per linked issue; non-additive across Account rows. |
+| Accounts — Logged Hours | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Tempo Worklog ID`; Sum selected unique governed worklogs by Key. |
+| Accounts — Variance Hours | `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Original estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Work Item Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Tempo Worklog ID`; Logged minus Original only under complete supported row comparison; otherwise Unavailable. Union unavailable. |
+| Accounts — Logged vs Estimate % | `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Original estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Work Item Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Tempo Worklog ID`; Logged divided by Original only under supported complete comparison and nonzero denominator; otherwise Unavailable. Union unavailable. |
+| Accounts — Work Items | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Work Item Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key`; Distinct selected actual Tempo keys per bucket; footer unions these keys. Linked Jira estimate issue sets remain separate and may overlap. |
 | People — Assignee | `20261009_Assignees_Capacity.csv.Assignee`; Tempo activity display is `Full name`. |
 | People — Team / Role / Skill | `20261009_Assignees_Capacity.csv.Team`, `.Role`, `.Skill`. |
 | People — Capacity | `Weekly Capacity_20261005.csv.Planned Hours`. |
@@ -576,6 +606,8 @@ This is the authoritative, literal reference list. Every source reference below 
 
 ### Portfolio filters and KPI cards
 
+This ledger retains dated historical mappings. Current annual-card formulas and applicability are controlled by Portfolio KPI cards above; these rows do not restore obsolete fixed-source Actual Hours or redefine annual formulas. Current CH-005A rows distinguish verified Client, Portfolio Key and export-only legacy labels; Jira Account remains metadata.
+
 | Dashboard item | Exact `file.column` input | Derived calculation / use |
 | --- | --- | --- |
 | From / To selectable dates | `Google 2026 to 2028_Master_Date.csv.Master Date` | Sets the minimum and maximum selectable dates. |
@@ -583,8 +615,10 @@ This is the authoritative, literal reference list. Every source reference below 
 | Team filter | `20261009_Assignees_Capacity.csv.Team`; `20261009_Assignees_Capacity.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` | Full name is normalized and matched to Assignee, then Team is used. |
 | Assignee filter | `20261009_Assignees_Capacity.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` | Normalized equality match. |
 | Skill filter | `20261009_Assignees_Capacity.csv.Skill`; `20261009_Assignees_Capacity.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` | Skill is obtained through the assignee match. |
-| Account filter — Tempo label | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name` | Tempo-native account label. |
-| Account filter — Jira-governed account | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` | Jira account joins to Tempo through Issue key = Work Item Key. |
+| Legacy v1 export-only label — Tempo label | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name` | Preserved dated native-Tempo label lineage; compatibility dimension, not Tempo Account Key. |
+| Legacy v1 export-only label — Jira-governed account | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`; `.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` | Preserved dated Jira enrichment lineage; frozen v1 predicate only; no modern Portfolio predicate. |
+| Client filter — verified Tempo Customer | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Customer`; `.Account Key`; `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Issue key` | `tempoCustomerAccount`, `clientAttributionStatus`; complete direct issue evidence for Jira grain, no parent/name inference. |
+| Account filter — Tempo identity | RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key; .Account Name | Trimmed case-preserved Key; Name display; direct effort and full-snapshot observed issue membership in approved Portfolio consumers, not capacity allocation. |
 | Account Category filter | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Category` | Direct filter. |
 | Priority filter | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Priority`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` | Jira Priority joins to Tempo by key. |
 | Status filter | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Status`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` | Jira Status joins to Tempo by key. |
@@ -608,8 +642,9 @@ This is the authoritative, literal reference list. Every source reference below 
 | Planned vs Unplanned — hours | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Labels` | Sum Logged Hours within the label-derived class. |
 | Program Distribution — slice | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Program)`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key` | Sum Logged Hours by joined Program. |
 | Bug Severity Distribution — bar | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue Type`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Bug Severity)` | Distinct Issue key where Issue Type = `Bug`, grouped only by Bug Severity = `Blocker`, `Critical`, or `Major`. |
-| Account Distribution — tile label | `RAW_DATA_FULL_ANALYSIS_*.csv.Account Customer`, `.Account Name`, `.Account Key` | Validated Client by default; Account display name and authoritative key in account view. |
-| Account Distribution — tile size | `RAW_DATA_FULL_ANALYSIS_*.csv.Logged Hours` | Sum governed nonoperational Logged Hours by Client or Account Key after global and embedded filters. |
+| Account Distribution — tile label | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Customer`, `.Account Name`, `.Account Key` | Verified Client by default; Account display name and authoritative key on active Client/Account selection. Missing attribution `-`. |
+| Account Distribution — tile size | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Logged Hours`; `.Work Item Key`; `.Work date` | Sum governed nonoperational logged hours after applicable sidebar Client/Account intersection; Status ignored; no legacy label predicate; only positive aggregate buckets render (G6). |
+| Account Distribution — footer values | Same Tempo fields; existing `peopleTotalsRow(groupPeople(W, []))` | Total Logged and Operational Tempo from common filtered W; customer effort from visible nonoperational buckets. No exception-only or split local/global footer. |
 | Team Utilization — planned | `Weekly Capacity_20261005.csv.Planned Hours`; `Weekly Capacity_20261005.csv.Assignee`; `20261009_Assignees_Capacity.csv.Assignee`; `20261009_Assignees_Capacity.csv.Team`; `Weekly Capacity_20261005.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Week Number`; `Google 2026 to 2028_Master_Date.csv.Master Date` | Planned Hours sums by mapped Team for Master Date weeks in range. |
 | Team Utilization — logged | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`; `20261009_Assignees_Capacity.csv.Assignee`; `20261009_Assignees_Capacity.csv.Team` | Sum Logged Hours by mapped Team. |
 | Team Utilization — utilization | `Weekly Capacity_20261005.csv.Planned Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` | Sum Logged Hours ÷ Sum Planned Hours. |
@@ -627,12 +662,13 @@ This is the authoritative, literal reference list. Every source reference below 
 
 | Table column / value | Exact `file.column` input | Derived calculation / use |
 | --- | --- | --- |
-| Accounts — Account | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name` | Jira value is governed account; Account Name is fallback display. |
-| Accounts — Original Estimate Hours | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Original estimate` | Original estimate ÷ 3,600. |
-| Accounts — Logged Hours | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` | Sum by account. |
-| Accounts — Variance Hours | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Original estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` | Logged Hours − (Original estimate ÷ 3,600). |
-| Accounts — Logged vs Estimate % | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Original estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours` | Logged Hours ÷ (Original estimate ÷ 3,600). |
-| Accounts — Work Items | `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key` | Distinct count. |
+| Accounts — Account | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Name` | Trimmed case-preserved Key identity / Name display. Jira `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Custom field (Account)` is separate issue metadata. |
+| Accounts — Original Estimate Hours | `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Original estimate`; `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Work Item Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key` | Seconds / 3,600 once per distinct observed linked issue; row estimates overlap, union deduplicated. |
+| Accounts — Remaining Estimate Hours | `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Remaining Estimate`; `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Issue key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Work Item Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key` | Seconds / 3,600 once per linked issue; non-additive across Account rows. |
+| Accounts — Logged Hours | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Tempo Worklog ID` | Sum selected unique governed worklogs by Key. |
+| Accounts — Variance Hours | `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Original estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Work Item Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Tempo Worklog ID` | Logged minus Original only under complete supported row comparison; otherwise Unavailable. Union unavailable. |
+| Accounts — Logged vs Estimate % | `All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Original estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Logged Hours`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Work Item Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Tempo Worklog ID` | Logged divided by Original only under supported complete comparison and nonzero denominator; otherwise Unavailable. Union unavailable. |
+| Accounts — Work Items | `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Work Item Key`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key` | Distinct selected actual Tempo keys per bucket; footer unions these keys. Linked Jira estimate issue sets remain separate and may overlap. |
 | People — Assignee | `20261009_Assignees_Capacity.csv.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name` | Master assignee label with Tempo activity match. |
 | People — Team | `20261009_Assignees_Capacity.csv.Team` | Direct master field. |
 | People — Capacity | `Weekly Capacity_20261005.csv.Planned Hours`; `Weekly Capacity_20261005.csv.Assignee`; `20261009_Assignees_Capacity.csv.Assignee` | Sum Planned Hours matched by Assignee. |
@@ -685,7 +721,7 @@ This is the authoritative, literal reference list. Every source reference below 
 
 ## Capacity versus Known Assigned Demand
 
-Panel: `#capacityCoveragePanel`. Replaces only the former capacity pivot. The Team × Release matrix, Epic Workflow, account comparison, quality panel, source KPIs, Portfolio, and exports keep their existing rules.
+Panel: `#capacityCoveragePanel`. Replaces only the former capacity pivot. The Team × Release matrix, Epic Workflow, Demand account comparison, quality panel and Demand source KPIs keep their existing rules. Portfolio and its v2 exports follow the separate CH-005A Account contract; this Demand panel remains independent.
 
 Inputs are isolated in `BI_DATA.capacityCoverage`: source-preserving capacity values, all canonical Assignees mappings (including contributing teams), Jira rows with numeric/missing Remaining Estimate preserved, the existing governed reporting date, and the capacity snapshot year. `web/capacity-coverage.js` centralizes resolution, horizon selection, and arithmetic; `web/demand.js` supplies existing Demand filter predicates and rendering.
 
@@ -701,3 +737,119 @@ Inputs are isolated in `BI_DATA.capacityCoverage`: source-preserving capacity va
 - Interpretation: “Positive headroom means capacity exceeds known assigned estimates. It does not establish that teams can absorb unallocated, undated, or unestimated work.” The UI also states that workforce capacity is not customer-dedicated capacity.
 
 The [scoped calculation authorization](../governance/Calculation_Governance.md#capacity-versus-known-assigned-demand--scoped-authorization-2026-10-22) records differences from the parked forecast contract. Source coverage, reconciliation, screenshots, and regression limitations are in the [validation audit](../audit/CAPACITY_ASSIGNED_DEMAND_VALIDATION.md).
+
+
+## CH-005A current Account source lineage
+
+| Field | Current selected source / use |
+| --- | --- |
+| Key / Name / Category / Customer | RAW_DATA_FULL_ANALYSIS_01_Jan_26_30_Oct_26.csv.Account Key / Account Name / Account Category / Account Customer; direct effort and verified Client, with name display only. |
+| Provenance / issue link | Same Tempo file Tempo Worklog ID / Work Item Key; direct normalized match to All Jira Work Items marked PI Backlog (JIRA)_20261030.csv.Issue key. Index is full governed eligible valid-date snapshot before interactive filters. |
+| Jira metadata / estimates | Same Jira file Custom field (Account) / Original estimate / Remaining Estimate; no ownership crosswalk or allocation. |
+| Workforce / capacity | 20261028_Assignees_Capacity.csv and Weekly Capacity_20261028.csv; unchanged canonical workforce and denominator rules. |
+| Reporting calendar | Google 2026 to 2028_Master_Date.csv; exclusive authority, with existing builder fallback recorded as an exception. |
+
+Older dated source ledger rows above retain field meanings and prior evidence; they do not identify the current input files or restore retired label predicates.
+
+## CH-005A source ownership
+
+| Business concept | Authority and boundary |
+| --- | --- |
+| Client | Tempo Account Customer, verified by Account Key; unresolved is N/A. Existing full-snapshot single-customer Jira attribution remains unchanged. |
+| Portfolio Account identity | Tempo Account Key, trimmed and case-preserved; equal names with different keys remain distinct. |
+| Account display / Category | Tempo Account Name / Account Category. Neither establishes Jira ownership or key membership. |
+| Logged effort / worklog date | Tempo Logged Hours / Work date. Worklog ID is source provenance, not an issue or Account identity. |
+| Jira metadata / Jira Account | Jira fields / Custom field (Account), retained internally for diagnostics, display and independent planning. |
+| Original Estimate / Remaining Estimate | Jira, issue grain, seconds converted to hours. They are separate measures, not Account budgets. |
+| Workforce / capacity / weeks | Assignees CSV / Weekly Capacity / Master Date. No Account capacity allocation. |
+
+The Portfolio sidebar exposes Client, Account and Account Category alongside the existing controls. Reporting Account has been removed from that sidebar and from modern reporting predicates. Legacy label choices are export-only compatibility controls. Jira Account metadata remains in the data model.
+
+## CH-005A observed relationships and activation
+
+D2 uses normalized direct Jira Issue Key = Tempo Work Item Key to collect observed Tempo Account Keys from the complete governed eligible valid-date source snapshot **before interactive filters**. Issue keys are trimmed and uppercased; Account Keys are trimmed without case folding. The index is not rebuilt from a selected date, person or Team sample. Consumer-specific six-team/workforce eligibility remains applied by each consumer. No name, parent Account, Client or Category bridge is permitted. Observed activity is not contractual ownership; Jira metadata inheritance remains a separate existing process.
+
+| Attribution evidence | Meaning |
+| --- | --- |
+| No worklogs | No eligible direct Tempo evidence; no Account can be assigned. |
+| Missing Account Keys | Direct worklogs exist, but all keys are missing; distinct from no worklogs. |
+| Partially attributed | Known keys and missing-key worklogs coexist. Known keys remain inspectable; the issue can also involve multiple known Accounts. |
+| Multiple Accounts | More than one observed nonmissing key. The display prioritizes Partially attributed when missing evidence also exists; it does not discard the multiple keys. |
+| Observed Account | Complete evidence for a single nonmissing key. This still establishes activity, not ownership. |
+
+| Account activation state | Effect |
+| --- | --- |
+| Inactive/default, empty selection | Unrestricted Account predicate. Includes Jira-only issues in the selected overall issue population; attribution diagnostics still disclose them. |
+| Explicit Select All | Active stored selection of currently rendered option keys; search and current scope can limit it. It is not a wildcard for future or newly eligible keys. |
+| Selected keys | Direct worklog-key match; Jira issue matches any observed selected key, once in the union. Client and Account intersect. |
+| Active-empty | Matches no worklogs or Jira issues. Distinct from inactive/unrestricted, and retains Account treemap grouping. |
+| Clear / reset | Clear Account empties keys and deactivates; active Client still gives Account grouping. Reset also clears Client and restores existing date/Status defaults. |
+| Missing-key selection | One explicit missing-key bucket, encoded as JSON array containing an empty string. Matches missing-key worklogs and issues with direct missing-key evidence, never issues with no worklogs. No Jira-name fallback. |
+| Selected key unavailable after scope/refresh | Retained and clearable; cannot widen the current intersection or silently select another key. |
+
+Checkbox and tile interactions retain their existing activation behavior; unchecking the last checkbox deactivates. A programmatically active-empty state or Select All on an empty rendered option scope remains active-empty.
+
+## CH-005A consumer populations and estimate grain
+
+| Consumer / measure | CH-005A filter contract; existing arithmetic retained |
+| --- | --- |
+| Portfolio effort KPIs; Hours Trend; Team Utilization; Planned/Unplanned; Program Distribution; Engineering Work Mix; People logged effort; Backlog Worked On; Delivery Progress activity | Direct Tempo Account Key on eligible worklogs. Preserve each consumer's date, metadata, Status exceptions, workforce/ownership and aggregation rules; Program slices still ignore Program selection. |
+| Work Item Types | Direct Key on filtered native worklogs; current measure is worklog-row count by type, with its existing Status-aware path. |
+| Jira inventory, priority and applicable issue estimates | Direct observed Issue Key membership in selected Account keys; one estimate/count per distinct issue in a union. Existing Jira eligibility and date/Status predicates remain. Account Category is not a Jira attribute. |
+| Remaining Demand versus Logged Effort | Demand uses current Jira snapshot Remaining Estimate, independent of Created date; selected observed membership scopes issues. Actuals use selected-period direct-key worklogs and ignore Status. These are separate measures. |
+| Account details and v2 snapshot | Actuals grouped by Key; Jira linked estimates use existing Created-date/Status issue scope. Per-Account estimates overlap; union deduplicated. Search can narrow visible detail totals, but exports ignore detail search/row limits. |
+| Unlinked demand companion and v2 planning export | Remaining-Demand current-snapshot issue scope, without Created-date restriction. Partition into selected, residual unlinked, other linked; no attribution by Jira Account label. This is not the Demand Management capacity resolver. |
+| Annual Gross Workforce Hours | Existing Team/Assignee/Skill roster and compatible-year scope; annual allocations are not divided among Accounts or prorated by worklog filters. |
+| Actual Hours; Gross Annual Hours Balance; Logged Hours / Gross Annual Hours | Same governed actual-effort numerator now follows direct Account Key, plus existing effort predicates; ignores Status. Annual denominator retains roster/year scope. |
+| Annual Development Capacity and Demand Capacity | Existing full-source cards; no Account/Client allocation. General cards remain Portfolio-scoped above tabs. |
+| Weekly capacity and Demand capacity coverage | Existing workforce/Master Date/horizon scope; Account selections do not allocate workforce capacity. |
+| Demand Management and Delivered Features exceptions | Independent Jira Account picker and existing planning/hierarchy/filter rules; CH-005B deferred. Existing full-source Delivered Features KPIs continue to ignore Demand pickers. |
+
+For each consumer's eligible Jira issue set Q, partition after preserving its non-Account predicates. Under an active Account selection, selected issues match observed keys (or the selected missing-key bucket); residual unlinked issues have no direct worklogs or only missing keys and exclude anything already selected; other linked issues are the remaining issues. A partially attributed issue outside the selection is other linked, with its uncertainty disclosed. Under inactive Account, selected contains all Q, and residual/other are empty; unresolved attribution is still diagnosed within selected. Counts, Original Estimate and Remaining Estimate reconcile across these disjoint populations using distinct normalized issue identity. Source estimate availability flags remain intact; exports leave missing estimates blank. Existing aggregate sums retain their numeric zero contribution for unavailable values, without treating absence as a confirmed source zero.
+
+D1 keeps residual unlinked demand visible separately from selected Account demand. Its Jira Account metadata can be inspected but never supplies a Tempo Account. Unlinked Jira demand is not part of Tempo treemap tiles or any of their three footer measures. Do not confuse this Portfolio partition with Demand Management's unlogged planning cohort.
+
+D3: each issue contributes its Jira estimate once within a selected Account union. Separate Account rows can contain the same multi-Account issue; those estimate subtotals are **non-additive**. Account-detail footer estimates are a deduplicated union of the visible Account buckets' linked issues, not a sum of row estimates and not the full unlinked population. Worklog hours retain source Worklog ID uniqueness. There is no estimate allocation, weighting or Account budget.
+
+D5: Account rows show key-attributed actual hours and observed linked-issue Original/Remaining Estimates. A supported comparison requires complete single-nonmissing-key evidence, the same eligible issue sets, valid Original Estimates, and coverage of every observed source Worklog ID for those issues. A date/person/Team filter can break that coverage. Otherwise variance and ratio display Unavailable with a reason; union variance/ratio are always unavailable. Where supported, the existing arithmetic is Logged minus Original, and Logged divided by Original; zero Original makes the ratio unavailable. Remaining Estimate is not substituted into those formulas. This qualification introduces no new arithmetic.
+
+## CH-005A exports and compatibility
+
+D6: snapshot v2 and planning v2 are explicitly versioned, not externally accepted. [publication evidence summary](../audit/CH005A_PUBLICATION_SUMMARY_v1.md) defines 13 columns in order: Schema Version; Record Type; Population; Account Key; Account Name; Observed Account Keys; Attribution Status; Jira Issue Key; Jira Account; Logged Hours; Original Estimate Hours; Remaining Estimate Hours; Scope. Schema Version is 2.
+
+Account effort records aggregate selected governed worklogs by case-preserved Key, including missing-key records; they have logged values and blank Jira estimates. Jira issue records contain one distinct issue across selected/unlinked/other with source estimates, blank logged values and blank Account Key/Name; Observed Account Keys is a JSON evidence array, not allocation. An unavailable source estimate is blank. Do not expand issue records onto worklogs and sum estimates. Scope JSON records selected dates, source date/files/hashes, active Account flag and keys, other selections, membership basis and actual-effort Status exception. Exports ignore detail text search and display-row limits.
+
+Snapshot v2 uses Account-detail Jira Created-date/Status scope; planning v2 uses current Remaining-Demand snapshot scope without Created-date or new future-horizon filtering. Both retain selected-period actual effort. Filenames are delivery-bi-snapshot-v2-{start}_{end}.csv and delivery-bi-planning-v2-{start}_{end}.csv. CSV quotes fields containing commas, quotes or line breaks, doubles embedded quotes, and retains unrounded numeric values.
+
+Legacy CSV (v1) remains available pending downstream approval. Export-only optional labels retain original mixed Jira Account / Tempo Account Name semantics and do not filter modern reports. Modern Account Key selection does not filter v1. Preserve original filename, rounding, six columns (Account; Original Estimate Hours; Logged Hours; Variance Hours; Logged vs Estimate %; Work Items), original formulas and original empty-name omissions in v1 only. Supported legacy sort fields retain behavior; v2-only sort fields fall back to Logged Hours descending. Local 97-case equivalence evidence is not downstream acceptance, and v1 is not retired.
+
+## Current-source evidence and preserved CH-004 behavior
+
+The October 30, 2026 snapshot reconciles Total Logged **51,806.039 h**, Operational Tempo **8,263.271 h**, and Customer/Account effort **43,542.768 h**. These are dated validation observations, never KPI constants. Client and Account grouping conserve the same unfiltered eligible nonoperational worklogs. Tiles exclude operational TEMPO-* effort after the five exact exclusions; all three footer measures share the applicable Client/Account scope and retain operational effort in Total/Operations. Only positive aggregate buckets render. Default grouping is Client; active Client or Account, including explicit All/active-empty Account, gives Account; both reset gives Client. Grouping alone changes no eligible worklogs.
+
+The separate October 30–December 31, 2026 Demand Management capacity reference is **4,934.2333 h** known assigned demand, **42** unlogged issues and **2,056 h** unlogged demand. It uses its own hierarchy/horizon resolver. It is not the Portfolio Remaining Demand cohort, a constant or demand assigned to named Tempo Accounts.
+
+Current CH-005A evidence records 33 browser scenario groups, 77 identity cases, 11 domain checks, source/worklog conservation and 97 legacy equivalence cases. Step 5 inspects this newer implementation and evidence; it does not substitute the CH-004 audits for CH-005A validation or rerun output-producing tests. Account-filtered populations may legitimately differ from prior label-based Reporting Account reports while formulas and classifications remain unchanged; historical equivalence has not been established.
+
+## CH-005A implementation traceability
+
+[Account domain module](../../web/portfolio-accounts.js): index, status, worklogMatches, issueMatches, partition, accountRows and exportCsv preserve direct keys, source IDs and distinct issue unions. [Portfolio integration](../../web/app.js): filteredData, governedLoggedWorklogRows, demandBacklogData, portfolioAccountRows, portfolioAccountTotals, snapshotCsv (snapshot/planning modes), exportScope and renderAccountTreemap apply the consumer boundaries above. [Markup](../../web/index.html) exposes one Portfolio Account control and explicit legacy export controls. [Builder](../../scripts/build_web_data.py) retains mandatory unique source Worklog ID and manifest hashes; source/calendar exceptions remain as recorded. [Legacy module](../../web/portfolio-legacy-export.js) isolates v1. [Demand implementation](../../web/demand.js) retains its independent Jira picker.
+
+Evidence inspection covers [domain tests](../../scripts/test_portfolio_accounts.cjs), [browser verifier](../../scripts/verify_portfolio_accounts.cjs), [CH-004 verifier](../../scripts/verify_account_distribution.cjs) and the newer CH-005A outputs inventoried in the validation report. Preserved CH-004 assertions that Tempo Account affects only the treemap describe the superseded scope and are not claimed as current CH-005A regression assertions. No test/source file is changed by Step 5.
+
+## Conditions, unresolved contradictions and change control
+
+1. Historical capacity and reporting replay are incomplete: required prior exports are unavailable.
+2. External consumer acceptance of v2 exports has not been established.
+3. Legacy v1 compatibility remains required pending downstream approval.
+4. The Jira Status category mapping defect remains unresolved: source Status category and the builder's requested Status Category differ.
+5. The builder's ISO-week/weekday fallback remains an implementation exception to exclusive Master Date authority; it is not an approved alternate calendar rule.
+6. Epic-child Jira Account mismatches and missing Jira Account values remain data-quality issues; no new inheritance is authorized.
+7. Observed Tempo Account membership does not establish contractual ownership.
+8. Effective-dated Account/customer history and an authoritative Jira/Tempo ownership crosswalk are unavailable.
+9. Negative-adjustment treemap reconciliation remains unvalidated; the positive snapshot does not establish future conservation.
+10. CH-005B remains deferred. Demand Management retains its independent Jira Account picker, planning semantics, hierarchy and filter state.
+
+Pre-existing date/measure wording conflicts are recorded in the [publication evidence summary](../audit/CH005A_PUBLICATION_SUMMARY_v1.md): Bug Severity's documented date exemption differs from current Created-date implementation; retained Original-Estimate Demand-vs-Actual governance is distinct from the current Remaining-Demand visual. Neither conflict is resolved or newly approved here. Existing formulas, confirmed-zero hierarchy behavior, six-team eligibility, ownership, exclusions and Status exceptions remain governed as before.
+
+Historical CH-004 G5 manifest/sync-state and G7 chronology observations retain their dates and evidential limits. Current CH-005A manifest hashes match current implementation; that newer evidence does not retroactively repair historical sync-state records, supply prior exports or prove historical approval chronology. G1 remains scoped; G4–G10 limitations are not closed by this proposal. Canonical promotion, v1 retirement, ownership allocation, new rules and CH-005B require separate approval.

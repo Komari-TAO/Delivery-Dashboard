@@ -522,6 +522,9 @@ def main() -> None:
     )
 
     worklogs = pd.read_csv(worklogs_path, low_memory=False)
+    worklog_ids = text(worklogs, "Tempo Worklog ID").str.strip()
+    if worklog_ids.eq("").any() or worklog_ids.duplicated().any():
+        raise ValueError("Tempo Worklog ID must be present and unique; no implicit worklog deduplication is permitted.")
     source_actual_hours = float(num(worklogs, "Logged Hours").sum())
     worklogs, excluded_worklogs = partition_governed_issue_rows(worklogs, "Work Item Key")
     excluded_tempo_summary = [
@@ -556,6 +559,7 @@ def main() -> None:
     worklogs_out = pd.DataFrame(
         {
             "key": text(worklogs, "Work Item Key"),
+            "worklogId": text(worklogs, "Tempo Worklog ID").str.strip(),
             "summary": text(worklogs, "Work Item summary"),
             "parentKey": normalize_issue_key_series(text(worklogs, "Parent Key")),
             "parentSummary": "",
@@ -1032,6 +1036,9 @@ def main() -> None:
                 "builderSha256": file_sha256(builder_path),
                 "frontendScript": str(app_js_path.relative_to(ROOT)),
                 "frontendSha256": file_sha256(app_js_path) if app_js_path.is_file() else "",
+                "portfolioAccountContractVersion": "CH-005A-v2",
+                "portfolioAccountsSha256": file_sha256(WEB_DIR / "portfolio-accounts.js"),
+                "portfolioLegacyExportSha256": file_sha256(WEB_DIR / "portfolio-legacy-export.js"),
                 "governedExclusionsScript": "scripts/governed_exclusions.py",
                 "governedExclusionsSha256": file_sha256(ROOT / "scripts" / "governed_exclusions.py"),
                 "sourceFiles": source_manifest,
@@ -1043,7 +1050,7 @@ def main() -> None:
                 "Capacity uses weekly planned hours and compares only weeks covered by the selected date range.",
                 "Team dimension is sourced from Assignees master and constrained to teams with weekly capacity records.",
                 "Skill dimension is sourced from Assignees master and filters worklogs, Jira demand, and capacity through assignee mapping.",
-                "Account dimension is sourced from Jira Custom field (Account) and joined to Tempo worklogs by work item key.",
+                "Portfolio Account identity is Tempo Account Key; Jira Account remains metadata. Direct Issue Key membership uses the complete governed valid-date Tempo snapshot; names do not establish relationships. Demand Management remains independent.",
                 "Client = Tempo Account Customer, validated through Tempo Account Key. Jira items require one complete, unambiguous direct customer mapping; missing or ambiguous attribution is N/A. Client is separate from Tempo Account, Jira Account, and Jira Delivery.",
                 "Program dimension is sourced from Jira Custom field (Program) and joined to Tempo worklogs by work item key.",
                 "Backlog and Delivery Progress metadata inherits Account, Delivery, Target Release, and Fix Version from the Jira parent only when a child Tempo work item is absent from the Jira export and the parent exists; the child key is preserved.",

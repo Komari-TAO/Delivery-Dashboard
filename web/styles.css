@@ -199,6 +199,14 @@ h3 {
   margin-top: 10px;
 }
 
+.legacy-export-options { max-width: 280px; font-size: 12px; }
+.legacy-export-options select { display: block; width: 100%; }
+.portfolio-account-reconciliation { grid-column: 1 / -1; min-width: 0; }
+.portfolio-account-reconciliation .table-wrap { max-height: 320px; overflow: auto; }
+.portfolio-account-reconciliation td { overflow-wrap: anywhere; }
+#accountIssueEvidence { font-size: 12px; overflow-wrap: anywhere; }
+.account-issue-detail { max-height: 320px; overflow: auto; }
+
 .date-filter-block {
   position: sticky;
   top: 0;
@@ -520,9 +528,6 @@ button:focus-visible {
 }
 
 .panel-account-distribution .panel-header { flex-wrap: wrap; gap: 12px; }
-.account-distribution-controls { max-width: 100%; }
-.account-distribution-controls label { min-width: 0; max-width: 100%; }
-.account-distribution-controls select { width: 210px; max-width: 100%; }
 
 .panel-program-distribution {
   grid-column: 1;

@@ -1,0 +1,657 @@
+{
+  "version": 1,
+  "proposedBaseline": "v0.17 (provisional)",
+  "publicationAuthorized": false,
+  "head": "3ca6ef0393f119582792bf5b4f2aec4c3873bf4a",
+  "scope": "Changed/untracked-file allowlist delta; existing tracked dependency tree remains required.",
+  "files": [
+    {
+      "path": "docs/governance/Calculation_Governance.md",
+      "gitStatus": " M",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE AFTER REVIEW",
+      "reason": "Canonical publication revision; business semantics preserved.",
+      "sensitivity": "Retains approved operational snapshot examples and some previously tracked workforce/customer/source-file examples.",
+      "requiredAction": "Organizational publication approval for retained examples; do not silently redact business scope.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/Data_Dictionary.md",
+      "gitStatus": " M",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE AFTER REVIEW",
+      "reason": "Canonical publication revision; business semantics preserved.",
+      "sensitivity": "Retains approved operational snapshot examples and some previously tracked workforce/customer/source-file examples.",
+      "requiredAction": "Organizational publication approval for retained examples; do not silently redact business scope.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/KPI_Definitions.md",
+      "gitStatus": " M",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE AFTER REVIEW",
+      "reason": "Canonical publication revision; business semantics preserved.",
+      "sensitivity": "Retains approved operational snapshot examples and some previously tracked workforce/customer/source-file examples.",
+      "requiredAction": "Organizational publication approval for retained examples; do not silently redact business scope.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/MVP_Business_Rules.md",
+      "gitStatus": " M",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE AFTER REVIEW",
+      "reason": "Canonical publication revision; business semantics preserved.",
+      "sensitivity": "Retains approved operational snapshot examples and some previously tracked workforce/customer/source-file examples.",
+      "requiredAction": "Organizational publication approval for retained examples; do not silently redact business scope.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/Semantic_Visualization_Governance.md",
+      "gitStatus": " M",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE AFTER REVIEW",
+      "reason": "Canonical publication revision; business semantics preserved.",
+      "sensitivity": "Retains approved operational snapshot examples and some previously tracked workforce/customer/source-file examples.",
+      "requiredAction": "Organizational publication approval for retained examples; do not silently redact business scope.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/user-guides/Chart_and_Visual_Specification.md",
+      "gitStatus": " M",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE AFTER REVIEW",
+      "reason": "Canonical publication revision; business semantics preserved.",
+      "sensitivity": "Retains approved operational snapshot examples and some previously tracked workforce/customer/source-file examples.",
+      "requiredAction": "Organizational publication approval for retained examples; do not silently redact business scope.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/user-guides/User_Guide.md",
+      "gitStatus": " M",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE AFTER REVIEW",
+      "reason": "Canonical publication revision; business semantics preserved.",
+      "sensitivity": "Retains approved operational snapshot examples and some previously tracked workforce/customer/source-file examples.",
+      "requiredAction": "Organizational publication approval for retained examples; do not silently redact business scope.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "scripts/build_web_data.py",
+      "gitStatus": " M",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "scripts/verify_account_distribution.cjs",
+      "gitStatus": " M",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "web/app.js",
+      "gitStatus": " M",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE AFTER REVIEW",
+      "reason": "Required approved runtime; no business logic changed in packaging.",
+      "sensitivity": "Existing tracked tenant routes, numeric mappings and issue examples remain; review intended publication audience.",
+      "requiredAction": "Approve retained organization-specific runtime references.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "web/index.html",
+      "gitStatus": " M",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "web/styles.css",
+      "gitStatus": " M",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/audit/CH004_DATA_DICTIONARY_VALIDATION_2026-11-03.md",
+      "gitStatus": "??",
+      "relationship": "CH-004",
+      "classification": "EXCLUDE",
+      "reason": "Full historical/private evidence or local detailed remediation ledger.",
+      "sensitivity": "Local paths, operational values, private evidence identities or full source-line history.",
+      "requiredAction": "Publish sanitized summary instead; preserve original locally.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/audit/CH004_STEP4_GOVERNANCE_CHANGE_MATRIX_v1_2026-11-03.md",
+      "gitStatus": "??",
+      "relationship": "CH-004",
+      "classification": "EXCLUDE",
+      "reason": "Full historical/private evidence or local detailed remediation ledger.",
+      "sensitivity": "Local paths, operational values, private evidence identities or full source-line history.",
+      "requiredAction": "Publish sanitized summary instead; preserve original locally.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/audit/CH004_STEP4_GOVERNANCE_VALIDATION_v1_2026-11-03.md",
+      "gitStatus": "??",
+      "relationship": "CH-004",
+      "classification": "EXCLUDE",
+      "reason": "Full historical/private evidence or local detailed remediation ledger.",
+      "sensitivity": "Local paths, operational values, private evidence identities or full source-line history.",
+      "requiredAction": "Publish sanitized summary instead; preserve original locally.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/audit/CH005A_CANONICAL_PROMOTION_VALIDATION_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Full historical/private evidence or local detailed remediation ledger.",
+      "sensitivity": "Local paths, operational values, private evidence identities or full source-line history.",
+      "requiredAction": "Publish sanitized summary instead; preserve original locally.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/audit/CH005A_EXPORT_CONTRACT_v2.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Full historical/private evidence or local detailed remediation ledger.",
+      "sensitivity": "Local paths, operational values, private evidence identities or full source-line history.",
+      "requiredAction": "Publish sanitized summary instead; preserve original locally.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/audit/CH005A_GOVERNANCE_CHANGE_MATRIX_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Full historical/private evidence or local detailed remediation ledger.",
+      "sensitivity": "Local paths, operational values, private evidence identities or full source-line history.",
+      "requiredAction": "Publish sanitized summary instead; preserve original locally.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/audit/CH005A_GOVERNANCE_REVALIDATION_ADDENDUM_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Full historical/private evidence or local detailed remediation ledger.",
+      "sensitivity": "Local paths, operational values, private evidence identities or full source-line history.",
+      "requiredAction": "Publish sanitized summary instead; preserve original locally.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/audit/CH005A_GOVERNANCE_VALIDATION_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Full historical/private evidence or local detailed remediation ledger.",
+      "sensitivity": "Local paths, operational values, private evidence identities or full source-line history.",
+      "requiredAction": "Publish sanitized summary instead; preserve original locally.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/audit/CH005A_PORTFOLIO_ACCOUNT_VALIDATION_2026-11-03.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Full historical/private evidence or local detailed remediation ledger.",
+      "sensitivity": "Local paths, operational values, private evidence identities or full source-line history.",
+      "requiredAction": "Publish sanitized summary instead; preserve original locally.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/audit/CH005A_PUBLICATION_SUMMARY_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Sanitized publication evidence or portable fixture/setup contract.",
+      "sensitivity": "No actual customer/person values or operational totals; private artifact paths are generic repository-relative provisioning names.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/Calculation_Governance_CH004_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-004",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/Calculation_Governance_CH005A_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/Data_Dictionary_CH004_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-004",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/Data_Dictionary_CH004_vNext.md",
+      "gitStatus": "??",
+      "relationship": "CH-004",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/Data_Dictionary_CH005A_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/Data_Dictionary_CH005A_v2.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/KPI_Definitions_CH004_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-004",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/KPI_Definitions_CH005A_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/MVP_Business_Rules_CH004_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-004",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/MVP_Business_Rules_CH005A_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/Semantic_Visualization_Governance_CH004_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-004",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/governance/Semantic_Visualization_Governance_CH005A_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/user-guides/Chart_and_Visual_Specification_CH004_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-004",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/user-guides/Chart_and_Visual_Specification_CH005A_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/user-guides/Release_Testing.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Sanitized publication evidence or portable fixture/setup contract.",
+      "sensitivity": "No actual customer/person values or operational totals; private artifact paths are generic repository-relative provisioning names.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/user-guides/User_Guide_CH004_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-004",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/user-guides/User_Guide_CH005A_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "package-lock.json",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "package.json",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "requirements-test.txt",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "scripts/fixtures/portfolio-synthetic.cjs",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "scripts/legacy/test_portfolio_accounts_private.cjs",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "scripts/legacy/verify_portfolio_accounts_private.cjs",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "scripts/run_portfolio_private.cjs",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "Optional private-only archives and captures must be explicitly provisioned; missing inputs exit 2."
+    },
+    {
+      "path": "scripts/test_capacity_public.cjs",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "scripts/test_portfolio_accounts.cjs",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "scripts/verify_portfolio_accounts.cjs",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "Pinned Playwright, configured/installed browser, tracked synthetic fixture and runtime modules; no private payload."
+    },
+    {
+      "path": "scripts/verify_tempo_account_filters.cjs",
+      "gitStatus": "??",
+      "relationship": "CH-004",
+      "classification": "EXCLUDE",
+      "reason": "Historical proposal or archived private-data verifier; preserved locally.",
+      "sensitivity": "May contain historical operational references; not part of public gate.",
+      "requiredAction": "Retain locally. Private archives provisioned only for explicit private gate.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "web/portfolio-accounts.js",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "web/portfolio-legacy-export.js",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Required approved implementation or reproducible public test source.",
+      "sensitivity": "No credential pattern detected; source reviewed.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/audit/CH005A_RELEASE_PACKAGING_REMEDIATION_v1.md",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "EXCLUDE",
+      "reason": "Full historical/private evidence or local detailed remediation ledger.",
+      "sensitivity": "Local paths, operational values, private evidence identities or full source-line history.",
+      "requiredAction": "Publish sanitized summary instead; preserve original locally.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "docs/audit/CH005A_RELEASE_PUBLICATION_MANIFEST_v1.json",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Exact proposed changed-file publication inventory and sensitivity decisions.",
+      "sensitivity": "Repository-relative paths and classifications only; no operational rows.",
+      "requiredAction": "Include only after final approved allowlist review.",
+      "dependencies": "See Release_Testing.md; public reference closure validated."
+    },
+    {
+      "path": "scripts/validate_release_package.cjs",
+      "gitStatus": "??",
+      "relationship": "CH-005A packaging",
+      "classification": "INCLUDE",
+      "reason": "Read-only publication reference, credential-pattern and formula integrity verifier.",
+      "sensitivity": "No private values.",
+      "requiredAction": "Run before release; organizational review still required.",
+      "dependencies": "Manifest, canonical files and existing tracked reference targets."
+    }
+  ],
+  "excludedLocalBoundaries": [
+    "data/raw/",
+    "web/data.js",
+    "web/build-manifest.json",
+    "data/.dashboard_sync_state.json",
+    "outputs/",
+    ".tmp/",
+    "node_modules/",
+    "scripts/__pycache__/"
+  ],
+  "unchangedTrackedExposureRequiringOwnerReview": [
+    {
+      "path": "web/verification-desktop.png",
+      "status": "tracked unchanged",
+      "review": "Potential data-derived operational screenshot; existing exposure, not newly added."
+    },
+    {
+      "path": "web/verification-mobile.png",
+      "status": "tracked unchanged",
+      "review": "Potential data-derived operational screenshot; existing exposure, not newly added."
+    },
+    {
+      "path": "web/verification-utilization-chart.png",
+      "status": "tracked unchanged",
+      "review": "Potential data-derived operational screenshot; existing exposure, not newly added."
+    },
+    {
+      "path": "report_generation/client_delivery_20261022/initial_files.json",
+      "status": "tracked unchanged",
+      "review": "Contains absolute local paths; existing exposure requires separate owner decision, no history rewrite."
+    },
+    {
+      "path": "data/mappings/tempo_operational_mapping.csv",
+      "status": "tracked unchanged",
+      "review": "Operational keys/summaries; existing tracked mapping required by builder, owner confirms audience."
+    }
+  ],
+  "requiredUnchangedDependencies": [
+    "web/dashboard-core.js",
+    "web/annual-kpis.js",
+    "web/capacity-coverage.js",
+    "web/demand.js",
+    "scripts/capacity_sources.py",
+    "scripts/governed_exclusions.py",
+    "data/mappings/tempo_operational_mapping.csv"
+  ],
+  "readiness": "CONDITIONALLY READY: final privacy/ownership and read-only release review required; no required public test dependency remains blocked.",
+  "protectedFormulaBlocks": [
+    {
+      "path": "docs/governance/Data_Dictionary.md",
+      "sha256": [
+        "95dcdaab9e1e70ce6657edbb292d7787f4693193e329439d11150f11d875b46c",
+        "69cdfdeb0fe1863a1946a04e83fd1c2415c4b857f25cb17d124e02e0277fadf0",
+        "fa88896d148a38453c9fa2659ce614dcd2360e1e55611bec9918542e4b7a36dd",
+        "0bbb60bce048d7f5d53921525dda5d2ff4d8a332d1f254de9f8d6785ef18f895",
+        "fa842cf238cb3ba0cc40f7944e0a310319ce23f7d0bacf202d1d6ef48c7cc9ab"
+      ]
+    },
+    {
+      "path": "docs/governance/MVP_Business_Rules.md",
+      "sha256": [
+        "850cc0292ac88bdf51940747a5062a934a5910f76006ae7c1b98f23a514df8e7",
+        "e003cb84b85161e8908a2d25d69fb3c085b3bcd5dff2d123c992c5c11ec2be79"
+      ]
+    },
+    {
+      "path": "docs/governance/Calculation_Governance.md",
+      "sha256": []
+    },
+    {
+      "path": "docs/governance/KPI_Definitions.md",
+      "sha256": [
+        "6af9d9df05b384d56b95e5f0583cc3b91970e3e287f3de057cebbb1b3c4018cd",
+        "a07454d35c64cf8404eb04768208a8bf543bee4fbc29beae3d381fa29852055e",
+        "30dcabf3eb98d01b3d7f4bec39c4c32fa5733a1a1b7d8066514ce8959eff575a",
+        "fa9e425d00beb0e08ed361ee3e2f51883781956c5a34a80147bcaf591b2e28f9",
+        "e003cb84b85161e8908a2d25d69fb3c085b3bcd5dff2d123c992c5c11ec2be79",
+        "9c99d8c0ed2afda83a1ab90971194f8a5a3aa2b7f7aa43f3e9768ef2ff4e682e",
+        "4f583c6f8030fdffba770410614612b367e8337f1aebd202e84f763e43431219",
+        "34f687c1150420f98039e816981b1b5c261a074161c0653989ee14c7eaeafb56",
+        "5b402e173142c629e038dc8dbb329c5c726e351b35e92cf6425d6fbbce507b25",
+        "1496ce60639e0b2fadbbae53306fa135de38eb621e01cd7394b70ffd47a20a78",
+        "637b0a45571bb958a3bd4bdb9a23465c58d3845b9de5098ef8c2a5dfc91ef240"
+      ]
+    },
+    {
+      "path": "docs/governance/Semantic_Visualization_Governance.md",
+      "sha256": []
+    },
+    {
+      "path": "docs/user-guides/Chart_and_Visual_Specification.md",
+      "sha256": []
+    },
+    {
+      "path": "docs/user-guides/User_Guide.md",
+      "sha256": []
+    }
+  ]
+}

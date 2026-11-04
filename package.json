@@ -1,0 +1,18 @@
+{
+  "name": "delivery-dashboard-validation",
+  "private": true,
+  "version": "0.0.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node scripts/verify_account_distribution.cjs",
+    "test:domain": "node scripts/test_portfolio_accounts.cjs && node scripts/test_capacity_public.cjs",
+    "test:browser": "node scripts/verify_portfolio_accounts.cjs",
+    "test:private": "node scripts/run_portfolio_private.cjs",
+    "test:docs": "node scripts/validate_release_package.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

@@ -1,0 +1,436 @@
+# Calculation Governance
+
+> **CH-004 v1 — Step 4 local review candidate, 2026-11-03. Not canonical; promotion pending Delivery Management review.**
+> Canonical source: `docs/governance/Calculation_Governance.md`; GitHub reference `feature/initial-dashboard-import` pinned to `3ca6ef0393f119582792bf5b4f2aec4c3873bf4a`. Exact blob/version, scoped G1 approval, G2/G3 corrections, G4–G10 limitations and validation: [Step 4 report](../audit/CH004_STEP4_GOVERNANCE_VALIDATION_v1_2026-11-03.md). Revision history: pinned canonical → CH-004 v1; no calculation or application-behavior change.
+
+## Purpose
+
+This document defines the governed calculation semantics for dashboard KPIs, visualizations, and detail tables in the AI-Assisted Delivery Management Platform.
+
+It is the reference for validating future implementation changes against business meaning, source ownership, filter behavior, aggregation level, date basis, exclusions, and reconciliation expectations.
+
+Authoritative references:
+
+- `docs/MVP_Business_Rules.md`
+- `docs/KPI_Definitions.md`
+- `docs/Data_Dictionary.md`
+- `docs/Semantic_Visualization_Governance.md`
+
+## Global Calculation Principles
+
+### Client attribution (2026-10-22)
+
+Client = Tempo Customer Account, exported as `Account Customer` (column S), validated by `Account Key`. It is separate from Tempo Account Name, Jira Account, and Jira Delivery. Jira Client and Tempo's legacy `Client` column are never attribution inputs or fallbacks.
+
+Validation uses the complete governed, valid-date Tempo export before UI filters. For each nonblank Account Key, exactly one distinct nonblank Account Customer verifies the mapping; multiple account keys may map to one customer. A blank row customer may use that validated key mapping. Missing account keys, missing customer mappings, and keys with conflicting customers are `N/A`. Account names alone never prove a relationship.
+
+At worklog grain, use the validated account's customer without duplicating or dropping worklogs. At Jira grain, normalize direct Work Item Key / Issue key by trim and uppercase. Assign a customer only if all direct worklogs have verified attribution and exactly one customer is present. Multiple customers or incomplete evidence deterministically produce `N/A`, with candidate customers and account keys recorded in `meta.clientAttribution.issueExceptions`. An item with no direct worklogs is also `N/A`. Never inherit a customer from a parent, Jira Client, Jira Account, or account-name similarity. No fan-out joins, latest-row selection, weighting, or estimate splitting are allowed.
+
+Client selection restricts existing Client-aware Portfolio and Demand datasets, charts, details and the account snapshot CSV. Jira rows are filtered by their own resolved customer; no worklog-key semi-join may remove unlogged Jira items. All Jira-only counts, effort caps, estimates, demand and workflow measures have incomplete customer coverage and include unresolved items under `N/A`. Worklog effort remains attributable at its own grain: a multi-customer item's direct hours can appear under individual customers while its unsplittable Jira counts/estimates stay under `N/A`. In an `N/A` Epic view, direct hours include only `N/A` worklogs, not hours attributed to another customer.
+
+Existing filter scope is consumer-specific: the current Portfolio annual cards follow the controlling Annual workforce / Portfolio KPI contract in Business Rules and Chart and Visual Specification. Governed Actual Hours and its gross balance/ratio numerator follow applicable effort filters; annual allocations follow their existing roster/year scope. Annual Development Capacity and Demand Capacity retain full-source behavior, as do the two Delivered Features KPIs. Capacity has no customer allocation. These must not be presented as customer-specific capacity or full customer demand coverage. Client attribution changes no KPI formula, date basis, managed-team rule, or exclusion. With Client unrestricted, every row, logged hour, estimate, effort cap, and demand total is conserved. The source comparison and current gaps are recorded in [Client attribution validation](../audit/CLIENT_CUSTOMER_ATTRIBUTION_VALIDATION.md).
+
+- Logged Hours = all valid Tempo worklogs within the selected Date Range after governed exclusions.
+- Tempo is the source of truth for Logged Hours, Billable Hours, Worklog Date, Last Worklog Date, and operational Tempo activity.
+- Jira is the source of truth for issue metadata, Original Estimate, Remaining Estimate, Status, Priority, Jira Account metadata, Program, Target Release, Fix Version, Delivery metadata, Due Date, Start Date, and hierarchy. Tempo owns Client and Tempo Account identity/display. Reporting Account retains mixed-source compatibility semantics.
+- Weekly Capacity is the source of truth for weekly planned capacity.
+- Assignees CSV is the source of truth for organizational Team, Skill, Role, Availability, and canonical assignee mapping.
+- Master Date is the source of truth for Week Number, workday boundaries, and reporting calendar alignment.
+- Jira metadata enriches Tempo worklogs but must not determine whether logged hours exist.
+- Unmatched Jira metadata must not remove logged effort.
+- Missing Jira metadata must not remove logged effort. Jira Account attribution exceptions remain diagnostic populations. In the approved Account Distribution, eligible nonoperational Tempo work remains in Client/Account or explicit missing-attribution buckets regardless of Jira Account resolution; operational effort remains outside tiles and within applicable footer totals.
+- `TEMPO-54`, `TEMPO-92`, `TEMPO-106`, `TEMPO-111`, and `TEMPO-112` are globally excluded from all analytics, KPIs, tables, charts, filters, searches, tooltips, summaries, exports, reconciliation, utilization, backlog activity, Delivery Progress, and Jira-derived demand populations. Candidate keys are trimmed, converted to uppercase, and matched exactly before aggregation, classification, enrichment, joins, or filter population. `TEMPO-92`, `TEMPO-111`, and `TEMPO-112` represent HR daily-registration and vacation records; no individual purpose is assigned without source evidence.
+- Valid operational TEMPO-* rows remain included as Logged Operations unless globally excluded.
+- Team attribution must come from Assignees CSV unless a visual explicitly defines Team as Jira ownership or Tempo activity context.
+- Dot-format assignee names can normalize to canonical Assignees CSV names when they refer to the same governed person:
+  - `ignacio.mangas` -> `Ignacio Mangas`
+  - `andres.rojas` -> `Andres Rojas` / `Andrés Rojas` as represented in the Assignees CSV
+- Marina Petrova and Yuliya Kandukova remain unmanaged/excluded unless added to Assignees CSV.
+
+## Global Filters
+
+Canonical global filters:
+
+- Date Range
+- Week Number
+- Team
+- Assignee
+- Skill
+- Client
+- Account (Tempo Account; Account Distribution only)
+- Reporting Account (existing mixed-source compatibility filter)
+- Account Category
+- Priority
+- Status
+- Target Release
+- Program
+- Release Cycle
+
+Global filters apply according to the existing consumer and measure contract; sidebar placement alone does not imply universal applicability. In retained descriptions outside Account Distribution, an unqualified legacy Account filter means Reporting Account, or the independent Jira Account picker within Demand Management. It does not mean the new Portfolio Tempo Account control.
+
+| Consumer / measure | Existing filter applicability retained |
+| --- | --- |
+| Account Distribution tiles and all three footers | Applicable Tempo scope plus Client and active Tempo Account keys; ignores Reporting Account and Jira Status. |
+| Other Portfolio logged-effort consumers | Existing Date/workforce/Client/Jira-metadata and Reporting Account predicates; governed logged effort remains Status-independent. Tempo Account selection does not filter these consumers. |
+| Jira counts, estimates, demand and workflow | Existing consumer-specific Jira predicates, including Status where implemented; Client uses complete single-customer direct Tempo evidence, with unresolved Jira-only items under `N/A`. No Tempo Account ownership is inferred. |
+| Annual Gross Workforce Hours | Existing Team/Assignee/Skill roster scope and compatible reporting-year checks; no Client/Account allocation or date proration of annual amounts. |
+| Portfolio Actual Hours, Gross Annual Hours Balance, Logged Hours / Gross Annual Hours | Existing governed actual-effort numerator; applicable dates, workforce, Client, Reporting Account and effort predicates; Status ignored. Tempo Account has no effect. Annual denominator keeps its existing annual roster/year rules. |
+| Annual Development Capacity and Demand Capacity cards | Existing full-source behavior; sidebar selections do not allocate these sources to a Client or Tempo Account. |
+| Weekly capacity / Demand capacity coverage | Existing Master Date/workforce/horizon rules. Client and Jira metadata can scope demand without allocating capacity; panel-specific exceptions remain. |
+| Demand Delivered Features KPIs | Existing full-source values; ignore Demand picker selections. |
+| Accounts detail table and snapshot CSV | Existing mixed-source Reporting Account grouping and predicates; Client where already supported. Tempo Account selection has no effect. |
+
+Status filtering must not reduce governed Logged Hours by default. Status may filter Jira demand, backlog, and delivery metadata views where Jira lifecycle state is the governed semantic.
+
+## Approved Interim Implementation Clarifications
+
+### Account Distribution
+
+**Approval boundary:** Delivery Management G1 approval supersedes Jira Account-restricted treemap eligibility and exception-only footer rules for Account Distribution only. It does not approve unrelated historical changes or alter KPI formulas, Jira demand, exclusions, Team, Status, hierarchy, capacity, or other visualizations.
+
+Client = verified Tempo `Account Customer`. Account = Tempo `Account Key` identity and `Account Name` display. Reporting Account = independent existing mixed Jira/Tempo compatibility dimension. Jira Account = Jira metadata and retained attribution diagnostics; matching names do not establish a Jira/Tempo bridge.
+
+Tiles contain governed managed, nonexcluded, nonoperational Tempo worklogs, including explicit missing-attribution buckets. Operational `TEMPO-*` effort is excluded from tiles by the existing issue-key classifier, never by Client/Account names. All three footer values use one applicable Client/Account-filtered Tempo scope: Total logged hours, Operational Tempo hours, and Customer/account effort. Reporting Account and Jira Status do not filter this visual. Date Range, Team, Assignee, Skill, Client, Account Category, Priority, Target Release, Program and existing Release Cycle state apply where implemented; active Tempo Account keys are then applied. The UI footer phrase `global filters` refers to this consumer-specific scope. Changing grouping alone preserves eligible worklogs; applying Client or Account filters can change populations and totals. Missing Client displays `-` in tiles (`N/A` in the Client picker); missing Account Key remains a `-` bucket. Only positive aggregate-hour buckets render (`logged > 0`); negative-adjustment conservation remains unapproved/unvalidated (G6).
+
+| Sidebar state | Account Distribution |
+| --- | --- |
+| No active Client or Tempo Account selection | Distribution by Client |
+| Client selected | Associated Account distribution |
+| Tempo Account selected | Selected Account distribution |
+| Explicit All Accounts | All eligible Account distribution |
+| Client and Account active | Intersected Account distribution |
+| Both reset | Default Client distribution |
+
+Explicit **Select All** stores the currently rendered Account options and activates Account grouping. It differs from inactive **All accounts**. Search or other applicable scope can limit those options; it is not a wildcard for future Accounts. Explicit All Clients also activates Account grouping when options exist. Clear All Accounts deactivates Account selection; Client grouping returns only when Client is also cleared. Client and Account selections intersect; a selection outside the current scope does not widen it.
+
+### Capacity
+
+Master Date is the exclusive authority for date-to-week membership; capacity must not use independently calculated ISO week logic. The selected Date Range determines the Master Date weeks in scope. Weekly Capacity remains weekly-grain, and a partial-week Date Range includes the full governed weekly capacity when that Master Date week is represented. Daily capacity proration is not introduced.
+
+### Remaining Demand
+
+Remaining Demand remains Jira Remaining Estimate at issue grain. It is independent of Date Range, and Tempo Logged Effort is not subtracted from Jira Remaining Estimate.
+
+## KPI Cards
+
+### Annual Capacity
+
+| Field | Governance |
+|---|---|
+| Visual name | Annual Capacity KPI |
+| Business question answered | How much annual delivery capacity exists for the governed workforce in the selected organizational scope? |
+| Business purpose | Establish the workforce capacity baseline used by executive utilization and remaining-hours context. |
+| Source datasets | Assignees CSV |
+| Governing source | Annual Capacity -> Assignees CSV Actual Annual Hours; Team/Skill/Assignee -> Assignees CSV |
+| Aggregation level | Assignee, Team |
+| Date basis | No selected-period date basis; annual capacity is a workforce attribute |
+| Filters that SHOULD apply | Team, Assignee, Skill; worklog-only filters may constrain displayed capacity to active people/teams when paired with logged-effort scope |
+| Filters intentionally ignored | Jira Status; Tempo Work Date; Week Number; Jira metadata filters except when used to constrain active logged-effort scope |
+| Global exclusions | The complete five-key governed exclusion set is irrelevant to the Assignees-sourced capacity value but remains excluded from any logged-effort scope used to constrain the KPI |
+| Business assumptions | Annual capacity represents governed workforce availability, not period-specific weekly capacity. |
+| Business interpretation | The organization-level capacity envelope available for delivery management. |
+| Validation rules | Sum Assignees CSV Actual Annual Hours after Team/Assignee/Skill scope; do not derive annual capacity from Tempo or Jira. |
+
+### Actual Hours
+
+| Field | Governance |
+|---|---|
+| Visual name | Actual Hours KPI |
+| Business question answered | How many governed hours have been logged in the selected period? |
+| Business purpose | Show total consumed effort from Tempo. |
+| Source datasets | Tempo, Assignees, Master Date, Jira for enrichment only |
+| Governing source | Logged Hours -> Tempo; Team/Skill/Assignee -> Assignees CSV; Week Number -> Master Date |
+| Aggregation level | Worklog |
+| Date basis | Tempo Work Date |
+| Filters that SHOULD apply | Date Range, Week Number, Team, Assignee, Skill, Account, Account Category, Priority, Target Release, Program, Release Cycle |
+| Filters intentionally ignored | Jira Status by default; Jira Created Date |
+| Global exclusions | Exclude `TEMPO-54`, `TEMPO-92`, `TEMPO-106`, `TEMPO-111`, and `TEMPO-112` |
+| Business assumptions | Logged effort exists even when Jira metadata is missing. Missing metadata must not remove hours. |
+| Business interpretation | The governed Tempo effort consumed in the selected scope. |
+| Validation rules | Reconcile to governed Logged Hours used by Team Utilization, Demand vs Actual logged side, Program Distribution total, Planned vs Unplanned total, and People table logged total. |
+
+### Remaining Hours
+
+| Field | Governance |
+|---|---|
+| Visual name | Remaining Hours KPI |
+| Business question answered | How much annual capacity remains after governed logged effort? |
+| Business purpose | Provide executive capacity headroom context. |
+| Source datasets | Assignees CSV, Tempo, Master Date |
+| Governing source | Annual Capacity -> Assignees CSV; Logged Hours -> Tempo |
+| Aggregation level | Assignee, Team, Worklog |
+| Date basis | Annual capacity has no date basis; logged side uses Tempo Work Date |
+| Filters that SHOULD apply | Same capacity scope as Annual Capacity; same governed logged-hours filters as Actual Hours for the logged side |
+| Filters intentionally ignored | Jira Status for logged side by default; Jira Created Date |
+| Global exclusions | Exclude the complete five-key governed set from the logged side |
+| Business assumptions | This is annual capacity minus selected-period logged effort, not a weekly forecast. |
+| Business interpretation | Remaining capacity headroom under the current annual-capacity model. |
+| Validation rules | Remaining Hours = Annual Capacity - governed Logged Hours. |
+
+### Utilization Rate
+
+| Field | Governance |
+|---|---|
+| Visual name | Utilization Rate KPI |
+| Business question answered | What share of governed annual capacity has been consumed by logged effort? |
+| Business purpose | Provide a normalized view of effort consumption against workforce capacity. |
+| Source datasets | Assignees CSV, Tempo, Master Date |
+| Governing source | Logged Hours -> Tempo; Annual Capacity -> Assignees CSV |
+| Aggregation level | Assignee, Team, Worklog |
+| Date basis | Logged side uses Tempo Work Date; annual capacity has no date basis |
+| Filters that SHOULD apply | Same governed scope as Annual Capacity and Actual Hours |
+| Filters intentionally ignored | Jira Status for logged side by default; Jira Created Date |
+| Global exclusions | Exclude the complete five-key governed set from the logged side |
+| Business assumptions | Operational TEMPO-* effort remains included in utilization unless globally excluded. |
+| Business interpretation | How much governed delivery/operational effort has been consumed relative to annual workforce capacity. |
+| Validation rules | Utilization Rate = governed Logged Hours / Annual Capacity; denominator must not come from Tempo or Jira. |
+
+## Visualizations
+
+### Effort Trend
+
+| Field | Governance |
+|---|---|
+| Visual name | Effort Trend |
+| Business question answered | How has governed logged effort changed over time? |
+| Business purpose | Show temporal pattern of consumed effort. |
+| Source datasets | Tempo, Assignees, Master Date, Jira for enrichment |
+| Governing source | Logged Hours -> Tempo; Date/Week -> Tempo Work Date and Master Date |
+| Aggregation level | Worklog aggregated by selected time grain |
+| Date basis | Tempo Work Date |
+| Filters that SHOULD apply | Date Range, Week Number, Team, Assignee, Skill, Account, Account Category, Priority, Target Release, Program, Release Cycle |
+| Filters intentionally ignored | Jira Status by default; Jira Created Date |
+| Global exclusions | Exclude the complete five-key governed set |
+| Business assumptions | Trend is effort consumption, not Jira issue creation or completion trend. |
+| Business interpretation | When governed effort was spent. |
+| Validation rules | Sum of trend buckets must equal governed Logged Hours for the same scope. |
+
+### Team Utilization
+
+| Field | Governance |
+|---|---|
+| Visual name | Team Utilization |
+| Business question answered | How much logged effort did each governed team consume relative to available capacity? |
+| Business purpose | Compare team-level effort consumption and capacity usage. |
+| Source datasets | Tempo, Weekly Capacity, Assignees, Master Date, Jira for enrichment |
+| Governing source | Logged Hours -> Tempo; Weekly Capacity -> Weekly Capacity CSV; Team/Skill/Assignee -> Assignees CSV; Week Number -> Master Date |
+| Aggregation level | Team, Worklog, Weekly Capacity row |
+| Date basis | Logged Hours -> Tempo Work Date; Weekly Capacity -> capacity week aligned to selected reporting range |
+| Filters that SHOULD apply | Date Range, Week Number, Team, Assignee, Skill, Account, Account Category, Priority, Target Release, Program, Release Cycle |
+| Filters intentionally ignored | Jira Status by default for logged side; Jira Created Date |
+| Global exclusions | Exclude the complete five-key governed set from the logged side |
+| Business assumptions | Team is organizational workforce team from Assignees CSV. Tempo Team and Jira Team must not govern this visual. |
+| Business interpretation | Team-level utilization and capacity pressure. |
+| Validation rules | Sum logged bars must equal governed Logged Hours by Team for the filtered scope; capacity must reconcile to Weekly Capacity rows for selected teams/weeks. |
+
+### Demand vs Actual Effort by Team
+
+| Field | Governance |
+|---|---|
+| Visual name | Demand vs Actual Effort by Team |
+| Business question answered | How much effort was originally planned versus how much effort has been spent? |
+| Business purpose | Compare Jira Original Estimate demand against governed Tempo actual logged effort by Team. |
+| Source datasets | Jira, Tempo, Assignees, Master Date |
+| Governing source | Demand -> Jira Original Estimate; Actual -> governed Tempo Logged Hours; Team -> Assignees CSV |
+| Aggregation level | Team; Jira issue for demand; Tempo worklog for actual |
+| Date basis | Actual -> Tempo Work Date; Demand -> no Tempo date basis and no Jira Created Date basis unless separately governed for time-phased demand |
+| Filters that SHOULD apply | Team, Assignee, Skill, Account, Priority, Status for Jira demand; Date Range and Week Number for logged actuals; Account Category, Target Release, Program, Release Cycle where fields exist and are governed |
+| Filters intentionally ignored | Jira Status must not reduce Actual logged hours by default; Jira Created Date must not filter Actual; Date Range/Week Number should not imply Jira issue creation filtering for Demand unless a future time-phased demand rule is approved |
+| Global exclusions | Exclude the complete five-key governed set from Actual; excluded keys must not contribute Jira-derived demand |
+| Business assumptions | Demand means Original Estimate, not Remaining Estimate. Remaining Estimate is a future forecasting metric and should be governed separately or shown as a third measure only after visualization governance review. |
+| Business interpretation | Team-level plan-vs-consumed comparison. Positive Actual over Demand indicates logged effort exceeded original plan. |
+| Validation rules | Demand = SUM(Jira Original Estimate Hours) by governed team scope; Actual = SUM(governed Tempo Logged Hours) by governed team scope; logged total must reconcile to common governed Logged Hours. |
+
+### Program Distribution
+
+| Field | Governance |
+|---|---|
+| Visual name | Program Distribution |
+| Business question answered | How is governed logged effort distributed across Jira Programs, and how much logged effort is not program-mapped? |
+| Business purpose | Provide transparent Program effort reconciliation. |
+| Source datasets | Tempo, Jira, Assignees, Master Date |
+| Governing source | Logged Hours -> Tempo; Program -> Jira Custom field (Program) with governed normalization and parent inheritance where applicable; Team -> Assignees CSV |
+| Aggregation level | Worklog, Program |
+| Date basis | Tempo Work Date |
+| Filters that SHOULD apply | Date Range, Week Number, Team, Assignee, Skill, Account, Account Category, Priority, Target Release, Release Cycle; Program selection may affect selected-scope totals while unmapped work remains visible in reconciliation |
+| Filters intentionally ignored | Jira Status by default for governed logged total; Program filter is intentionally handled so the distribution can preserve reconciliation visibility |
+| Global exclusions | Exclude the complete five-key governed set |
+| Business assumptions | Missing Program must not remove logged hours. Unmapped / Non-Program hours are a governed reconciliation bucket. |
+| Business interpretation | Program-mapped effort plus unmapped/non-program effort equals governed Logged Hours. |
+| Validation rules | Program-mapped Logged Hours + Unmapped / Non-Program Logged Hours = governed Logged Total. Invalid Program labels must not appear as governed slices. |
+
+### Planned vs Unplanned Effort
+
+| Field | Governance |
+|---|---|
+| Visual name | Planned vs Unplanned Effort |
+| Business question answered | How much governed logged effort was planned, unplanned, operational, or unclassified? |
+| Business purpose | Explain planning coverage and operational effort classification. |
+| Source datasets | Tempo, Jira, Assignees, Master Date |
+| Governing source | Logged Hours -> Tempo; Planned/Unplanned classification -> Jira labels and parent/ancestor labels; Operations -> TEMPO-* operational keys or governed Jira tempo-ticket labels |
+| Aggregation level | Worklog, Work item key, Planning category |
+| Date basis | Tempo Work Date |
+| Filters that SHOULD apply | Date Range, Week Number, Team, Assignee, Skill, Account, Account Category, Priority, Target Release, Program, Release Cycle |
+| Filters intentionally ignored | Jira Status by default for logged effort; missing Jira labels must not remove logged hours |
+| Global exclusions | Exclude the complete five-key governed set |
+| Business assumptions | Label quality limits classification completeness. Missing or conflicting labels are visible as Unclassified, not dropped. Operational TEMPO-* work is separate from Planned and Unplanned. |
+| Business interpretation | Shows how much consumed effort was tied to planned work, unplanned work, operations, or unresolved classification. |
+| Validation rules | Planned + Unplanned + Operations + Unclassified = governed Logged Hours for the selected scope. |
+
+### Account Distribution
+
+| Field | Governance |
+| --- | --- |
+| Visual name | Account Distribution |
+| Business question answered | Which Clients or Tempo Accounts consumed governed nonoperational Tempo effort? |
+| Business purpose | Show Tempo Client/Account effort, including missing attribution; retain Jira Account diagnostics separately. |
+| Source datasets | Tempo, Assignees, Master Date; existing Jira enrichment for applicable metadata filters only |
+| Governing source | Logged Hours -> Tempo; Client -> verified Account Customer; Account identity -> Account Key; display -> Account Name |
+| Aggregation level | Worklog aggregated by Client by default or Tempo Account Key on active selections; no Jira demand/estimate allocation |
+| Date basis | Tempo Work Date |
+| Filters that SHOULD apply | Applicable Date Range, workforce, Client and metadata predicates, plus active Tempo Account keys; intersection semantics as specified above |
+| Filters intentionally ignored | Reporting Account and Jira Status; no inferred cross-source bridge |
+| Global exclusions | Complete existing five-key governed set; operational worklogs excluded from tiles only |
+| Business assumptions | Missing Jira Account does not exclude otherwise eligible Tempo effort. Missing Client/Account attribution is explicit. |
+| Business interpretation | Tile share of visible positive aggregate-hour nonoperational effort; not complete customer demand or allocated capacity |
+| Validation rules | Client and Account grouping reconcile to the same unfiltered nonoperational population in the validated snapshot. All three footer totals share applicable scope. G6 qualifies negative/nonpositive buckets. |
+
+### Backlog Priority
+
+| Field | Governance |
+|---|---|
+| Visual name | Backlog Priority |
+| Business question answered | What priority mix exists in the filtered Jira backlog/demand scope? |
+| Business purpose | Show delivery priority distribution for governed Jira work. |
+| Source datasets | Jira, Assignees |
+| Governing source | Priority -> Jira; Work item identity -> Jira; Team/Skill/Assignee -> Assignees CSV where workforce scope applies |
+| Aggregation level | Jira issue, Priority |
+| Date basis | Jira backlog scope; not Tempo Work Date unless explicitly paired with activity scope |
+| Filters that SHOULD apply | Team, Assignee, Skill, Account, Priority, Status, Target Release, Program, Release Cycle where fields exist; Date Range only if a separately governed Jira date basis is specified |
+| Filters intentionally ignored | Tempo Work Date unless visual is changed to activity-based priority; governed Logged Hours pipeline does not define this visual |
+| Global exclusions | No key in the complete five-key governed set may appear if operational rows are present in the source scope |
+| Business assumptions | Priority is Jira-owned and reflects issue metadata quality. |
+| Business interpretation | Priority composition of the governed backlog/demand scope. |
+| Validation rules | Counts must reconcile to distinct Jira issue rows in the filtered backlog scope; missing priorities should be visible as blank/placeholder rather than dropped. |
+
+### Work Item Types
+
+| Field | Governance |
+|---|---|
+| Visual name | Work Item Types |
+| Business question answered | What kinds of work items are represented in the current activity scope? |
+| Business purpose | Show mix of Jira issue types and Tempo operational item types in governed activity. |
+| Source datasets | Tempo, Jira, Assignees, Master Date |
+| Governing source | Worklog inclusion -> Tempo; Jira Issue Type -> Jira; Tempo operational type -> Tempo where Jira issue type is unavailable |
+| Aggregation level | Worklog row or distinct work item, depending on approved metric label; current governed metric is Tempo worklog row count by type |
+| Date basis | Tempo Work Date |
+| Filters that SHOULD apply | Date Range, Week Number, Team, Assignee, Skill, Account, Account Category, Priority, Target Release, Program, Release Cycle; Status only where explicitly governed for type analysis |
+| Filters intentionally ignored | Jira Status should not reduce governed logged effort by default; missing Jira type must not remove operational work |
+| Global exclusions | Exclude the complete five-key governed set |
+| Business assumptions | Type distribution is descriptive activity metadata, not demand volume. |
+| Business interpretation | Shows what kinds of work generated activity in the selected scope. |
+| Validation rules | Row-count total must reconcile to the governed activity source used by the chart. Metric label must distinguish row count from distinct item count. |
+
+## Detail Tables
+
+### Account Table
+
+| Field | Governance |
+|---|---|
+| Visual name | Account detail table |
+| Business question answered | For each account, how much was originally estimated, how much has been logged, and what is the variance? |
+| Business purpose | Provide account-level reconciliation between Jira demand and Tempo effort. |
+| Source datasets | Jira, Tempo, Assignees, Master Date |
+| Governing source | Original Estimate -> Jira grouped by Jira Account; Logged Hours -> Tempo grouped by legacy Tempo Account Name; combined labels are Reporting Account compatibility buckets; Team/Skill/Assignee -> Assignees CSV |
+| Aggregation level | Account, Jira issue, Worklog |
+| Date basis | Logged side -> Tempo Work Date; estimate side -> Jira issue scope with no Tempo date basis unless future time-phased demand is governed |
+| Filters that SHOULD apply | Team, Assignee, Skill, Account, Priority, Status, Target Release, Program, Release Cycle for Jira estimate side where fields exist; Date Range and Week Number for logged side; account/category filters for both where applicable |
+| Filters intentionally ignored | Existing Status-independent governed logged-effort behavior is retained; new Tempo Account selection does not filter this table. Jira Account attribution diagnostics remain separate from the treemap, whose missing Tempo attribution remains explicit. |
+| Global exclusions | Exclude the complete five-key governed set from the logged side |
+| Business assumptions | Variance compares logged effort against Original Estimate, not Remaining Estimate. |
+| Business interpretation | Account-level plan-vs-actual effort and over/under-estimate signal. |
+| Validation rules | Logged vs Estimate % = Logged Hours / Original Estimate Hours where estimate exists; Variance Hours = Logged Hours - Original Estimate Hours. |
+
+### People Table
+
+| Field | Governance |
+|---|---|
+| Visual name | People table |
+| Business question answered | How much governed effort and capacity are associated with each person? |
+| Business purpose | Provide assignee-level operational capacity and effort transparency. |
+| Source datasets | Tempo, Weekly Capacity, Assignees, Master Date |
+| Governing source | Logged Hours/Billable -> Tempo; Capacity -> Weekly Capacity; Team/Skill/Role -> Assignees CSV |
+| Aggregation level | Assignee, Worklog, Weekly Capacity row |
+| Date basis | Logged side -> Tempo Work Date; capacity side -> Weekly Capacity week |
+| Filters that SHOULD apply | Date Range, Week Number, Team, Assignee, Skill, Account, Account Category, Priority, Target Release, Program, Release Cycle |
+| Filters intentionally ignored | Jira Status by default for logged side; Jira Created Date |
+| Global exclusions | Exclude the complete five-key governed set |
+| Business assumptions | People table must not display duplicate assignee rows. Team must not come from Jira or Tempo Team. |
+| Business interpretation | Individual delivery and operational effort, capacity, utilization, billability, and work-item breadth. |
+| Validation rules | Sum Logged Total across people must equal governed Logged Hours; Logged Total = Logged Engineering + Logged Operations; Utilization = Logged Total / Capacity. |
+
+### Backlog Table
+
+| Field | Governance |
+|---|---|
+| Visual name | Backlog table |
+| Business question answered | Which work items were actively worked on during the selected period? |
+| Business purpose | Provide activity-based backlog traceability, not full Jira inventory. |
+| Source datasets | Tempo, Jira, Assignees, Master Date |
+| Governing source | Inclusion and Last Worklog Date -> Tempo; metadata -> Jira; Team activity scope -> Assignees CSV through Tempo contributor |
+| Aggregation level | Work item key, Parent, Worklog |
+| Date basis | Tempo Work Date |
+| Filters that SHOULD apply | Date Range, Week Number, Team, Assignee, Skill, Account, Account Category, Priority, Status where appropriate for metadata view, Target Release, Program, Release Cycle |
+| Filters intentionally ignored | Jira Created Date must not determine inclusion; missing Jira metadata must not remove activity rows |
+| Global exclusions | Exclude the complete five-key governed set |
+| Business assumptions | Backlog Worked On is activity-based. Jira metadata enriches rows but does not govern inclusion. Child/sub-task keys must be preserved. |
+| Business interpretation | Shows the work that actually received Tempo effort in the selected scope. |
+| Validation rules | Every row must have Tempo activity in selected scope; Last Worklog Date = MAX(Tempo Work Date); parent inheritance must not replace child key. |
+
+### Delivery Progress
+
+| Field | Governance |
+|---|---|
+| Visual name | Delivery Progress |
+| Business question answered | Which delivery items are due, overdue, blocked, completed, or at risk? |
+| Business purpose | Monitor delivery risk and due-date health. |
+| Source datasets | Jira, Tempo, Assignees, Master Date |
+| Governing source | Due Date/Start Date/Status/Priority/ownership metadata -> Jira; Last Worklog Date -> Tempo; ownership Team -> Jira ticket ownership semantic, not Tempo contributor team |
+| Aggregation level | Jira issue or preserved child work item with parent context |
+| Date basis | Jira Due Date for delivery risk; Tempo Work Date for Last Worklog Date/activity context |
+| Filters that SHOULD apply | Team under Delivery Progress ownership semantics, Assignee, Skill, Account, Priority, Status, Target Release, Program, Release Cycle; Date Range/Week Number where activity scope is used for Last Worklog/activity context |
+| Filters intentionally ignored | Tempo contributor team must not overwrite Jira ownership Team; Jira Created Date must not drive progress state |
+| Global exclusions | Exclude the complete five-key governed set |
+| Business assumptions | Delivery Progress is not percent complete, sprint burndown, or story-point tracking. Countdown stops for terminal or paused states. |
+| Business interpretation | Operational view of delivery risk and due-date pressure. |
+| Validation rules | Delivery Health must be one of Healthy, At Risk, Critical, Overdue, Completed, Blocked; terminal/paused statuses stop due-date accumulation; known ownership cases must remain under Jira ownership team. |
+
+## Future Governance Notes
+
+### Capacity versus Known Assigned Demand — scoped authorization, 2026-10-22
+
+The implementation request and the user's hierarchy clarification authorize this replacement panel only. They do not change the other demand views or the parked Version 2.1 forecast contract.
+
+- Compare Authoring, Delivery Express, Integration, Nexus, Portal, and Scoring using canonical Assignees Team/Skill/Assignee mappings. Other contributing teams retain their own classification.
+- Capacity is Weekly Capacity Planned Hours, once per canonical assignee and Master Date week. Full weekly capacity is included when any date in the horizon touches the week; no proration or logged-effort subtraction is introduced. Blank/invalid/missing/duplicate capacity remains unavailable, and affected team and portfolio denominators are unavailable. Known subtotals are separately labelled.
+- Use the payload reporting date, derived by the existing builder from source exports, as the inclusive start. This request explicitly differs from the Version 2.1 day-after-reporting-date rule. Year-end is December 31 of that reporting year; release windows start at the later of reporting date and governed Release Start Date. Historical releases are excluded.
+- Weekly Capacity has no year column. Its export snapshot year bounds the supported annual capacity data; the panel explicitly reports capacity unavailable for windows extending outside that year. Master Date week numbers must never reuse that annual source for another year. Incomplete calendar coverage also makes capacity unavailable.
+- Jira Remaining Estimate is the demand measure. Terminal membership matches the existing delivery-health implementation: Done, Closed, Resolved, Rejected, Abandoned, Cancelled, Canceled, or Status Category Done. Blocked, On Hold, and Pending remain open demand.
+- **User-approved hierarchy rule (refined 2026-10-22): child-first, parent-fallback.** For overlapping Story/Task and subtask estimates, use eligible open descendants' valid Remaining Estimates and exclude the parent's own estimate. If no eligible descendant has a valid estimate, use the parent's own valid Remaining Estimate. A confirmed zero is valid and suppresses the parent; a missing, invalid or negative estimate does not. Terminal subtasks do not suppress a parent. Paused/blocked subtasks remain eligible. This preserves the panel's ancestor double-counting protection, including Epic/child protection. Terminal parents never suppress eligible children. Do not inherit estimates, dates, ownership, or customer attribution; preserve the original Jira values and key-level evidence.
+- Determine source eligibility after global exclusions, identity/hierarchy validation and terminal-status checks, before Team, Assignee, Skill, customer and planning-window selection. This prevents a filtered-out eligible child causing its parent's estimate to reappear. Cycles and conflicting duplicate Jira identities are explicit exceptions; identical source duplicates contribute once.
+- Flag valid parent/eligible-child estimate overlaps as **governance exceptions for reconciliation and review**. Keep this review population separate from assigned demand and exclusive unallocated/invalid/unscheduled exception buckets. Every review record preserves the parent's source estimate, excluded outcome, eligible descendant keys and their source estimates/outcomes. Never add those review estimates to demand or unallocated hours. Review scope matches the parent or an affected child against the horizon and applicable demand/Assignee/Skill filters, across all teams, and is labelled accordingly.
+- Allocate once to a valid current/future Target Release, otherwise a strictly future Due Date, otherwise an unscheduled exception. The release's official End Date anchors release demand against a date horizon; Due Date anchors fallback demand. A selected release includes fallback dates actually within its governed boundaries; calendar gaps are not invented release memberships. A future release ending beyond year-end is outside that year's demand total, even if it starts in December.
+- Gap = capacity minus assigned demand. Load = assigned demand divided by capacity × 100, using aggregate totals for portfolio load. Missing capacity or a zero denominator produces `-`. Positive portfolio headroom is theoretical and does not transfer capacity between teams.
+- Team/Assignee/Skill scope capacity and assigned demand. Client, Account, Business Area, Promoter, Product module, and Target Release scope demand only. The embedded horizon overrides the sidebar Date Range for this panel. Portfolio-only filters retain their separate existing state and do not implicitly filter Demand Management.
+- Eligible unallocated demand is scheduled, estimated open demand without a mapped workforce team. It is excluded from assigned load/gaps. The exception population ignores Team selection, while retaining Assignee/Skill and demand filters. Non-Engineering, undated, invalid-estimate, and hierarchy exceptions remain separate. Each key has one primary exception category (hierarchy → estimate → unscheduled → unmapped team → outside Engineering); its independent allocation and planning flags remain traceable.
+- Preserve existing Client attribution. No independent account-customer metadata source is present in this workspace. Jira demand never requires a worklog for inclusion; unlogged items remain under Client `N/A`. Do not invent a Jira Account to Tempo Account Key relationship.
+
+The hierarchy rule applies to the supplied Jira extract; unavailable descendants cannot be verified. See [implementation audit and filter matrix](../audit/CAPACITY_ASSIGNED_DEMAND_VALIDATION.md) and the [visual contract](../user-guides/Chart_and_Visual_Specification.md#capacity-versus-known-assigned-demand).
+
+### Other existing governance notes
+
+- Remaining Estimate is Jira-owned and valuable for forecasting, but it is not the governed Demand definition for the current Demand vs Actual visual.
+- A future forecast visual may show Original Estimate, Remaining Estimate, and Logged Hours together, but it requires explicit governance before implementation.
+- New visuals must not redefine Logged Hours, Team attribution, Week Number, global exclusions, parent-child preservation, or Delivery Progress ownership semantics.
+- Any visual that drops rows because of missing Jira metadata, missing Assignees mapping, missing Program, missing Account, or missing labels must report that behavior explicitly.
+- Recursive, metadata-driven Account hierarchy traversal, configurable hierarchy levels, cycle protection, safe maximum depth, first-valid-Account resolution, and ancestor conflict detection are future enhancements; they are not current MVP functionality.

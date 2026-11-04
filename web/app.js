@@ -4,9 +4,8 @@
   const { clonePayload, escapeHtml, parseDataScript, clientValue } = window.DashboardCore;
 
   let raw = applyGlobalIssueExclusions(window.BI_DATA);
+  let portfolioAccountIndex = window.PortfolioAccounts.index(raw.worklogs, raw.meta.excludedIssueKeys);
   let lastUpdateContext = null;
-  // Embedded Tempo dimensions never write to the shared dashboard filters.
-  const accountDistributionSelection = { client: "", account: "" };
   const state = {
     startDate: raw.meta.dateMin,
     endDate: raw.meta.dateMax,
@@ -14,7 +13,8 @@
     assignees: new Set(),
     skills: new Set(),
     clients: new Set(),
-    accounts: new Set(),
+    tempoAccounts: new Set(),
+    tempoAccountsActive: false,
     categories: new Set(),
     priorities: new Set(),
     statuses: new Set(),
@@ -32,7 +32,7 @@
     },
     assigneeSearch: "",
     clientSearch: "",
-    accountSearch: "",
+    tempoAccountSearch: "",
     targetReleaseSearch: "",
     programSearch: "",
     trendGrain: "month",
@@ -181,6 +181,7 @@
   }
 
   function rebuildLookups(resetDefaultStatuses = false) {
+    portfolioAccountIndex = window.PortfolioAccounts.index(raw.worklogs, raw.meta.excludedIssueKeys);
     excludedIssueKeys = governedExcludedIssueKeys(raw);
     canonicalAssigneeByLookupKey = buildCanonicalAssigneeLookup();
     teamByPerson = new Map(raw.assignees.map((row) => [normalizeAssigneeName(row.assignee), row.team]));
@@ -281,35 +282,12 @@
     return Array.from(state.assignees).some((selected) => canonicalAssigneeName(selected) === canonicalValue);
   }
 
-  function accountFilterValue(value) {
-    return accountLabel(value) || "(blank)";
-  }
-
-  function inSelectedAccount(value) {
-    // Empty selections stay unrestricted; Select All must cover every visible reportable bucket.
-    return state.accounts.size === 0 || state.accounts.has(accountFilterValue(value));
-  }
-
   function inSelectedClient(row) {
     return state.clients.size === 0 || state.clients.has(clientValue(row));
   }
 
   function inSelectedStatus(value) {
     return state.statuses.size === 0 || state.statuses.has(value || "");
-  }
-
-  function hasWorklogOnlyFilters(options = {}) {
-    const includeStatus = options.includeStatus !== false;
-    return (
-      state.accounts.size ||
-      state.clients.size ||
-      state.categories.size ||
-      state.priorities.size ||
-      (includeStatus && state.statuses.size) ||
-      state.targetReleases.size ||
-      state.programs.size ||
-      state.releases.size
-    );
   }
 
   function masterTeamLabels() {
@@ -397,7 +375,7 @@
         (ignoreAssignee || inSelectedAssignee(row.person)) &&
         inSet(state.skills, row.skill) &&
         inSelectedClient(row) &&
-        (ignoreAccount || inSelectedAccount(row.tempoAccount)) &&
+        (ignoreAccount || window.PortfolioAccounts.worklogMatches(row, state)) &&
         inSet(state.categories, row.category) &&
         inSet(state.priorities, row.priority) &&
         (ignoreStatus || inSelectedStatus(row.status)) &&
@@ -407,7 +385,7 @@
       );
     });
 
-    const backlog = raw.backlog.filter((row) => {
+    const backlog = window.PortfolioAccounts.distinct(raw.backlog.filter((row) => {
       const rowTeam = backlogTeam(row);
       const rowSkill = backlogSkill(row);
       const release = row.release || "";
@@ -417,14 +395,14 @@
         (ignoreAssignee || inSelectedAssignee(row.assignee)) &&
         inSet(state.skills, rowSkill) &&
         inSelectedClient(row) &&
-        (ignoreAccount || inSelectedAccount(row.account)) &&
+        (ignoreAccount || window.PortfolioAccounts.issueMatches(row, portfolioAccountIndex, state)) &&
         inSet(state.priorities, row.priority) &&
         (ignoreStatus || inSelectedStatus(row.status)) &&
         inSet(state.targetReleases, row.targetRelease) &&
         (ignoreProgram || inSet(state.programs, row.program)) &&
         inSet(state.releases, release)
       );
-    });
+    }));
 
     const backlogWorklogs = (raw.backlogWorklogs || raw.worklogs).filter((row) => {
       const statusActive = isStatusFilterActive();
@@ -435,7 +413,7 @@
         (ignoreAssignee || inSelectedAssignee(row.person)) &&
         inSet(state.skills, row.skill) &&
         inSelectedClient(row) &&
-        (ignoreAccount || inSelectedAccount(row.account)) &&
+        (ignoreAccount || window.PortfolioAccounts.worklogMatches(row, state)) &&
         inSet(state.categories, row.category) &&
         inSet(state.priorities, row.priority) &&
         (ignoreStatus || !statusActive || inSelectedStatus(row.status)) &&
@@ -472,7 +450,7 @@
         (ignoreAssignee || inSelectedAssignee(row.person)) &&
         inSet(state.skills, row.skill) &&
         inSelectedClient(row) &&
-        (ignoreAccount || inSelectedAccount(row.account)) &&
+        (ignoreAccount || window.PortfolioAccounts.worklogMatches(row, state)) &&
         inSet(state.categories, row.category) &&
         inSet(state.priorities, row.priority) &&
         inSet(state.targetReleases, row.targetRelease) &&
@@ -519,8 +497,8 @@
     return buildUpdateContext().effortData;
   }
 
-  function demandBacklogData() {
-    return raw.backlog.filter((row) => {
+  function demandBacklogData(options = {}) {
+    return window.PortfolioAccounts.distinct(raw.backlog.filter((row) => {
       const rowTeam = backlogTeam(row);
       const rowSkill = backlogSkill(row);
       const release = row.release || "";
@@ -530,14 +508,14 @@
         inSelectedAssignee(row.assignee) &&
         inSet(state.skills, rowSkill) &&
         inSelectedClient(row) &&
-        inSelectedAccount(row.account) &&
+        (options.ignoreAccount || window.PortfolioAccounts.issueMatches(row, portfolioAccountIndex, state)) &&
         inSet(state.priorities, row.priority) &&
         inSelectedStatus(row.status) &&
         inSet(state.targetReleases, row.targetRelease) &&
         inSet(state.programs, row.program) &&
         inSet(state.releases, release)
       );
-    });
+    }));
   }
 
   function programDistributionEffortData() {
@@ -552,6 +530,72 @@
       worklogs: scope.worklogs,
       capacity: data.capacity.filter((row) => validTeamSet.has(row.team)),
     };
+  }
+
+  function portfolioAccountRows(backlog, worklogs) {
+    return window.PortfolioAccounts.accountRows(
+      backlog.filter(row => validTeamSet.has(backlogTeam(row))), worklogs,
+      portfolioAccountIndex, state);
+  }
+
+  function portfolioAccountTotals(rows, backlog) {
+    const includedKeys = new Set(rows.flatMap(row => [...row.estimateItems]));
+    const linked = backlog.filter(row => validTeamSet.has(backlogTeam(row)) && includedKeys.has(normalizeIssueKey(row.key)));
+    const totals = window.PortfolioAccounts.totals(linked);
+    return { accountKey: "UNION", account: "Distinct linked issue union", attributionStatus: "Estimates counted once; rows may overlap",
+      estimated: totals.original, remaining: totals.remaining, logged: sum(rows, "logged"),
+      itemCount: new Set(rows.flatMap(row => [...row.items])).size, variance: null, loggedVsEstimate: null };
+  }
+
+  function renderPortfolioDemandReconciliation() {
+    let panel = $("portfolioDemandReconciliation");
+    if (!panel) {
+      panel = document.createElement("article");
+      panel.id = "portfolioDemandReconciliation";
+      panel.className = "panel portfolio-account-reconciliation";
+      $("portfolioTab").appendChild(panel);
+    }
+    const source = demandBacklogData({ ignoreAccount: true });
+    const groups = window.PortfolioAccounts.partition(source, portfolioAccountIndex, state);
+    const totals = Object.fromEntries(Object.entries(groups).map(([key, rows]) => [key, window.PortfolioAccounts.totals(rows)]));
+    const allUnlinked = source.filter(row => ["No worklogs", "Missing Account Keys"].includes(window.PortfolioAccounts.status(row.key, portfolioAccountIndex)));
+    const details = state.tempoAccountsActive ? groups.unlinked : allUnlinked;
+    const noLogs = details.filter(row => window.PortfolioAccounts.status(row.key, portfolioAccountIndex) === "No worklogs");
+    const missing = details.filter(row => window.PortfolioAccounts.status(row.key, portfolioAccountIndex) === "Missing Account Keys");
+    panel.innerHTML = `<div class="panel-header"><div><h3>Jira demand Account reconciliation</h3>
+      <p>Current Jira snapshot; existing Team, ownership, Status and planning filters apply. Observed activity is not Account ownership. This view retains the Remaining Demand chart's eligibility; it is not the Demand Management forecast.</p></div></div>
+      <p data-population="selected">${state.tempoAccountsActive ? "Selected Account issue union" : "Unrestricted issue population"}: <strong>${formatNumber(totals.selected.remaining, 1)} h</strong> remaining · ${formatNumber(totals.selected.items)} issues.</p>
+      <p data-population="unlinked">Residual unlinked outside selection: <strong>${formatNumber(totals.unlinked.remaining, 1)} h</strong> · ${formatNumber(totals.unlinked.items)} issues. Excluded from selected demand, gap, load and variance.</p>
+      <p data-population="other">Other linked outside selection: ${formatNumber(totals.other.remaining, 1)} h · ${formatNumber(totals.other.items)} issues. These three disjoint populations reconcile to ${formatNumber(sum(source, "remainingEstimateHours"), 1)} h.</p>
+      <p>${state.tempoAccountsActive ? "Residual unlinked detail" : "Unlinked detail already included in unrestricted totals"}: no worklogs ${formatNumber(noLogs.length)} issues / ${formatNumber(sum(noLogs, "remainingEstimateHours"), 1)} h; worklogs without Account Keys ${formatNumber(missing.length)} issues / ${formatNumber(sum(missing, "remainingEstimateHours"), 1)} h.</p>
+      <details><summary>Issue attribution and source metadata (${source.length} issues)</summary><div class="table-wrap"><table><thead><tr><th>Jira Issue Key</th><th>Jira Account metadata</th><th>Attribution</th><th>Observed Account Keys</th><th>Population</th><th>Original Estimate</th><th>Remaining Estimate</th></tr></thead><tbody>${Object.entries(groups).flatMap(([population, rows]) => rows.map(row => `<tr><td>${formatJiraIssueLink(row.key)}</td><td>${escapeHtml(row.account || "-")}</td><td>${escapeHtml(window.PortfolioAccounts.status(row.key, portfolioAccountIndex))}</td><td>${escapeHtml([...(portfolioAccountIndex.issues.get(normalizeIssueKey(row.key))?.keys || [])].join(", ") || "-")}</td><td>${population}</td><td>${row.hasOriginalEstimate ? formatNumber(row.originalEstimateHours, 1) : "Unavailable"}</td><td>${row.hasRemainingEstimate ? formatNumber(row.remainingEstimateHours, 1) : "Unavailable"}</td></tr>`)).join("")}</tbody></table></div></details>
+      <button id="downloadPlanningReconciliation" type="button">Download planning reconciliation CSV (v2)</button>`;
+    $("downloadPlanningReconciliation").addEventListener("click", () => downloadSnapshot(true));
+  }
+
+  function exportScope(report) {
+    return { schemaVersion: 2, report, snapshot: raw.meta.generatedOn, startDate: state.startDate, endDate: state.endDate,
+      accountActive: state.tempoAccountsActive, accountKeys: [...state.tempoAccounts].map(value => JSON.parse(value)[0]),
+      filters: Object.fromEntries(["teams", "assignees", "skills", "clients", "categories", "priorities", "statuses", "targetReleases", "programs", "releases"].map(key => [key, [...state[key]]])),
+      membership: "Complete governed valid-date snapshot; direct Issue Key only", actualStatus: "Ignored for governed effort",
+      detailSearch: "Not applied to snapshot exports", sourceFiles: raw.meta.buildManifest?.sourceFiles || [] };
+  }
+
+  function snapshotCsv(planning = false) {
+    const ctx = lastUpdateContext || buildUpdateContext();
+    return window.PortfolioAccounts.exportCsv({ accountRows: portfolioAccountRows(ctx.data.backlog, ctx.effortData.worklogs),
+      planningRows: planning ? demandBacklogData({ ignoreAccount: true }) : filteredData({ ignoreAccount: true }).backlog.filter(row => validTeamSet.has(backlogTeam(row))),
+      evidence: portfolioAccountIndex, state, scope: exportScope(planning ? "Remaining Demand reconciliation" : "Account detail snapshot") });
+  }
+
+  function saveCsv(csv, filename) {
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a"); link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url);
+  }
+
+  function downloadLegacySnapshot() {
+    const labels = new Set(Array.from($("legacyExportLabels").selectedOptions, option => option.value));
+    saveCsv(window.PortfolioLegacyExport.csv(raw, state, labels), `delivery-bi-snapshot-${state.startDate}_${state.endDate}.csv`);
   }
 
   function sum(rows, field) {
@@ -660,20 +704,6 @@
     map.get(label).add(itemKey);
   }
 
-  function accountFacetRows() {
-    const data = filteredData({ ignoreAccount: true });
-    const tempoData = filteredData({ ignoreAccount: true, ignoreStatus: true });
-    return groupAccounts(data.backlog, tempoData.worklogs, data.backlog)
-      .filter((row) => row.itemCount || row.estimated || row.logged)
-      .sort((a, b) => {
-        if ((b.itemCount || 0) !== (a.itemCount || 0)) return (b.itemCount || 0) - (a.itemCount || 0);
-        if ((b.logged || 0) !== (a.logged || 0)) return (b.logged || 0) - (a.logged || 0);
-        if ((b.estimated || 0) !== (a.estimated || 0)) return (b.estimated || 0) - (a.estimated || 0);
-        return String(a.account || "").localeCompare(String(b.account || ""));
-      })
-      .map((row) => ({ label: row.account, count: row.itemCount }));
-  }
-
   function renderFacets() {
     const teamCounts = new Map(
       groupCount(raw.worklogs.filter((row) => validTeamSet.has(row.team)), "team")
@@ -703,8 +733,6 @@
     const clients = Array.from(clientCounts, ([label, count]) => ({ label, count }))
       .sort((left, right) => left.label.localeCompare(right.label))
       .filter((row) => row.label.toLowerCase().includes(state.clientSearch.toLowerCase()));
-    const accounts = accountFacetRows()
-      .filter((row) => accountTableDisplayValue(row.label).toLowerCase().includes(state.accountSearch.toLowerCase()));
     const categories = top(groupCount(raw.worklogs, "category"), "count", 20);
     const priorities = top(groupCount(raw.worklogs, "priority"), "count", 20);
     const statuses = raw.statuses?.length
@@ -731,8 +759,7 @@
     updateSkillPickerSummary(skills.length);
     renderFacet("clientFacet", clients, state.clients, "clients");
     updateClientPickerSummary(clients.length);
-    renderFacet("accountFacet", accounts, state.accounts, "accounts", { labelFormatter: accountTableDisplayValue });
-    updateAccountPickerSummary(accounts.length);
+    renderTempoAccountFacet();
     renderFacet("categoryFacet", categories, state.categories, "categories");
     updateCategoryPickerSummary(categories.length);
     renderFacet("priorityFacet", priorities, state.priorities, "priorities");
@@ -745,6 +772,40 @@
     updateProgramPickerSummary(programs.length);
     renderFacet("releaseFacet", releases, state.releases, "releases");
     updateReleasePickerSummary(releases.length);
+  }
+
+  function tempoAccountId(row) {
+    return JSON.stringify([tempoTreemapAccount(row)]);
+  }
+
+  function tempoAccountDisplay(value) {
+    const key = JSON.parse(value)[0];
+    const row = raw.worklogs.find((row) => tempoTreemapAccount(row) === key);
+    return key ? `${String(row?.tempoAccount || "").trim() || "-"} (${key})` : "-";
+  }
+
+  function renderTempoAccountFacet() {
+    // Facet options use native Tempo attribution before Account selection.
+    const rows = filteredData({ ignoreAccount: true, ignoreStatus: true }).worklogs
+      .filter((row) => validTeamSet.has(row.team) && !isExcludedOperationalItem(row.key));
+    const values = new Set(rows.map(tempoAccountId));
+    // Keep excluded selections available to clear; they never widen the scope.
+    state.tempoAccounts.forEach((value) => values.add(value));
+    const options = Array.from(values).map((label) => ({ label }))
+      .sort((a, b) => tempoAccountDisplay(a.label).localeCompare(tempoAccountDisplay(b.label)))
+      .filter((row) => tempoAccountDisplay(row.label).toLowerCase().includes(state.tempoAccountSearch.toLowerCase()));
+    renderFacet("tempoAccountFacet", options, state.tempoAccounts, "tempoAccounts", { labelFormatter: tempoAccountDisplay });
+    $("tempoAccountPickerSummary").textContent = state.tempoAccountsActive
+      ? `${formatNumber(state.tempoAccounts.size)} selected` : "All accounts";
+  }
+
+  function setTempoAccountPickerOpen(open) {
+    $("tempoAccountPickerMenu").hidden = !open;
+    $("tempoAccountPickerToggle").setAttribute("aria-expanded", String(open));
+  }
+
+  function tempoAccountOptionValues() {
+    return Array.from(document.querySelectorAll('#tempoAccountFacet input')).map((input) => input.value);
   }
 
   function renderFacet(elementId, rows, set, stateKey, options = {}) {
@@ -852,25 +913,6 @@
   function setClientPickerOpen(open) {
     $("clientPickerMenu").hidden = !open;
     $("clientPickerToggle").setAttribute("aria-expanded", String(open));
-  }
-
-  function updateAccountPickerSummary(availableCount = 0) {
-    const selected = state.accounts.size;
-    const summary = $("accountPickerSummary");
-    summary.textContent = selected ? `${formatNumber(selected)} selected` : "All accounts";
-    summary.title = selected
-      ? `${formatNumber(selected)} of ${formatNumber(availableCount)} accounts selected`
-      : "All reportable accounts included.";
-  }
-
-  function accountOptionValues() {
-    return Array.from(document.querySelectorAll('#accountFacet input[data-state="accounts"]'))
-      .map((input) => input.value);
-  }
-
-  function setAccountPickerOpen(open) {
-    $("accountPickerMenu").hidden = !open;
-    $("accountPickerToggle").setAttribute("aria-expanded", String(open));
   }
 
   function updateCategoryPickerSummary(availableCount = 0) {
@@ -999,7 +1041,7 @@
         </article>
       `)
       .join("");
-    const effortFilters = ["clients", "accounts", "categories", "priorities", "targetReleases", "programs", "releases"].some((key) => state[key].size);
+    const effortFilters = state.tempoAccountsActive || ["clients", "categories", "priorities", "targetReleases", "programs", "releases"].some((key) => state[key].size);
     const scopeNote = available
       ? `Annual reporting year ${annual.year}. Team, person and skill narrow gross allocations; annual amounts are never prorated. Actuals cover selected dates ${state.startDate} to ${state.endDate} (source coverage ${raw.meta.dateMin} to ${raw.meta.dateMax}). ${effortFilters ? "Effort-only filters narrow governed actuals, not the annual baseline. " : ""}Date and release selections do not prorate the annual baseline. Actual Hours, gross balance and consumption ratio use the same governed effort (Status ignored).`
       : annual.reason;
@@ -1013,7 +1055,7 @@
       ["assignees", "Assignee"],
       ["skills", "Skill"],
       ["clients", "Client"],
-      ["accounts", "Account"],
+      ["tempoAccounts", "Account"],
       ["categories", "Category"],
       ["priorities", "Priority"],
       ["statuses", "Status"],
@@ -1060,13 +1102,8 @@
         }
         return;
       }
-      if (key === "accounts") {
-        const selectedAccounts = Array.from(state.accounts).sort((a, b) => a.localeCompare(b));
-        if (selectedAccounts.length > 3) {
-          chips.push({ key, label, value: `${formatNumber(selectedAccounts.length)} selected`, clearSet: true });
-        } else {
-          selectedAccounts.forEach((value) => chips.push({ key, label, value: accountTableDisplayValue(value), rawValue: value }));
-        }
+      if (key === "tempoAccounts") {
+        if (state.tempoAccountsActive) chips.push({ key, label, value: `${formatNumber(state.tempoAccounts.size)} selected`, clearSet: true });
         return;
       }
       if (key === "categories") {
@@ -1130,9 +1167,10 @@
     renderPlanningChart(effortData.worklogs || []);
     renderProgramPieChart(programWorklogs);
     renderBugSeverityDistributionChart(data.backlog || []);
-    renderAccountTreemap(data, effortData.baseFiltered.worklogs);
+    renderAccountTreemap(data, filteredData({ ignoreAccount: true, ignoreStatus: true }).worklogs);
     renderTeamChart(effortData.worklogs, effortData.capacity);
     renderRemainingDemandChart(effortData.worklogs, demandBacklogData());
+    renderPortfolioDemandReconciliation();
     renderPriorityChart(data.backlog);
     renderEngineeringWorkMixChart(effortData.worklogs || []);
     renderTypeChart(data.worklogs);
@@ -1317,7 +1355,7 @@
   function activeEffortOnlyFilters() {
     return [
       ["Client", state.clients],
-      ["Account", state.accounts],
+      ["Account", state.tempoAccountsActive ? new Set(["active"]) : new Set()],
       ["Account Category", state.categories],
       ["Priority", state.priorities],
       ["Target Release", state.targetReleases],
@@ -1541,10 +1579,12 @@
   }
 
   function renderAccountTreemap(data, tempoWorklogs) {
-    const worklogs = (tempoWorklogs || []).filter((row) => validTeamSet.has(row.team) && !isExcludedOperationalItem(row.key));
+    const worklogs = (tempoWorklogs || []).filter((row) => validTeamSet.has(row.team) && !isExcludedOperationalItem(row.key)
+      && (!state.tempoAccountsActive || state.tempoAccounts.has(tempoAccountId(row))));
     const totals = peopleTotalsRow(groupPeople(worklogs, []));
     const customerWorklogs = worklogs.filter((row) => !isTempoWorkItem(row.key));
-    renderAccountDistributionFilters(customerWorklogs, worklogs);
+    $("accountTreemapSubtitle").textContent = state.clients.size || state.tempoAccountsActive
+      ? "Tempo logged hours by account" : "Tempo logged hours by client";
     const rows = accountDistributionRows(customerWorklogs);
     const totalLogged = rows.reduce((total, row) => total + row.logged, 0);
     if (!rows.length || totalLogged <= 0) {
@@ -1562,7 +1602,7 @@
 
     tiles.forEach((tile) => {
       const row = tile.data;
-      const selected = row.dimension === "account" && accountDistributionSelection.account === row.filterValue;
+      const selected = row.dimension === "account" && state.tempoAccounts.has(row.filterValue);
       const fill = accountTreemapFill(row.filterValue);
       const stroke = selected ? colors.text : "rgba(255,255,255,0.9)";
       const percentage = totalLogged ? row.logged / totalLogged : 0;
@@ -1584,9 +1624,13 @@
       });
       addTitle(group, accountTreemapTooltip(row, percentage));
       group.addEventListener("click", (event) => {
-        if (row.dimension === "client") accountDistributionSelection.client = row.filterValue;
-        else accountDistributionSelection.account = selected ? "" : row.filterValue;
-        renderAccountTreemap(data, tempoWorklogs);
+        if (row.dimension === "client") {
+          state.clients = new Set([JSON.parse(row.filterValue)[0] || "N/A"]);
+        } else {
+          state.tempoAccounts = selected ? new Set() : new Set([row.filterValue]);
+          state.tempoAccountsActive = !selected;
+        }
+        update();
       });
       group.setAttribute("tabindex", "0");
       group.setAttribute("role", "button");
@@ -1640,48 +1684,10 @@
     return String(row.tempoAccountKey || "").trim();
   }
 
-  function renderAccountDistributionFilters(worklogs, contextWorklogs) {
-    const selection = accountDistributionSelection;
-    const clientId = (row) => JSON.stringify([tempoTreemapClient(row)]);
-    const accountId = (row) => JSON.stringify([tempoTreemapAccount(row)]);
-    const clients = new Map(worklogs.map((row) => [clientId(row), tempoTreemapClient(row) || "-"]));
-    // Retain Client even when a global filter temporarily removes its worklogs.
-    if (selection.client && !clients.has(selection.client)) clients.set(selection.client, JSON.parse(selection.client)[0] || "-");
-    const clientRows = worklogs.filter((row) => !selection.client || clientId(row) === selection.client);
-    const accounts = new Map(clientRows.map((row) => [accountId(row), tempoTreemapAccount(row) ? `${String(row.tempoAccount || "").trim() || "-"} (${tempoTreemapAccount(row)})` : "-"]));
-    const fill = (id, options, all, value) => {
-      const select = $(id);
-      select.replaceChildren(new Option(all, ""), ...Array.from(options).sort((a, b) => a[1].localeCompare(b[1])).map(([key, label]) => new Option(label, key)));
-      select.value = value;
-    };
-    // An account remains selected through unrelated global changes. Only a Client
-    // change clears an incompatible account, using the complete eligible source.
-    if (selection.account && !accounts.has(selection.account)) {
-      const known = raw.worklogs.find((row) => accountId(row) === selection.account);
-      accounts.set(selection.account, known ? `${known.tempoAccount || "-"} (${tempoTreemapAccount(known) || "-"})` : "-");
-    }
-    fill("accountDistributionClient", clients, "All Clients", selection.client);
-    fill("accountDistributionAccount", accounts, "All Accounts", selection.account);
-    $("accountTreemapSubtitle").textContent = selection.client || selection.account ? "Tempo logged hours by account" : "Tempo logged hours by client";
-    $("accountDistributionClient").onchange = (event) => {
-      selection.client = event.target.value;
-      if (selection.account && !raw.worklogs.some((row) => validTeamSet.has(row.team) && !isExcludedOperationalItem(row.key) && !isTempoWorkItem(row.key) && (!selection.client || clientId(row) === selection.client) && accountId(row) === selection.account)) selection.account = "";
-      renderAccountTreemap(null, contextWorklogs);
-    };
-    $("accountDistributionAccount").onchange = (event) => {
-      selection.account = event.target.value;
-      renderAccountTreemap(null, contextWorklogs);
-    };
-  }
-
   function accountDistributionRows(worklogs) {
-    const selection = accountDistributionSelection;
-    const dimension = selection.client || selection.account ? "account" : "client";
+    const dimension = state.clients.size || state.tempoAccountsActive ? "account" : "client";
     const identity = (row) => JSON.stringify([dimension === "client" ? tempoTreemapClient(row) : tempoTreemapAccount(row)]);
-    const visible = worklogs.filter((row) => (
-      (!selection.client || JSON.stringify([tempoTreemapClient(row)]) === selection.client)
-      && (!selection.account || JSON.stringify([tempoTreemapAccount(row)]) === selection.account)
-    ));
+    const visible = worklogs;
     const labels = new Map();
     visible.forEach((row) => {
       if (!labels.has(identity(row))) labels.set(identity(row), dimension === "client" ? tempoTreemapClient(row) || "-" : tempoTreemapAccount(row) ? `${String(row.tempoAccount || "").trim() || "-"} (${tempoTreemapAccount(row)})` : "-");
@@ -2279,69 +2285,6 @@
     return map;
   }
 
-  function accountTreemapRows(data, tempoAccounts) {
-    const map = new Map();
-    const ensureBucket = (account) => {
-      const filterValue = accountFilterValue(account);
-      if (!map.has(filterValue)) {
-        map.set(filterValue, {
-          account: filterValue,
-          accountDisplay: filterValue === "(blank)" ? "(No Account)" : accountTableDisplayValue(filterValue),
-          filterValue,
-          logged: 0,
-          billable: 0,
-          estimated: 0,
-          items: new Set(),
-          assignees: new Set(),
-          teams: new Set(),
-          programs: new Set(),
-          deliveryHealth: "Completed",
-        });
-      }
-      return map.get(filterValue);
-    };
-
-    tempoAccounts.forEach((tempoAccount) => {
-      const item = ensureBucket(tempoAccount.account);
-      item.logged += tempoAccount.logged;
-      item.billable += tempoAccount.billable;
-      tempoAccount.items.forEach((key) => item.items.add(key));
-      tempoAccount.assignees.forEach((assignee) => item.assignees.add(assignee));
-      tempoAccount.teams.forEach((team) => item.teams.add(team));
-      tempoAccount.programs.forEach((program) => item.programs.add(program));
-    });
-
-    const estimatedKeys = new Set();
-    data.backlog.filter((row) => validTeamSet.has(backlogTeam(row))).forEach((row) => {
-      const account = accountLabel(row.account);
-      if (!account) return;
-      const item = ensureBucket(account);
-      const estimateKey = `${item.filterValue}|${row.key || ""}`;
-      if (row.key && estimatedKeys.has(estimateKey)) return;
-      if (row.key) estimatedKeys.add(estimateKey);
-      item.estimated += Number(row.originalEstimateHours) || 0;
-      if (row.key) item.items.add(row.key);
-      if (row.assignee) item.assignees.add(row.assignee);
-      const team = backlogTeam(row);
-      if (team) item.teams.add(team);
-      if (row.program) item.programs.add(row.program);
-      item.deliveryHealth = riskierDeliveryHealth(item.deliveryHealth, row.deliveryHealth);
-    });
-
-    return Array.from(map.values())
-      .filter((row) => row.logged > 0)
-      .map((row) => ({
-        ...row,
-        itemCount: row.items.size,
-        assigneeCount: row.assignees.size,
-        teamsList: Array.from(row.teams).sort((a, b) => a.localeCompare(b)),
-        programsList: Array.from(row.programs).sort((a, b) => a.localeCompare(b)),
-        variance: row.logged - row.estimated,
-        variancePercent: row.estimated ? (row.logged - row.estimated) / row.estimated : null,
-      }))
-      .sort((a, b) => (b.logged - a.logged) || a.accountDisplay.localeCompare(b.accountDisplay));
-  }
-
   function riskierDeliveryHealth(a, b) {
     return (DELIVERY_HEALTH_ORDER[b] ?? 3) < (DELIVERY_HEALTH_ORDER[a] ?? 3) ? b : a;
   }
@@ -2375,7 +2318,7 @@
     [
       ["total", "Total logged hours", "global filters", totals.loggedTotal],
       ["operations", "Operational Tempo hours", "global filters", totals.loggedOperations],
-      ["customer", "Customer/account effort", "global + local filters", customerEffort],
+      ["customer", "Customer/account effort", "global filters", customerEffort],
     ].forEach(([metric, label, scope, hours]) => {
       const value = document.createElement("div");
       value.dataset.metric = metric;
@@ -2916,7 +2859,8 @@
 
     if (state.detail === "accounts") {
       subtitle = "Account delivery effort";
-      rows = groupAccounts(data.backlog, effortData.baseFiltered.worklogs, data.backlog);
+      rows = portfolioAccountRows(data.backlog, effortData.worklogs);
+      subtitle = "Tempo Account actuals and observed linked-issue estimates; Account subtotals may overlap. Unsupported comparisons show unavailable.";
       columns = detailColumns("accounts");
     } else if (state.detail === "people") {
       const peopleData = { worklogs: effortData.worklogs, capacity: effortData.capacity };
@@ -2941,7 +2885,7 @@
       validateDeliveryProgressKnownOwnership(rows);
     }
     let footerRow = null;
-    if (state.detail === "accounts") footerRow = accountTotalsRow(rows);
+    if (state.detail === "accounts") footerRow = portfolioAccountTotals(rows, data.backlog);
     else if (state.detail === "people") footerRow = peopleTotalsRow(rows);
     rows = sortDetailRows(rows, state.detail, columns).slice(0, state.detail === "accounts" ? 120 : state.detail === "people" ? 80 : 120);
     if (state.detailGroupBy) {
@@ -2951,6 +2895,19 @@
     $("detailSubtitle").textContent = subtitle;
     renderDetailGroupControl(columns);
     $("detailTable").innerHTML = tableHtml(columns, rows, state.detail, footerRow, state.detailGroupBy);
+    const issueEvidence = $("accountIssueEvidence");
+    issueEvidence.hidden = state.detail !== "accounts";
+    if (state.detail === "accounts") {
+      const source = filteredData({ ignoreAccount: true }).backlog.filter(row => validTeamSet.has(backlogTeam(row)));
+      const groups = window.PortfolioAccounts.partition(source, portfolioAccountIndex, state);
+      issueEvidence.innerHTML = `<p>Snapshot CSV (v2) includes all Account effort and the issue populations below; detail text search and row limits do not filter exports. Jira issue scope retains this table's existing Created Date, Status and ownership filters. It differs from the Remaining Demand panel's snapshot scope.</p>
+        <p>${Object.entries(groups).map(([population, items]) => { const t = window.PortfolioAccounts.totals(items); return `${population}: ${t.items} issues; Original ${formatNumber(t.original, 1)} h; Remaining ${formatNumber(t.remaining, 1)} h`; }).join(" · ")}</p>
+        <details><summary>Snapshot issue detail and Jira Account metadata</summary><div class="table-wrap account-issue-detail"></div></details>`;
+      issueEvidence.querySelector("details").addEventListener("toggle", event => {
+        if (!event.target.open) return;
+        issueEvidence.querySelector(".account-issue-detail").innerHTML = `<table><thead><tr><th>Jira Issue Key</th><th>Jira Account metadata</th><th>Attribution</th><th>Observed Account Keys</th><th>Population</th><th>Original Estimate</th><th>Remaining Estimate</th></tr></thead><tbody>${Object.entries(groups).flatMap(([population, items]) => items.map(row => `<tr><td>${formatJiraIssueLink(row.key)}</td><td>${escapeHtml(row.account || "-")}</td><td>${escapeHtml(window.PortfolioAccounts.status(row.key, portfolioAccountIndex))}</td><td>${escapeHtml([...(portfolioAccountIndex.issues.get(normalizeIssueKey(row.key))?.keys || [])].join(", ") || "-")}</td><td>${population}</td><td>${row.hasOriginalEstimate ? formatNumber(row.originalEstimateHours, 1) : "Unavailable"}</td><td>${row.hasRemainingEstimate ? formatNumber(row.remainingEstimateHours, 1) : "Unavailable"}</td></tr>`)).join("")}</tbody></table>`;
+      });
+    }
     const deliveryLegend = $("deliveryLegend");
     if (deliveryLegend) deliveryLegend.hidden = state.detail !== "deliveryProgress";
   }
@@ -2958,8 +2915,11 @@
   function detailColumns(mode) {
     if (mode === "accounts") {
       return [
-        { key: "account", label: "Account", formatter: accountTableDisplayValue },
-        { key: "estimated", label: "Original Estimate Hours", numeric: true, digits: 1 },
+        { key: "accountKey", label: "Account Key" },
+        { key: "account", label: "Account Name", formatter: accountTableDisplayValue },
+        { key: "attributionStatus", label: "Attribution" },
+        { key: "estimated", label: "Observed Linked Original Estimate (h)", numeric: true, digits: 1 },
+        { key: "remaining", label: "Observed Linked Remaining Estimate (h)", numeric: true, digits: 1 },
         { key: "logged", label: "Logged Hours", numeric: true, digits: 1 },
         { key: "variance", label: "Variance Hours", numeric: true, digits: 1 },
         { key: "loggedVsEstimate", label: "Logged vs Estimate %", numeric: true, percent: true },
@@ -3362,49 +3322,6 @@
     }
   }
 
-  function groupAccounts(backlog, worklogs, filteredBacklog = backlog) {
-    const map = new Map();
-    const ensureBucket = (account) => {
-      if (!map.has(account)) {
-        map.set(account, {
-          account,
-          estimated: 0,
-          logged: 0,
-          items: new Set(),
-          estimateItems: new Set(),
-        });
-      }
-      return map.get(account);
-    };
-
-    backlog.filter((row) => validTeamSet.has(backlogTeam(row))).forEach((row) => {
-      const account = row.account || "(blank)";
-      const item = ensureBucket(account);
-      if (row.key && item.estimateItems.has(row.key)) return;
-      if (row.key) item.estimateItems.add(row.key);
-      item.estimated += Number(row.originalEstimateHours) || 0;
-    });
-
-    governedTempoAccountAggregation(worklogs).forEach((tempoAccount) => {
-      const item = ensureBucket(tempoAccount.account);
-      item.logged += tempoAccount.logged;
-    });
-
-    filteredBacklog.filter((row) => validTeamSet.has(backlogTeam(row))).forEach((row) => {
-      const account = row.account || "(blank)";
-      if (row.key) ensureBucket(account).items.add(row.key);
-    });
-
-    return Array.from(map.values()).map((row) => ({
-      account: row.account,
-      estimated: row.estimated,
-      logged: row.logged,
-      itemCount: row.items.size,
-      loggedVsEstimate: row.estimated ? row.logged / row.estimated : 0,
-      variance: row.logged - row.estimated,
-    }));
-  }
-
   function groupPeople(worklogs, capacity) {
     const map = new Map();
     const emptyPerson = (person, team) => ({
@@ -3453,20 +3370,6 @@
         utilization: row.capacity ? loggedTotal / row.capacity : 0,
       };
     });
-  }
-
-  function accountTotalsRow(rows) {
-    const estimated = rows.reduce((total, row) => total + (Number(row.estimated) || 0), 0);
-    const logged = rows.reduce((total, row) => total + (Number(row.logged) || 0), 0);
-    const itemCount = rows.reduce((total, row) => total + (Number(row.itemCount) || 0), 0);
-    return {
-      account: "TOTAL",
-      estimated,
-      logged,
-      variance: logged - estimated,
-      loggedVsEstimate: estimated ? logged / estimated : 0,
-      itemCount,
-    };
   }
 
   function peopleTotalsRow(rows) {
@@ -3521,6 +3424,7 @@
 
   function formatDetailCell(row, column) {
     const value = row[column.key];
+    if (value === null) return '<span title="The actual and estimate populations are not comparable">Unavailable</span>';
     if (column.healthKey) return formatHealthSubjectKey(value, row);
     if (column.health) return formatDeliveryHealth(value, row);
     if (["key", "parentKey", "childKey"].includes(column.key)) return formatJiraIssueLink(value, column.emphasize);
@@ -3660,6 +3564,7 @@
     const set = state[key];
     if (set.has(value)) set.delete(value);
     else set.add(value);
+    if (key === "tempoAccounts") state.tempoAccountsActive = set.size > 0;
     update();
   }
 
@@ -3693,28 +3598,8 @@
     update();
   }
 
-  function downloadSnapshot() {
-    const ctx = lastUpdateContext || buildUpdateContext();
-    const { data, effortData } = ctx;
-    const columns = detailColumns("accounts");
-    const rows = sortDetailRows(groupAccounts(data.backlog, effortData.baseFiltered.worklogs, data.backlog), "accounts", columns);
-    const csvRows = [
-      columns.map((column) => column.label),
-      ...rows.map((row) => columns.map((column) => {
-        const value = row[column.key];
-        if (column.percent) return (Number(value) || 0).toFixed(4);
-        if (column.numeric) return (Number(value) || 0).toFixed(column.digits || 0);
-        return value;
-      })),
-    ];
-    const csv = csvRows.map((row) => row.map(csvCell).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `delivery-bi-snapshot-${state.startDate}_${state.endDate}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  function downloadSnapshot(planning = false) {
+    saveCsv(snapshotCsv(planning), `delivery-bi-${planning ? "planning" : "snapshot"}-v2-${state.startDate}_${state.endDate}.csv`);
   }
 
   function csvCell(value) {
@@ -3729,11 +3614,13 @@
     $(`${prefix}SelectAll`).addEventListener("click", () => {
       state[stateKey].clear();
       optionValues().forEach((value) => state[stateKey].add(value));
+      if (stateKey === "tempoAccounts") state.tempoAccountsActive = true;
       update();
       setOpen(true);
     });
     $(`${prefix}ClearAll`).addEventListener("click", () => {
       state[stateKey].clear();
+      if (stateKey === "tempoAccounts") state.tempoAccountsActive = false;
       update();
       setOpen(true);
     });
@@ -3767,10 +3654,6 @@
       state.clientSearch = event.target.value;
       renderFacets();
     });
-    $("accountSearch").addEventListener("input", (event) => {
-      state.accountSearch = event.target.value;
-      renderFacets();
-    });
     $("targetReleaseSearch").addEventListener("input", (event) => {
       state.targetReleaseSearch = event.target.value;
       renderFacets();
@@ -3801,36 +3684,45 @@
         "assignees",
         "skills",
         "clients",
-        "accounts",
+        "tempoAccounts",
         "categories",
         "priorities",
         "targetReleases",
         "programs",
         "releases",
       ].forEach((key) => state[key].clear());
+      state.tempoAccountsActive = false;
+      state.tempoAccountSearch = "";
+      $("tempoAccountSearch").value = "";
       resetStatusDefaults();
       state.detailSearch = "";
       state.assigneeSearch = "";
       state.clientSearch = "";
-      state.accountSearch = "";
       state.targetReleaseSearch = "";
       state.programSearch = "";
       $("detailSearch").value = "";
       $("assigneeSearch").value = "";
       $("clientSearch").value = "";
-      $("accountSearch").value = "";
       $("targetReleaseSearch").value = "";
       $("programSearch").value = "";
       document.querySelectorAll(".segmented button").forEach((button) => button.classList.toggle("active", button.dataset.preset === "full"));
       update();
     });
-    $("downloadSnapshot").addEventListener("click", downloadSnapshot);
+    $("downloadSnapshot").textContent = "Download Portfolio CSV (v2)";
+    $("downloadSnapshot").addEventListener("click", () => downloadSnapshot());
+    $("downloadLegacySnapshot").addEventListener("click", downloadLegacySnapshot);
+    $("legacyExportLabels").innerHTML = window.PortfolioLegacyExport.rows(raw, state).map(row => row.account)
+      .sort((a, b) => a.localeCompare(b)).map(label => `<option value="${escapeHtml(label)}">${escapeHtml(accountTableDisplayValue(label))}</option>`).join("");
 
     bindFacetPicker("team", "teams", setTeamPickerOpen, teamOptionValues);
     bindFacetPicker("assignee", "assignees", setAssigneePickerOpen, assigneeOptionValues);
     bindFacetPicker("skill", "skills", setSkillPickerOpen, skillOptionValues);
     bindFacetPicker("client", "clients", setClientPickerOpen, clientOptionValues);
-    bindFacetPicker("account", "accounts", setAccountPickerOpen, accountOptionValues);
+    bindFacetPicker("tempoAccount", "tempoAccounts", setTempoAccountPickerOpen, tempoAccountOptionValues);
+    $("tempoAccountSearch").addEventListener("input", (event) => {
+      state.tempoAccountSearch = event.target.value;
+      renderTempoAccountFacet();
+    });
     bindFacetPicker("category", "categories", setCategoryPickerOpen, categoryOptionValues);
     bindFacetPicker("priority", "priorities", setPriorityPickerOpen, priorityOptionValues);
     bindFacetPicker("status", "statuses", setStatusPickerOpen, statusOptionValues);
@@ -3855,6 +3747,7 @@
       }
       if (clearButton) {
         state[clearButton.dataset.clearKey].clear();
+        if (clearButton.dataset.clearKey === "tempoAccounts") state.tempoAccountsActive = false;
         update();
         return;
       }

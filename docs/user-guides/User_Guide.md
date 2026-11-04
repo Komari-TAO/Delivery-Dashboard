@@ -1,4 +1,13 @@
-# Delivery Management Dashboard User Guide
+# Delivery Management Dashboard User Guide — CH-005A v1
+
+> **Canonical CH-005A governance; publication revision 1, 2026-11-04.** Local promotion and subsequent reference-only publication edits are authorized; GitHub publication is pending.
+
+## Publication provenance
+
+Historical governance reference: [pinned GitHub record](https://github.com/Komari-TAO/Delivery-Dashboard/tree/3ca6ef0393f119582792bf5b4f2aec4c3873bf4a). CH-004 G1 approval is limited to Account Distribution. CH-005A D1–D3 and D5–D8 cover the approved Portfolio consolidation; D4 defers Demand Management consolidation. Approval is conditional on the documented current-source scope. The accepted unresolved exceptions remain in force.
+
+The [publication evidence summary](../audit/CH005A_PUBLICATION_SUMMARY_v1.md) records approval scope, retained exceptions and the private-evidence boundary. This publication revision changes metadata and references only, preserving approved business content. The approved source proposal and complete historical audit trail remain preserved locally.
+
 
 ## Purpose
 
@@ -8,38 +17,85 @@ For the authoritative field-level rules, calculations, joins, and data-quality b
 
 ## Workspace layout
 
-- **General KPI cards** stay visible above all tabs. They are fixed source measures and do not respond to filters or tab changes.
-- **Portfolio** is the delivery-effort workspace: historical Tempo activity, Jira context, capacity, charts, and operational details.
+- **General KPI cards** stay visible above the tabs. Applicability depends on the measure: annual roster scope, filtered actual effort, and full-source capacity/demand are distinct. See below.
+- **Portfolio** is the delivery-effort workspace: historical Tempo activity, Jira context, capacity, charts, and operational details. Its sidebar offers **Client**, **Account** and **Account Category**. Reporting Account has been removed; legacy label choices are available only with the explicit v1 export.
 - **Demand Management** combines current actual effort, known future demand, capacity, planning position, and Epic Workflow. It is demand visibility, not a forecast.
 - **Datasources** displays source freshness, data-quality status, relationships, and the exact rules used by the dashboard.
 
 ## General KPI cards
 
-| KPI | Definition |
+| KPI | Existing meaning and filter scope |
 | --- | --- |
-| Annual Workforce Legal Hours | Sum of Assignees `Actual Annual Hours` for Authoring, Delivery Express, Integration, Nexus, Portal, and Scoring. |
-| Annual Workforce Capacity | Sum of Weekly Capacity `Planned Hours`. |
-| Actual Hours | Sum of Tempo `Logged Hours`. |
-| Remaining Period Capacity | Annual Workforce Capacity minus Actual Hours. |
-| Annual Capacity Utilization | Actual Hours divided by Annual Workforce Capacity. |
-| Demand Capacity | Sum of Jira `Effort CAP (hrs)`. |
+| Annual Gross Workforce Hours | Supplied Development + Engineering annual allocation once per canonical Assignee ID; Team/Assignee/Skill and compatible year govern scope. |
+| Annual Development Capacity | Existing full-source Weekly Capacity Planned Hours; blank contributes zero. Planned Support is shown separately and is already deducted from Development. |
+| Actual Hours | Governed six-team Tempo effort for the compatible roster, reporting year, selected dates and applicable effort filters; Status-independent. |
+| Gross Annual Hours Balance | Annual gross allocation minus the same governed actual-effort numerator. Annual amounts are not prorated by partial effort/date selections. |
+| Logged Hours / Gross Annual Hours | Same governed actual-effort numerator divided by compatible annual gross allocation; gross consumption, not net utilization. |
+| Demand Capacity | Existing fixed full-source Jira Effort CAP sum. |
+
+Account selection now filters approved Portfolio logged-effort measures using Tempo Account Key, including Actual Hours and the gross balance/ratio numerator. Client keeps its supported scope. Neither selection divides workforce capacity among Accounts. Gross measures remain before absences, preserve source joiner/leaver adjustments and compatible-year checks, and are unavailable for unsupported/mixed-year scope or missing/ambiguous annual data. These descriptions restate the existing Portfolio card contract and change no formula.
 
 ## Portfolio
 
 Use Portfolio to understand actual delivery work and current operational context.
 
 1. Set the **Date Range** for Tempo activity.
-2. Use searchable multi-select filters for Team, Assignee, Skill, Client, Account, Category, Priority, Status, Target Release, Program, and Release Cycle.
+2. Use the searchable multi-select sidebar controls. **Client** is verified Tempo Account Customer. **Account** identifies Tempo Accounts by Account Key, displaying Name (Key). **Account Category** comes from Tempo. Jira Account remains ticket metadata and is used independently in Demand Management. Team, Assignee, Skill, Priority, Status, Target Release and Program retain their supported scope. Release Cycle functionality remains parked/hidden; no new interaction is introduced.
 3. Review charts for time trend, planning discipline, program, bug severity, account distribution, utilization, remaining demand, priority, engineering work mix, and work-item types.
 4. Use **Accounts**, **People**, **Backlog**, and **Delivery Progress** details for follow-up. Tables support sorting, grouping, and Jira/Tempo links where an authoritative identifier is available.
 
 **Bug Severity Distribution** counts distinct Jira PI Backlog work items where Issue Type is Bug and severity is Blocker, Critical, or Major. It follows the active Portfolio filters.
 
+### Account Distribution
+
+| Sidebar state | Account Distribution |
+| --- | --- |
+| No active Client or Tempo Account selection | Distribution by Client |
+| Client selected | Associated Account distribution |
+| Tempo Account selected | Selected Account distribution |
+| Explicit All Accounts | All eligible Account distribution |
+| Client and Account active | Intersected Account distribution |
+| Both reset | Default Client distribution |
+
+Explicit **Select All** stores the currently rendered Account options and activates Account grouping. It differs from inactive **All accounts**. Search or other applicable scope can limit those options; it is not a wildcard for future Accounts. Explicit All Clients also activates Account grouping when options exist. Clear All Accounts deactivates Account selection; Client grouping returns only when Client is also cleared. Client and Account selections intersect; a selection outside the current scope does not widen it.
+
+Use Account checkboxes to choose one or more keys. Clicking a Client tile sets that sidebar Client; clicking an Account tile selects its key or clears the Account selection if already selected. Keyboard Enter/Space performs the same action. Clear both Client and Account, or use Reset, to return to default Client distribution.
+
+Tiles show nonoperational Tempo effort, including `-` missing-attribution buckets; the Client picker uses `N/A` for unresolved attribution. The footer shows Total logged hours, Operational Tempo hours and Customer/account effort for the same applicable Client/Account scope. Operational effort stays out of tiles and within applicable footer totals. Status does not filter this treemap. Other supported filters retain their existing effect.
+
+### Using Account selections
+
+Account names help you read the picker; the trimmed, case-preserved Key identifies the Account. Equal names with different keys remain separate. With Account inactive, reports are unrestricted by Account. Explicit Select All saves the currently shown options and activates the selection; a search or current scope may limit those options. It will not automatically include keys added later. An active selection containing no keys shows no matching worklogs or issues. Clear Account returns to unrestricted; an active Client still keeps Account grouping. Keys that disappear after refresh remain selected and available to clear, without broadening the current Client intersection. The missing-key option retains logs whose Account Key is missing, even if a name is present. It does not select tickets with no worklogs.
+
+The Account choice applies to approved effort charts and logged-effort details: Hours Trend, Team Utilization, Planned/Unplanned, Program Distribution, Engineering Work Mix, People, Backlog Worked On and Delivery Progress activity. Their existing eligibility and calculation rules still apply. Capacity remains based on workforce and calendar sources, so selecting an Account does not show capacity dedicated to it.
+
+### Linked and unlinked Jira demand
+
+For Jira counts and estimates, an issue is linked only through direct matching Jira Issue Key and Tempo Work Item Key activity in the complete governed source snapshot, before your interactive filters. Account names, parents, Client and Category do not create a link. Observed activity is evidence of work, not contractual ownership. Jira Account metadata is retained for investigation.
+
+The reconciliation panel separates selected Account demand, residual unlinked demand and other linked issues. Unlinked means no eligible worklogs or only worklogs missing Account Keys; those two causes are shown separately. Partial attribution and multiple observed Accounts are also disclosed. Partial evidence can include multiple known keys. A missing-key choice may select an issue with missing-key logs; that issue is then excluded from residual unlinked totals. With Account unrestricted, the overall selected issue population includes all eligible issues, while attribution diagnostics still identify gaps.
+
+A multi-Account issue contributes its estimate once to the selected Account union. Separate Account estimate rows may overlap and must not be added together. No estimate is split among Accounts, and unlinked demand is never assigned by guessing a Tempo Account. It is not included in treemap tiles or footer hours.
+
+### Reading Account details
+
+Actual hours come from Tempo by Account Key. Original and Remaining Estimates come from Jira, once per issue, and are labelled observed linked-issue estimates. They are not Account budgets. Account details retain their existing Jira Created-date and Status scope; the Remaining Demand panel uses the current Jira snapshot independently of Created date. The two populations can differ. Logged effort uses selected work dates and keeps its existing Status exception. Account Category filters worklogs, not Jira estimates.
+
+A variance or percentage is available only for a complete, single-Account comparison with the same issues, valid Original Estimates and all their observed source worklogs included. A date, person or Team selection can leave only partial activity and make the comparison unavailable. The explanation accompanies Unavailable. A zero estimate makes the percentage unavailable. Union variance/percentage remain unavailable. The footer deduplicates linked issues across visible Account rows.
+
+Account-filtered results may differ from older Reporting Account reports because the old reports mixed Jira Account labels and Tempo names, while current reports use Tempo keys and observed activity. The underlying effort and estimate arithmetic is unchanged. Historical equivalence has not been established.
+
+### Choosing an export
+
+Use the primary snapshot v2 action for Account-detail scope, or the reconciliation panel's planning v2 action for Remaining Demand snapshot scope. Both are explicitly versioned and keep Account effort rows separate from Jira issue rows. Jira estimates occur once per issue across selected/unlinked/other populations; do not expand them onto worklog rows and sum them. Missing source estimates stay blank. Files include selection/source context and ignore table text search and displayed-row limits.
+
+Use Legacy CSV (v1) for consumers that still need the original six columns and original rounding/formulas. Its optional Jira Account / Tempo Account Name labels are export-only, independent of modern Account selection. Modern Account Key selection does not filter v1. v1 remains required pending downstream approval; external acceptance of v2 has not been established.
+
 ## Demand Management
 
 Use Demand Management to inspect known delivery demand and its workflow position.
 
-- The filter rail follows the same multi-select pattern as Portfolio.
+- The filter rail follows the same multi-select pattern as Portfolio, but its Account picker remains independently selected Jira Account metadata. Portfolio Account Key choices do not synchronize with it. Consolidation is deferred to CH-005B.
 - **Client** = Tempo Customer Account (`Account Customer`), validated through Tempo Account Key. Jira demand requires complete direct work-item evidence for exactly one customer; missing, incomplete, or ambiguous attribution appears as `N/A`. Jira Client, Tempo Account Name, and Jira Account never supply a fallback. Capacity and the fixed source KPI cards retain their existing filter scope.
 - **Business Area** is mapped from the Jira Promoter or Reporter to `Promoters.csv`; the relationship is an OR match and blanks/unmatched values appear as `Other/Blank`.
 - **Target / Planning Release** comes directly from the Jira Target Release field.
@@ -70,3 +126,27 @@ The builder selects the latest matching export according to the documented file 
 - Do not infer an Epic's total descendant effort from the direct Epic-hour value.
 - Use `Other/Blank`, unmapped records, and data-quality exceptions as prompts to correct source data or mappings.
 - Refer to the Chart and Visual Specification instead of copying calculations into offline reports.
+- Grouping alone preserves eligible Account Distribution worklogs; Client or Account filters can narrow them and their footer totals. The 51,806.039 h Total / 8,263.271 h Operational / 43,542.768 h Customer/Account values are a validated snapshot, not permanent targets.
+- Do not infer Jira ownership, full customer demand, or allocated customer capacity from Tempo Account names. Missing attribution stays explicit. Negative/nonpositive aggregate-hour reconciliation and broad historical replay/regression assurance remain limited; see the Step 4 governance validation report.
+
+
+## Conditional acceptance and known limits
+
+CH-005A is conditionally accepted for the validated current-source Portfolio scope. These conditions remain:
+
+1. Historical capacity and reporting replay are incomplete because prior exports are unavailable.
+2. External consumer acceptance of v2 exports has not been established.
+3. Legacy v1 remains available pending downstream approval.
+4. Jira Status category mapping has an unresolved defect.
+5. The builder still has an ISO-week/weekday fallback that conflicts with exclusive Master Date governance; this is an implementation exception, not an approved calendar rule.
+6. Epic-child Jira Account mismatches and missing Jira Account values remain data-quality issues.
+7. Observed Tempo Account membership does not prove contractual ownership.
+8. Effective-dated Account/customer history and an authoritative Jira/Tempo ownership crosswalk are unavailable.
+9. Treemap reconciliation with negative adjustments remains unvalidated.
+10. CH-005B remains deferred; Demand Management keeps its existing independent Account and planning rules.
+
+The validated October 30, 2026 treemap snapshot is Total Logged 51,806.039 h, Operational Tempo 8,263.271 h and Customer/Account 43,542.768 h. These are historical observations, not permanent values. Separately, the October 30–December 31 capacity planning reference recorded 4,934.2333 h assigned demand, 42 unlogged issues and 2,056 h unlogged demand. That reference uses the independent Demand Management resolver, is not Portfolio Remaining Demand and does not assign those hours to Tempo Accounts.
+
+The chart specification also records a pre-existing Bug Severity date-rule contradiction and an Original-versus-Remaining visual-definition inconsistency. This documentation does not resolve or approve either discrepancy. Earlier CH-004 manifest/sync-state and chronology observations remain dated evidence; newer matching CH-005A manifest hashes do not repair historical records or establish historical acceptance.
+
+See the [publication evidence summary](../audit/CH005A_PUBLICATION_SUMMARY_v1.md) for checks and unresolved conflicts, and [publication evidence summary](../audit/CH005A_PUBLICATION_SUMMARY_v1.md) for file details.

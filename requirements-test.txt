@@ -1,0 +1,2 @@
+# Authorized local builder/private-source tests; public JS gates need no Python.
+pandas==3.0.1

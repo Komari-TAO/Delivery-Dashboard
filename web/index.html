@@ -128,23 +128,23 @@
         <div class="filter-group filter-group-portfolio">
           <section class="filter-block">
             <div class="filter-title">Account</div>
-            <div class="filter-picker account-picker" id="accountPicker">
-              <button class="filter-picker-toggle" id="accountPickerToggle" type="button" aria-expanded="false" aria-controls="accountPickerMenu">
+            <div class="filter-picker" id="tempoAccountPicker">
+              <button class="filter-picker-toggle" id="tempoAccountPickerToggle" type="button" aria-expanded="false" aria-controls="tempoAccountPickerMenu">
                 <span>Account</span>
-                <strong id="accountPickerSummary">All accounts</strong>
+                <strong id="tempoAccountPickerSummary">All accounts</strong>
               </button>
-              <div class="filter-picker-menu" id="accountPickerMenu" hidden>
-                <input class="filter-search picker-search" id="accountSearch" type="search" placeholder="Search accounts" />
+              <div class="filter-picker-menu" id="tempoAccountPickerMenu" hidden>
+                <input class="filter-search picker-search" id="tempoAccountSearch" type="search" placeholder="Search accounts" />
                 <div class="filter-picker-actions">
-                  <button type="button" id="accountSelectAll">Select All</button>
-                  <button type="button" id="accountClearAll">Clear All</button>
+                  <button type="button" id="tempoAccountSelectAll">Select All</button>
+                  <button type="button" id="tempoAccountClearAll">Clear All</button>
                 </div>
-                <div class="facet-list tall account-list" id="accountFacet"></div>
+                <div class="facet-list tall account-list" id="tempoAccountFacet"></div>
               </div>
             </div>
           </section>
 
-          <section class="filter-block">
+<section class="filter-block">
             <div class="filter-title">Account Category</div>
             <div class="filter-picker category-picker" id="categoryPicker">
               <button class="filter-picker-toggle" id="categoryPickerToggle" type="button" aria-expanded="false" aria-controls="categoryPickerMenu">
@@ -269,7 +269,14 @@
           </div>
           <div class="topbar-actions">
             <div class="range-badge" id="rangeBadge"></div>
-            <button class="primary-button" id="downloadSnapshot" type="button">Download CSV</button>
+            <button class="primary-button" id="downloadSnapshot" type="button">Download Portfolio CSV (v2)</button>
+            <details class="legacy-export-options" data-workspace-surface="portfolioTab">
+              <summary>Legacy CSV (v1)</summary>
+              <p>Original label-based export only. Tempo Account selection does not apply.</p>
+              <label for="legacyExportLabels">Legacy labels (export only; none = unrestricted)</label>
+              <select id="legacyExportLabels" multiple size="6"></select>
+              <button id="downloadLegacySnapshot" type="button">Download legacy CSV</button>
+            </details>
           </div>
         </header>
 
@@ -347,13 +354,10 @@
                 <h3>Account Distribution</h3>
                 <p id="accountTreemapSubtitle">Tempo logged hours by client</p>
               </div>
-              <div class="pivot-controls account-distribution-controls">
-                <label>Client<select id="accountDistributionClient" aria-label="Account Distribution Client"><option value="">All Clients</option></select></label>
-                <label>Account<select id="accountDistributionAccount" aria-label="Account Distribution Account"><option value="">All Accounts</option></select></label>
-              </div>
+
             </div>
             <div class="chart-frame treemap-frame" id="accountTreemap"></div>
-            <p class="chart-business-hint">Shows how delivery effort is distributed across Tempo Clients and their Accounts. Operational Tempo activity is excluded from the treemap but included in Total logged hours. Client and Account selections apply only to this visualization.</p>
+            <p class="chart-business-hint">Shows how nonoperational Tempo effort is distributed across Clients or Accounts. Use the Client and Account filters in the left panel to explore the distribution. Operational Tempo activity is excluded from the treemap but included in Total logged hours.</p>
           </article>
 
           <div class="executive-chart-grid">
@@ -445,6 +449,7 @@
           <div class="table-wrap">
             <table id="detailTable"></table>
           </div>
+          <div id="accountIssueEvidence" hidden></div>
           <div id="deliveryLegend" class="delivery-legend" hidden>
             <span><i class="health-red"></i>Red: overdue</span>
             <span><i class="health-amber"></i>Amber: due within 7 days</span>
@@ -495,7 +500,7 @@
                 <tr><td>Date Range</td><td>Filters Tempo activity; Master Date sets selectable bounds.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work date`; `Google 2026 to 2028_Master_Date.csv.Master Date`.</td></tr>
                 <tr><td>Team / Assignee / Skill filters</td><td>Tempo and Jira assignees resolve through the master.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`; `20261009_Assignees_Capacity.csv.Assignee`, `.Team`, `.Skill`.</td></tr>
                 <tr><td>Client filter</td><td>Same Client dimension and searchable multi-select behavior as Demand Management. Tempo Customer Account is applied directly to worklogs and is carried to Jira rows through the Jira-to-Tempo key relationship; unverified values are `N/A`.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Customer`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`.</td></tr>
-                <tr><td>Account / Category filters</td><td>Tempo account display plus Jira governed account.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name`, `.Account Category`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Account)`.</td></tr>
+                <tr><td>Account / Category filters</td><td>Portfolio Account uses Tempo Account Key; Name is display only. Worklogs match directly by key; Jira issues match through observed direct Issue Key activity. Unlinked demand is separate. Category scopes Tempo effort only; Demand Management stays independent.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Account Name`, `.Account Category`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Account)`.</td></tr>
                 <tr><td>Priority / Status / Target Release / Program filters</td><td>Jira metadata joined to Tempo by key.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Priority`, `.Status`, `.Custom field (Target Release)`, `.Custom field (Program)`.</td></tr>
                 <tr><td>Portfolio annual KPI cards</td><td>Annual Gross Workforce Hours sums supplied Development + Engineering allocations once per canonical Assignee ID (Team/person/skill scope, full reporting year). Annual Development Capacity retains the full-source Weekly Capacity sum; planned Support is shown separately from Support hours 2026.csv. Actual Hours uses the same governed, filtered effort as the annual balance and ratio. Demand Capacity retains its existing source calculation.</td><td>Gross Annual Hours Balance and Logged Hours / Gross Annual Hours use compatible governed actuals for the selected year, roster and effort scope. Annual values are never prorated. Scope differences, unsupported years and zero denominators are disclosed. These are gross budget measures before absences, not net utilization or future availability.</td></tr>
               </tbody></table></div>
@@ -507,13 +512,13 @@
                 <tr><td>Planned vs Unplanned</td><td>Distinct work items classified from Jira labels; hours are Tempo logged hours.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Labels`.</td></tr>
                 <tr><td>Program Distribution</td><td>Tempo logged hours by joined Jira program.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Work Item Key`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Program)`.</td></tr>
                 <tr><td>Bug Severity Distribution</td><td>Distinct Jira PI Backlog Issue keys where Issue Type is Bug, grouped only as Major, Blocker, or Critical.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Issue Type`, `.Custom field (Bug Severity)`.</td></tr>
-                <tr><td>Account Distribution</td><td>Governed nonoperational Tempo effort by validated Client/Account Key; missing attribution displays -. Percentages use visible customer/account effort. Total and Operational Tempo hours retain global scope; customer/account effort also follows local selections.</td><td>Tempo `Work Item Key` through the shared operational classification; `Account Customer`, `Account Key`, `Account Name`, `Logged Hours`, `Work date`. Existing customer validation and managed-team/global exclusion rules apply.</td></tr>
+                <tr><td>Account Distribution</td><td>Governed nonoperational Tempo effort by validated Client/Account Key; missing attribution displays -. Percentages use visible customer/account effort. Client and Tempo Account sidebar selections control grouping and scope for all three footer measures. The same Tempo Account selection filters approved Portfolio consumers; Jira estimates use distinct observed issue membership.</td><td>Tempo `Work Item Key` through the shared operational classification; `Account Customer`, `Account Key`, `Account Name`, `Logged Hours`, `Work date`. Existing customer validation and managed-team/global exclusion rules apply.</td></tr>
                 <tr><td>Team Utilization</td><td>Tempo actual vs weekly planned capacity by team.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Full name`; `Weekly Capacity_20261005.csv.Planned Hours`, `.Assignee`, `.Week Number`; `20261009_Assignees_Capacity.csv.Assignee`, `.Team`.</td></tr>
                 <tr><td>Remaining Demand vs Logged Effort</td><td>Jira remaining estimate vs Tempo actual by team.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Remaining Estimate`, `.Assignee`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Logged Hours`, `.Full name`; `20261009_Assignees_Capacity.csv.Assignee`, `.Team`.</td></tr>
                 <tr><td>Backlog Priority</td><td>Distinct Jira work items by priority.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Priority`.</td></tr>
                 <tr><td>Engineering Work Mix</td><td>Tempo logged hours split by Jira technical-debt classification.</td><td>`RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Logged Hours`; `All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Custom field (Is this technical debt ?)`.</td></tr>
                 <tr><td>Work Item Types</td><td>Distinct Jira work items grouped by issue type.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Issue Type`.</td></tr>
-                <tr><td>Details — Accounts</td><td>Account-level Jira scope, Tempo effort, and account health.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`, `.Issue key`, `.Summary`, `.Status`, `.Priority`, `.Remaining Estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Logged Hours`, `.Account Name`.</td></tr>
+                <tr><td>Details — Accounts</td><td>Tempo Key actuals and observed linked-issue Jira estimates; estimates are not Account budgets. Overlapping Account estimates are non-additive; unsupported variance is unavailable. Versioned v2 exports preserve issue grain; v1 legacy CSV remains export-only.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Custom field (Account)`, `.Issue key`, `.Summary`, `.Status`, `.Priority`, `.Remaining Estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Logged Hours`, `.Account Name`.</td></tr>
                 <tr><td>Details — People</td><td>Assignee-level Jira scope, Tempo activity, capacity, team, and skill.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Assignee`, `.Issue key`, `.Status`, `.Remaining Estimate`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Full name`, `.Work date`, `.Logged Hours`; `20261009_Assignees_Capacity.csv.Assignee`, `.Team`, `.Skill`, `.Actual Annual Hours`; `Weekly Capacity_20261005.csv.Assignee`, `.Planned Hours`.</td></tr>
                 <tr><td>Details — Backlog</td><td>Jira parent and child demand, status, priority, and planned dates.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Parent`, `.Parent summary`, `.Summary`, `.Status`, `.Priority`, `.Custom field (Start date)`, `.Due date`, `.Remaining Estimate`, `.Assignee`.</td></tr>
                 <tr><td>Details — Delivery Progress</td><td>Jira workflow progress and Tempo actual effort for parent and child work.</td><td>`All Jira Work Items marked PI Backlog (JIRA)_20261007.csv.Issue key`, `.Parent`, `.Status`, `.Summary`, `.Assignee`, `.Due date`; `RAW_DATA_FULL_ANALYSIS_01_Jan_26_07_Oct_26.csv.Work Item Key`, `.Work date`, `.Logged Hours`.</td></tr>
@@ -571,6 +576,8 @@
     <script src="./data.js"></script>
     <script src="./dashboard-core.js"></script>
     <script src="./annual-kpis.js"></script>
+    <script src="./portfolio-accounts.js"></script>
+    <script src="./portfolio-legacy-export.js"></script>
     <script src="./app.js?v=annual-governed-20261030"></script>
     <script src="./capacity-coverage.js"></script>
     <script src="./demand.js"></script>
